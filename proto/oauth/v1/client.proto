@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package oauth.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+service ClientService {
+  rpc CreateClient(CreateClientRequest) returns (CreateClientResponse) {}
+}
+
+message CreateClientRequest {
+  string name = 1 [
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+message CreateClientResponse {
+  string name = 1;
+}

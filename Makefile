@@ -1,5 +1,7 @@
 MIGRATIONS_FOLDER=migrations
+PROTO_FOLDER=protobuf/proto
 ENV_FILE=.env
+BUF_VERSION?=1.58.0
 
 install-goose:
 	go install github.com/pressly/goose/v3/cmd/goose@latest
@@ -23,3 +25,14 @@ env-example:
     	/^[[:space:]]*$$/ {print ""; next} \
     	NF>=1 {gsub(/^[[:space:]]+|[[:space:]]+$$/, "", $$1); print $$1"="}' .env > .env.example
 	echo ".env.example generated successfully."
+
+install-buf:
+	go install github.com/bufbuild/buf/cmd/buf@v${BUF_VERSION}
+
+buf-dev:
+	buf dep update
+	buf export buf.build/bufbuild/protovalidate --output=.
+
+buf-gen:
+	buf dep update
+	buf generate
