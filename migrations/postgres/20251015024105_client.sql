@@ -1,0 +1,14 @@
+-- +goose Up
+CREATE TABLE client (
+                      id UUID,
+                      PRIMARY KEY(id)
+);
+
+-- +goose StatementBegin
+SELECT 'up SQL query';
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+SELECT 'down SQL query';
+-- +goose StatementEnd
