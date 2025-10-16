@@ -10,6 +10,8 @@ import (
 
 type Config struct {
 	*koanf.Koanf
+
+	Version string `koanf:"version"`
 }
 
 func LoadJSONConfig(c *Config) {
@@ -30,14 +32,17 @@ func LoadJSONConfig(c *Config) {
 			}
 
 			log.Println("config changed. Reloading ...")
-			k = koanf.New(".")
-			if err := k.Load(f, json.Parser()); err != nil {
+			if err := c.Koanf.Load(f, json.Parser()); err != nil {
 				log.Printf("error loading config: %v", err)
 				return
 			}
 
+			if err := c.Koanf.Unmarshal("", c); err != nil {
+				log.Printf("error unmarshalling config: %v", err)
+				return
+			}
+
 			k.Print()
-			c.Koanf = k
 		})
 		if err != nil {
 			return
