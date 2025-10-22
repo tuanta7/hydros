@@ -4,18 +4,15 @@ import (
 	"context"
 
 	"github.com/tuanta7/oauth-server/internal/domain"
-	"github.com/tuanta7/oauth-server/internal/sources/postgres/transaction"
 )
 
 type UseCase struct {
 	clientRepo Repository
-	txManager  transaction.Manager
 }
 
-func NewUseCase(ur Repository, txm transaction.Manager) *UseCase {
+func NewUseCase(ur Repository) *UseCase {
 	return &UseCase{
 		clientRepo: ur,
-		txManager:  txm,
 	}
 }
 

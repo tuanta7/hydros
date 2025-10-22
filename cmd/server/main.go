@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
-	"time"
+	"os/signal"
+	"syscall"
 
+	"github.com/knadh/koanf/v2"
 	"github.com/tuanta7/oauth-server/config"
 	"github.com/urfave/cli/v3"
 )
@@ -16,12 +17,15 @@ func main() {
 		Name:  "OAuth Server",
 		Usage: "",
 		Action: func(ctx context.Context, command *cli.Command) error {
-			cfg := &config.Config{}
-			config.LoadJSONConfig(cfg)
+			cfg := config.LoadEnvConfig()
+			cfg.LoadJSONConfig(koanf.New("."))
 
-			for {
-				time.Sleep(10 * time.Second)
-				fmt.Printf("Version: %s\n", cfg.Version)
+			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+			defer stop()
+
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
 			}
 		},
 	}

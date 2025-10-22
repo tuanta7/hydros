@@ -1,7 +1,7 @@
 -- +goose Up
 CREATE TABLE client (
-                      id UUID,
-                      PRIMARY KEY(id)
+    id UUID,
+    PRIMARY KEY(id)
 );
 
 -- +goose StatementBegin

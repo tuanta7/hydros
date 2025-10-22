@@ -5,12 +5,10 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/tuanta7/oauth-server/internal/domain"
-	"github.com/tuanta7/oauth-server/internal/sources/postgres/transaction"
 	"github.com/tuanta7/oauth-server/pkg/adapters/postgres"
 )
 
 type repository struct {
-	tx       transaction.Transaction
 	pgClient postgres.Client
 }
 
@@ -18,11 +16,6 @@ func NewRepository(pgc postgres.Client) Repository {
 	return &repository{
 		pgClient: pgc,
 	}
-}
-
-func (s *repository) WithTx(tx transaction.Transaction) Repository {
-	s.tx = tx
-	return s
 }
 
 func (s *repository) List(ctx context.Context, page, pageSize uint64) ([]*domain.Client, error) {

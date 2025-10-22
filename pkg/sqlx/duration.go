@@ -1,43 +1,12 @@
-package sqlxx
+package sqlx
 
 import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
-
-	"github.com/tidwall/gjson"
 )
-
-type StringSliceJSONFormat []string
-
-// Scan implements the Scanner interface.
-func (m *StringSliceJSONFormat) Scan(value interface{}) error {
-	val := fmt.Sprintf("%s", value)
-	if len(val) == 0 {
-		val = "[]"
-	}
-
-	if parsed := gjson.Parse(val); parsed.Type == gjson.Null {
-		val = "[]"
-	} else if !parsed.IsArray() {
-		return fmt.Errorf("expected JSON value to be an array but got type: %s", parsed.Type.String())
-	}
-
-	return errors.Join(json.Unmarshal([]byte(val), &m))
-}
-
-// Value implements the driver Valuer interface.
-func (m StringSliceJSONFormat) Value() (driver.Value, error) {
-	if len(m) == 0 {
-		return "[]", nil
-	}
-
-	encoded, err := json.Marshal(&m)
-	return string(encoded), errors.Join(err)
-}
 
 type NullDuration struct {
 	Duration time.Duration
@@ -57,7 +26,7 @@ func (ns *NullDuration) Scan(value interface{}) error {
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullDuration) Value() (driver.Value, error) {
+func (ns *NullDuration) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
@@ -65,7 +34,7 @@ func (ns NullDuration) Value() (driver.Value, error) {
 }
 
 // MarshalJSON returns m as the JSON encoding of m.
-func (ns NullDuration) MarshalJSON() ([]byte, error) {
+func (ns *NullDuration) MarshalJSON() ([]byte, error) {
 	if !ns.Valid {
 		return []byte("null"), nil
 	}
