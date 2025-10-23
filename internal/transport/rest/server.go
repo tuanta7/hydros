@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tuanta7/oauth-server/config"
+	"github.com/tuanta7/hydros/config"
 )
 
 type Server struct {

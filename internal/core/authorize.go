@@ -19,6 +19,7 @@ type AuthorizeRequest struct {
 	RedirectURI   *url.URL         `json:"redirectUri"`
 	ResponseTypes Arguments        `json:"responseTypes"`
 	ResponseMode  ResponseModeType `json:"responseMode"`
+	CodeChallenge string           `json:"codeChallenge"`
 	Request
 }
 

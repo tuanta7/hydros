@@ -1,10 +1,11 @@
 package v1
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tuanta7/oauth-server/internal/core"
+	"github.com/tuanta7/hydros/internal/core"
 )
 
 func (h *OAuthHandler) Authorize(c *gin.Context) {
@@ -20,8 +21,10 @@ func (h *OAuthHandler) Authorize(c *gin.Context) {
 		return
 	}
 
+	fmt.Println(client)
+
 	resp := &core.AuthorizeResponse{}
-	for _, ah := range h.authorizers {
+	for _, ah := range h.authorizeHandlers {
 		_ = ah.HandleAuthorizeRequest(c.Request.Context(), request, resp)
 	}
 }

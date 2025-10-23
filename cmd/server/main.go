@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	"github.com/knadh/koanf/v2"
-	"github.com/tuanta7/oauth-server/config"
+	"github.com/tuanta7/hydros/config"
 	"github.com/urfave/cli/v3"
 )
 

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/tuanta7/oauth-server/internal/interactors/client"
+	"github.com/tuanta7/hydros/internal/usecase/client"
 )
 
 type ClientHandler struct {

@@ -1,7 +1,7 @@
 package v1
 
 import (
-	"github.com/tuanta7/oauth-server/config"
+	"github.com/tuanta7/hydros/config"
 )
 
 type ClientService struct {

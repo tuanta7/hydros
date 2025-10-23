@@ -3,8 +3,8 @@ package client
 import (
 	"context"
 
-	"github.com/tuanta7/oauth-server/internal/domain"
-	clientrepo "github.com/tuanta7/oauth-server/internal/sources/postgres/client"
+	clientrepo "github.com/tuanta7/hydros/internal/datasource/postgres/client"
+	"github.com/tuanta7/hydros/internal/domain"
 )
 
 var (

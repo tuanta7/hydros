@@ -3,7 +3,7 @@ package domain
 import (
 	"time"
 
-	"github.com/tuanta7/oauth-server/pkg/sqlx"
+	"github.com/tuanta7/hydros/pkg/sqlx"
 )
 
 type Client struct {

@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/tuanta7/oauth-server/internal/domain"
-	"github.com/tuanta7/oauth-server/pkg/adapters/postgres"
+	"github.com/tuanta7/hydros/internal/domain"
+	"github.com/tuanta7/hydros/pkg/adapters/postgres"
 )
 
 type repository struct {

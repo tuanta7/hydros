@@ -1,4 +1,4 @@
-module github.com/tuanta7/oauth-server
+module github.com/tuanta7/hydros
 
 go 1.25.3
 

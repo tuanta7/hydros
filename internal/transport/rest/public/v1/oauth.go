@@ -3,8 +3,8 @@ package v1
 import (
 	"context"
 
-	"github.com/tuanta7/oauth-server/internal/core"
-	"github.com/tuanta7/oauth-server/internal/domain"
+	"github.com/tuanta7/hydros/internal/core"
+	"github.com/tuanta7/hydros/internal/domain"
 )
 
 type ClientUC interface {
@@ -12,8 +12,9 @@ type ClientUC interface {
 }
 
 type OAuthHandler struct {
-	clientUC    ClientUC
-	authorizers core.AuthorizeHandlerChain
+	clientUC          ClientUC
+	authorizeHandlers []core.AuthorizeHandler
+	tokenHandlers     []core.TokenHandler
 }
 
 func NewOAuthHandler() *OAuthHandler {

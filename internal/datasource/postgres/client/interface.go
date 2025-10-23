@@ -3,7 +3,7 @@ package client
 import (
 	"context"
 
-	"github.com/tuanta7/oauth-server/internal/domain"
+	"github.com/tuanta7/hydros/internal/domain"
 )
 
 type Repository interface {
