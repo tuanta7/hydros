@@ -15,7 +15,7 @@ managed:
   enabled: true
   override:
     - file_option: go_package_prefix
-      value: github.com/jodworkspace/proto
+      value: github.com/tuanta7/hydros/proto
   disable:
     - file_option: go_package
       module: buf.build/bufbuild/protovalidate
