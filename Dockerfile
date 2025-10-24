@@ -19,6 +19,8 @@ RUN apk add --no-cache make curl tar bash
 
 COPY --from=builder /build/hydros ./hydros
 COPY --from=build /go/bin/goose /usr/local/bin/goose
+COPY migrations ./migrations
+
 RUN echo goose -h
 
 EXPOSE 8080
