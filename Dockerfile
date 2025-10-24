@@ -3,18 +3,25 @@ FROM golang:1.25 AS builder
 WORKDIR /build
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN GO111MODULE=on go mod download
+RUN go mod vendor
 
 COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o hydros ./cmd/server/
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o oauth-server ./cmd/server/
+RUN make install-goose
 
 FROM alpine
 
 WORKDIR /server
-COPY --from=builder /build/oauth-server ./oauth-server
+COPY Makefile ./
+RUN apk add --no-cache make curl tar bash
+
+COPY --from=builder /build/hydros ./hydros
+COPY --from=build /go/bin/goose /usr/local/bin/goose
+RUN echo goose -h
 
 EXPOSE 8080
 EXPOSE 9090
 
-CMD ["/server/oauth-server"]
+CMD ["/server/hydros"]
