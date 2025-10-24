@@ -11,7 +11,7 @@ import (
 )
 
 type AESGCM struct {
-	Key []byte
+	key []byte
 }
 
 func NewAESGCM(key []byte) (*AESGCM, error) {
@@ -23,7 +23,7 @@ func NewAESGCM(key []byte) (*AESGCM, error) {
 }
 
 func (c *AESGCM) Encrypt(ctx context.Context, plaintext, additionalData []byte) (string, error) {
-	ciphertext, err := encrypt(plaintext, c.Key, additionalData)
+	ciphertext, err := encrypt(plaintext, c.key, additionalData)
 	if err != nil {
 		return "", err
 	}
