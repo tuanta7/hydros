@@ -8,7 +8,9 @@ import (
 )
 
 type ClientCredentialsGrantHandler struct {
-	scopeStrategy strategy.ScopeStrategy
+	scopeStrategy 		strategy.ScopeStrategy
+	audienceStrategy    strategy.AudienceStrategy
+	accessTokenStrategy strategy.TokenStrategy
 }
 
 func (h *ClientCredentialsGrantHandler) HandleTokenRequest(

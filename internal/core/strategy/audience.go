@@ -2,9 +2,9 @@ package strategy
 
 import "errors"
 
-type AudienceMatchingStrategy func(haystack []string, needle []string) error
+type AudienceStrategy func(haystack []string, needle []string) error
 
-func ExactAudienceMatchingStrategy(haystack []string, needle []string) error {
+func ExactAudienceStrategy(haystack []string, needle []string) error {
 	if len(needle) == 0 {
 		return nil
 	}
