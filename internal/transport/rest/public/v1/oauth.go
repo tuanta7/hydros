@@ -1,20 +1,13 @@
 package v1
 
 import (
-	"context"
-
-	"github.com/tuanta7/hydros/internal/core"
-	"github.com/tuanta7/hydros/internal/domain"
+	"github.com/tuanta7/hydros/internal/usecase/client"
+	"github.com/tuanta7/hydros/internal/usecase/oauth"
 )
 
-type ClientUC interface {
-	GetClient(ctx context.Context, id string) (*domain.Client, error)
-}
-
 type OAuthHandler struct {
-	clientUC          ClientUC
-	authorizeHandlers []core.AuthorizeHandler
-	tokenHandlers     []core.TokenHandler
+	clientUC client.UseCase
+	oauthUC  oauth.UseCase
 }
 
 func NewOAuthHandler() *OAuthHandler {

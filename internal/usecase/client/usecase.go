@@ -16,6 +16,10 @@ func NewUseCase(ur Repository) *UseCase {
 	}
 }
 
-func (uc *UseCase) List(ctx context.Context, page, pageSize uint64) ([]*domain.Client, error) {
-	return uc.clientRepo.List(ctx, page, pageSize)
+func (u *UseCase) List(ctx context.Context, page, pageSize uint64) ([]*domain.Client, error) {
+	return u.clientRepo.List(ctx, page, pageSize)
+}
+
+func (u *UseCase) Get(ctx context.Context, id string) (*domain.Client, error) {
+	return nil, nil
 }

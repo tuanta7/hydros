@@ -2,11 +2,11 @@ package config
 
 import (
 	"log"
-	"time"
+	"strings"
 
 	"github.com/joho/godotenv"
-	"github.com/kelseyhightower/envconfig"
 	"github.com/knadh/koanf/parsers/json"
+	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 )
@@ -18,36 +18,38 @@ type Config struct {
 	GrpcServerHost string `koanf:"grpc_server_host"`
 	GrpcServerPort string `koanf:"grpc_server_port"`
 
-	AuthorizationCodeLifetime time.Duration `koanf:"authorization_code_lifetime" default:"10m"`
+	Lifetime *LifetimeConfig `koanf:"lifetime"`
 }
 
-func LoadEnvConfig(envFiles ...string) *Config {
+func LoadConfig(envFiles ...string) *Config {
 	err := godotenv.Load(envFiles...)
 	if err != nil {
-		log.Printf("[Warning] config - init - godotenv.Load: %v", err)
+		log.Fatalf("No .env file found or error loading .env file: %v", err)
+	}
+
+	k := koanf.New(".")
+	err = k.Load(env.Provider("HYDROS", ".", func(s string) string {
+		s = strings.TrimPrefix(s, "HYDROS.")
+		s = strings.ToLower(s)
+		return s
+	}), nil)
+	if err != nil {
+		log.Fatalf("error loading env config: %v", err)
+	}
+
+	f := file.Provider("config/config.json")
+	err = k.Load(f, json.Parser())
+	if err != nil {
+		log.Fatalf("error loading json config: %v", err)
 	}
 
 	cfg := &Config{}
-	err = envconfig.Process("", cfg)
-	if err != nil {
-		log.Fatalf("config - init - envconfig.Process: %v", err)
-	}
-	return cfg
-}
-
-func (c *Config) LoadJSONConfig(k *koanf.Koanf) {
-	f := file.Provider("config/config.json")
-	if err := k.Load(f, json.Parser()); err != nil {
-		log.Fatalf("error loading config: %v", err)
-	}
-
-	if ue := k.Unmarshal("", c); ue != nil {
-		log.Printf("error unmarshalling config: %v", ue)
-		return
+	if ue := k.Unmarshal("", cfg); ue != nil {
+		log.Fatalf("error unmarshalling config: %v", ue)
 	}
 
 	go func() {
-		err := f.Watch(func(event any, err error) {
+		we := f.Watch(func(event any, err error) {
 			if err != nil {
 				log.Printf("watch error: %v", err)
 				return
@@ -59,15 +61,17 @@ func (c *Config) LoadJSONConfig(k *koanf.Koanf) {
 				return
 			}
 
-			if ue := k.Unmarshal("", c); ue != nil {
+			if ue := k.Unmarshal("", cfg); ue != nil {
 				log.Printf("error unmarshalling config: %v", ue)
 				return
 			}
 
 			k.Print()
 		})
-		if err != nil {
+		if we != nil {
 			return
 		}
 	}()
+
+	return cfg
 }

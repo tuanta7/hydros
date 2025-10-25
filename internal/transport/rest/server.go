@@ -7,11 +7,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/tuanta7/hydros/config"
+	"github.com/tuanta7/hydros/internal/transport/rest/public/v1"
 )
 
 type Server struct {
-	router *gin.Engine
-	server *http.Server
+	router       *gin.Engine
+	server       *http.Server
+	oauthHandler *v1.OAuthHandler
 }
 
 func NewServer(cfg config.Config) *Server {
@@ -49,8 +51,14 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 func (s *Server) RegisterRoutes() {
 	s.router.GET("/oauth/authorize", nil)
-	s.router.POST("/oauth/token", nil)
+	s.router.POST("/oauth/token", s.oauthHandler.Token)
 	s.router.GET("/oauth/introspect", nil)
+
+	s.router.POST("/oauth/revoke", nil)
+	s.router.GET("/oauth/logout", nil)
+	s.router.POST("/oauth/logout", nil)
+
+	s.router.GET("/self-service/login", nil)
 
 	s.server.Handler = s.router
 }

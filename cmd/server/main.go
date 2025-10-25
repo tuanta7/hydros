@@ -2,23 +2,23 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/knadh/koanf/v2"
 	"github.com/tuanta7/hydros/config"
 	"github.com/urfave/cli/v3"
 )
 
 func main() {
 	cmd := &cli.Command{
-		Name:  "OAuth Server",
-		Usage: "",
+		Name:  "Hydros",
+		Usage: "OIDC and OAuth2.1 Provider",
 		Action: func(ctx context.Context, command *cli.Command) error {
-			cfg := config.LoadEnvConfig()
-			cfg.LoadJSONConfig(koanf.New("."))
+			cfg := config.LoadConfig(".env")
+			fmt.Println("Loaded config:", cfg.Lifetime.AuthorizeCode)
 
 			ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 			defer stop()
