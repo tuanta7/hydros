@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-type AuthorizeCodeLifetimeProvider interface {
-	GetAuthorizeCodeLifetime() time.Duration
+type AuthorizationCodeLifetimeProvider interface {
+	GetAuthorizationCodeLifetime() time.Duration
 }
 
 type AccessTokenLifetimeProvider interface {

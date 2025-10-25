@@ -16,7 +16,7 @@ type Server struct {
 	oauthHandler *v1.OAuthHandler
 }
 
-func NewServer(cfg config.Config) *Server {
+func NewServer(cfg *config.Config) *Server {
 	return &Server{
 		router: gin.New(),
 		server: &http.Server{
@@ -27,18 +27,7 @@ func NewServer(cfg config.Config) *Server {
 }
 
 func (s *Server) Run() error {
-	errCh := make(chan error)
-	go func() {
-		err := s.server.ListenAndServe()
-		if err != nil {
-			errCh <- err
-		}
-	}()
-
-	select {
-	case err := <-errCh:
-		return err
-	}
+	return s.server.ListenAndServe()
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {

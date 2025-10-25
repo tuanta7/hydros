@@ -15,14 +15,14 @@ import (
 
 var b64 = base64.URLEncoding.WithPadding(base64.NoPadding)
 
-type HMAC struct {
+type Strategy struct {
 	entropy        int
 	secret         []byte
 	rotatedSecrets [][]byte // currently not used
 	hasher         func() hash.Hash
 }
 
-func NewHMAC(secret []byte, entropy int) (*HMAC, error) {
+func NewHMAC(secret []byte, entropy int) (*Strategy, error) {
 	if len(secret) < 64 {
 		return nil, fmt.Errorf("secret for signing HMAC-SHA512/256 is expected to be at least 64 bytes long, got %d bytes", len(secret))
 	}
@@ -31,34 +31,28 @@ func NewHMAC(secret []byte, entropy int) (*HMAC, error) {
 		return nil, fmt.Errorf("entropy for HMAC-SHA512/256 is expected to be at least 64 bytes, got %d bytes", entropy)
 	}
 
-	return &HMAC{
+	return &Strategy{
 		entropy: entropy,
 		secret:  secret,
 		hasher:  sha512.New512_256, // default to HMAC-SHA512/256
 	}, nil
 }
 
-func (h *HMAC) Generate(request *core.TokenRequest) (string, string, error) {
-	tokenKey, err := randomBytes(h.entropy)
+func (s *Strategy) Generate(request *core.TokenRequest) (string, string, error) {
+	tokenKey, err := randomBytes(s.entropy)
 	if err != nil {
 		return "", "", err
 	}
 
 	tokenKey = append(tokenKey, []byte(request.ID)...)
-
-	hs := hmac.New(h.hasher, h.secret[:64])
-	_, err = hs.Write(tokenKey)
-	if err != nil {
-		panic(err) // Write to hash never returns an error
-	}
-	signature := hs.Sum(nil)
+	signature := s.hmacSign(tokenKey)
 
 	encodedSignature := b64.EncodeToString(signature)
 	encodedTokenKey := fmt.Sprintf("%s.%s", b64.EncodeToString(tokenKey), encodedSignature)
 	return encodedTokenKey, encodedSignature, nil
 }
 
-func (h *HMAC) GetSignature(token string) string {
+func (s *Strategy) GetSignature(token string) string {
 	split := strings.Split(token, ".")
 	if len(split) != 2 {
 		return ""
@@ -66,7 +60,7 @@ func (h *HMAC) GetSignature(token string) string {
 	return split[1]
 }
 
-func (h *HMAC) Validate(token string) (err error) {
+func (s *Strategy) Validate(token string) (err error) {
 	tokenKey, tokenSignature, ok := strings.Cut(token, ".")
 	if !ok {
 		return core.ErrInvalidTokenFormat
@@ -86,18 +80,22 @@ func (h *HMAC) Validate(token string) (err error) {
 		return err
 	}
 
-	hs := hmac.New(h.hasher, h.secret[:64])
-	_, err = hs.Write(decodedTokenKey)
-	if err != nil {
-		panic(err) // Write to hash never returns an error
-	}
-	expectedSignature := hs.Sum(nil)
-
+	expectedSignature := s.hmacSign(decodedTokenKey)
 	if !hmac.Equal(expectedSignature, decodedTokenSignature) {
 		return core.ErrTokenSignatureMismatch
 	}
 
 	return nil
+}
+
+func (s *Strategy) hmacSign(tokenKey []byte) []byte {
+	h := hmac.New(s.hasher, s.secret[:64])
+	_, err := h.Write(tokenKey)
+	if err != nil {
+		panic(err) // Write to hash never returns an error
+	}
+
+	return h.Sum(nil)
 }
 
 func randomBytes(n int) ([]byte, error) {

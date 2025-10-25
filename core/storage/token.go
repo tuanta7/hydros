@@ -6,7 +6,8 @@ import (
 	"github.com/tuanta7/hydros/core"
 )
 
-type AuthorizeCodeStorage interface {
+type AuthorizationCodeStorage interface {
+	GetSession(ctx context.Context, code string, session *core.Session) (*core.TokenRequest, error)
 }
 
 type AccessTokenStorage interface {
