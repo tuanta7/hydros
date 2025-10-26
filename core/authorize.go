@@ -27,5 +27,5 @@ type AuthorizeRequest struct {
 type AuthorizeResponse struct {
 	Header     http.Header
 	Parameters url.Values
-	code       string
+	Code       string
 }

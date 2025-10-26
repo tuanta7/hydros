@@ -30,7 +30,7 @@ func (r Arguments) IncludeOne(items ...string) bool {
 
 func (r Arguments) Include(needle string) bool {
 	for _, b := range r {
-		if strings.ToLower(b) == strings.ToLower(needle) {
+		if strings.EqualFold(b, needle) {
 			return true
 		}
 	}

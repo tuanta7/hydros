@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -22,6 +23,17 @@ func (h *OAuthHandler) Token(c *gin.Context) {
 	request.Client = client
 
 	response := &core.TokenResponse{}
-	_ = h.oauthUC.HandleTokenEndpoint(c.Request.Context(), request, response)
+	err = h.oauthUC.HandleTokenEndpoint(c.Request.Context(), request, response)
+	if err != nil {
+		var rfc6749Error *core.RFC6749Error
+		if errors.As(err, &rfc6749Error) {
+			c.JSON(rfc6749Error.CodeField, rfc6749Error.DescriptionField)
+			return
+		}
 
+		c.JSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.Redirect(http.StatusFound, request.RedirectURI)
 }

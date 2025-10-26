@@ -7,13 +7,15 @@ import (
 )
 
 type AuthorizationCodeStorage interface {
-	GetSession(ctx context.Context, code string, session *core.Session) (*core.TokenRequest, error)
+	CreateAuthorizeCodeSession(ctx context.Context, code string, req *core.TokenRequest) (err error)
+	GetAuthorizationCodeSession(ctx context.Context, code string, session core.Session) (*core.TokenRequest, error)
+	InvalidateAuthorizeCodeSession(ctx context.Context, code string) (err error)
 }
 
 type AccessTokenStorage interface {
-	CreateSession(ctx context.Context, signature string, req *core.TokenRequest) error
-	GetSession(ctx context.Context, signature string, session *core.Session) (*core.TokenRequest, error)
-	DeleteSession(ctx context.Context, signature string) error
+	CreateAccessTokenSession(ctx context.Context, signature string, req *core.TokenRequest) error
+	GetAccessTokenSession(ctx context.Context, signature string, session core.Session) (*core.TokenRequest, error)
+	DeleteAccessTokenSession(ctx context.Context, signature string) error
 }
 
 type RefreshTokenStorage interface {

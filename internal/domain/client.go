@@ -9,7 +9,7 @@ import (
 	"github.com/tuanta7/hydros/pkg/dbtype"
 )
 
-// Client represents an OAuth2.1 and OpenID Connect client.
+// Client represents an OAuth2.1 and IDToken Connect client.
 type Client struct {
 	ID                                string             `json:"id" db:"id"`
 	Name                              string             `json:"name" db:"name"`

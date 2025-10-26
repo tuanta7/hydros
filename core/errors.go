@@ -53,4 +53,15 @@ var (
 		HintField:        "Check that you provided  a valid token in the right format.",
 		CodeField:        http.StatusBadRequest,
 	}
+	ErrNotFound = &RFC6749Error{
+		ErrorField:       "not_found",
+		DescriptionField: "Could not find the requested resource(s).",
+		CodeField:        http.StatusNotFound,
+	}
+	ErrInactiveToken = &RFC6749Error{
+		ErrorField:       "token_inactive",
+		DescriptionField: "Token is inactive because it is malformed, expired or otherwise invalid.",
+		HintField:        "Token validation failed.",
+		CodeField:        http.StatusUnauthorized,
+	}
 )

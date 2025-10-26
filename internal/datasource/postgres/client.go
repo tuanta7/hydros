@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/tuanta7/hydros/internal/domain"
-	"github.com/tuanta7/hydros/pkg/adapters/postgres"
+	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 )
 
 type ClientRepository interface {
@@ -48,6 +48,9 @@ func (s *clientRepository) List(ctx context.Context, page, pageSize uint64) ([]*
 
 		return &c, nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	return clients, nil
 }

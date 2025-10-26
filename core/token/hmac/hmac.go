@@ -16,10 +16,10 @@ import (
 var b64 = base64.URLEncoding.WithPadding(base64.NoPadding)
 
 type Strategy struct {
-	entropy        int
-	secret         []byte
-	rotatedSecrets [][]byte // currently not used
-	hasher         func() hash.Hash
+	entropy int
+	secret  []byte
+	// rotatedSecrets [][]byte // currently not used
+	hasher func() hash.Hash
 }
 
 func NewHMAC(secret []byte, entropy int) (*Strategy, error) {

@@ -50,7 +50,7 @@ func (h *ClientCredentialsGrantHandler) HandleTokenRequest(
 		return core.ErrUnauthorizedClient
 	}
 
-	if client.GetGrantTypes().IncludeOne("client_credentials") == false {
+	if !client.GetGrantTypes().IncludeOne("client_credentials") {
 		return core.ErrUnauthorizedClient
 	}
 
@@ -70,7 +70,7 @@ func (h *ClientCredentialsGrantHandler) HandleTokenRequest(
 	}
 
 	accessTokenLifetime := h.config.GetAccessTokenLifetime()
-	req.Session.ExpiresAt[core.AccessToken] = timex.NowUTC().Add(accessTokenLifetime)
+	req.Session.SetExpiresAt(core.AccessToken, timex.NowUTC().Add(accessTokenLifetime))
 
 	err = h.issueToken(ctx, req, res, accessTokenLifetime)
 	if err != nil {
@@ -91,7 +91,7 @@ func (h *ClientCredentialsGrantHandler) issueToken(
 		return err
 	}
 
-	err = h.accessTokenStorage.CreateSession(ctx, signature, req)
+	err = h.accessTokenStorage.CreateAccessTokenSession(ctx, signature, req)
 	if err != nil {
 		return err
 	}

@@ -54,7 +54,7 @@ func (h *AuthorizationCodeGrantHandler) HandleTokenRequest(
 
 	code := req.Code
 	signature := h.authorizationCodeStrategy.GetSignature(code)
-	authorizeRequest, err := h.authorizationCodeStorage.GetSession(ctx, signature, &req.Session)
+	authorizeRequest, err := h.authorizationCodeStorage.GetAuthorizationCodeSession(ctx, signature, req.Session)
 	if err != nil {
 		return err
 	}

@@ -26,8 +26,8 @@ SELECT 'up SQL query';
 -- +goose StatementEnd
 
 -- +goose Down
-DROP TABLE access_token;
 DROP TABLE refresh_token;
+DROP TABLE access_token;
 -- +goose StatementBegin
 SELECT 'down SQL query';
 -- +goose StatementEnd
