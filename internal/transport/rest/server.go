@@ -16,13 +16,14 @@ type Server struct {
 	oauthHandler *v1.OAuthHandler
 }
 
-func NewServer(cfg *config.Config) *Server {
+func NewServer(cfg *config.Config, oauthHandler *v1.OAuthHandler) *Server {
 	return &Server{
 		router: gin.New(),
 		server: &http.Server{
 			Addr:    fmt.Sprintf("%s:%s", cfg.RestServerHost, cfg.RestServerPort),
 			Handler: nil,
 		},
+		oauthHandler: oauthHandler,
 	}
 }
 

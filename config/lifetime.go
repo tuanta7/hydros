@@ -11,3 +11,7 @@ type LifetimeConfig struct {
 func (c *Config) GetAuthorizationCodeLifetime() time.Duration {
 	return c.Lifetime.AuthorizationCode
 }
+
+func (c *Config) GetAccessTokenLifetime() time.Duration {
+	return c.Lifetime.AccessToken
+}

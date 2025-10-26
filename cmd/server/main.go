@@ -11,6 +11,13 @@ import (
 	"time"
 
 	"github.com/tuanta7/hydros/config"
+	"github.com/tuanta7/hydros/core"
+	"github.com/tuanta7/hydros/core/handler/oauth"
+	"github.com/tuanta7/hydros/core/token/hmac"
+	restpublicv1 "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
+	"github.com/tuanta7/hydros/pkg/adapter/redis"
+
+	redissource "github.com/tuanta7/hydros/internal/datasource/redis"
 	"github.com/tuanta7/hydros/internal/transport"
 	"github.com/tuanta7/hydros/internal/transport/rest"
 	"github.com/urfave/cli/v3"
@@ -24,7 +31,36 @@ func main() {
 			cfg := config.LoadConfig(".env")
 			fmt.Println("Loaded config:", cfg.Lifetime.AuthorizationCode)
 
-			restServer := rest.NewServer(cfg)
+			redisClient, err := redis.NewClient(
+				context.Background(),
+				fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+				redis.WithCredential(cfg.Redis.Username, cfg.Redis.Password),
+				redis.WithDB(cfg.Redis.DB),
+			)
+			if err != nil {
+				return err
+			}
+			defer redisClient.Close()
+
+			sessionStorage := redissource.NewTokenSessionStorage(cfg, redisClient)
+			hmacStrategy, err := hmac.NewHMAC([]byte(cfg.GlobalSecret), cfg.KeyEntropy)
+			if err != nil {
+				return err
+			}
+
+			oauthClientCredentialsInteractor := oauth.NewClientCredentialsGrantHandler(cfg, hmacStrategy, sessionStorage)
+			oauthHandler := restpublicv1.NewOAuthHandler(
+				nil,
+				nil,
+				[]core.TokenInteractor{
+					oauthClientCredentialsInteractor,
+				},
+			)
+
+			restServer := rest.NewServer(
+				cfg,
+				oauthHandler,
+			)
 
 			errCh := make(chan error)
 			go func() {

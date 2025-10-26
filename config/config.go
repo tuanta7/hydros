@@ -17,8 +17,30 @@ type Config struct {
 	RestServerPort string `koanf:"rest_server_port"`
 	GrpcServerHost string `koanf:"grpc_server_host"`
 	GrpcServerPort string `koanf:"grpc_server_port"`
+	GlobalSecret   string `koanf:"global_secret"`
+	KeyEntropy     int    `koanf:"key_entropy"`
 
-	Lifetime *LifetimeConfig `koanf:"lifetime"`
+	Lifetime    *LifetimeConfig    `koanf:"lifetime"`
+	Obfuscation *ObfuscationConfig `koanf:"obfuscation"`
+	Redis       *RedisConfig       `koanf:"redis"`
+	Postgres    *PostgresConfig    `koanf:"postgres"`
+}
+
+type RedisConfig struct {
+	Host     string `koanf:"host"`
+	Port     uint16 `koanf:"port"`
+	Username string `koanf:"username"`
+	Password string `koanf:"password"`
+	DB       int    `koanf:"db"`
+}
+
+type PostgresConfig struct {
+	Host     string `koanf:"host"`
+	Port     uint16 `koanf:"port"`
+	Username string `koanf:"username"`
+	Password string `koanf:"password"`
+	Database string `koanf:"database"`
+	Params   map[string]string
 }
 
 func LoadConfig(envFiles ...string) *Config {

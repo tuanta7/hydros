@@ -23,7 +23,6 @@ func NewClient(ctx context.Context, addr string, opts ...Option) (Client, error)
 	}
 
 	rdb := goredis.NewClient(options)
-
 	if err := rdb.Ping(ctx).Err(); err != nil {
 		return nil, err
 	}
