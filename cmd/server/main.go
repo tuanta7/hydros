@@ -12,12 +12,9 @@ import (
 
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
-	"github.com/tuanta7/hydros/core/handler/oauth"
-	"github.com/tuanta7/hydros/core/token/hmac"
 	restpublicv1 "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
 	"github.com/tuanta7/hydros/pkg/adapter/redis"
 
-	redissource "github.com/tuanta7/hydros/internal/datasource/redis"
 	"github.com/tuanta7/hydros/internal/transport"
 	"github.com/tuanta7/hydros/internal/transport/rest"
 	"github.com/urfave/cli/v3"
@@ -42,20 +39,8 @@ func main() {
 			}
 			defer redisClient.Close()
 
-			sessionStorage := redissource.NewTokenSessionStorage(cfg, redisClient)
-			hmacStrategy, err := hmac.NewHMAC([]byte(cfg.GlobalSecret), cfg.KeyEntropy)
-			if err != nil {
-				return err
-			}
-
-			oauthClientCredentialsInteractor := oauth.NewClientCredentialsGrantHandler(cfg, hmacStrategy, sessionStorage)
-			oauthHandler := restpublicv1.NewOAuthHandler(
-				nil,
-				nil,
-				[]core.TokenInteractor{
-					oauthClientCredentialsInteractor,
-				},
-			)
+			oauthCore := &core.OAuth2{}
+			oauthHandler := restpublicv1.NewOAuthHandler(oauthCore)
 
 			restServer := rest.NewServer(
 				cfg,

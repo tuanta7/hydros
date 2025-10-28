@@ -27,3 +27,7 @@ func (s *Session) Clone() core.Session {
 
 	return deepcopy.Copy(s).(core.Session)
 }
+
+func NewSession() *Session {
+	return &Session{}
+}

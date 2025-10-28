@@ -46,21 +46,18 @@ func (h *ClientCredentialsGrantHandler) HandleTokenRequest(
 	}
 
 	client := req.Client
-	if client == nil {
-		return core.ErrUnauthorizedClient
-	}
 
 	if !client.GetGrantTypes().IncludeOne("client_credentials") {
 		return core.ErrUnauthorizedClient
 	}
 
-	for _, scope := range req.RequestedScope {
+	for _, scope := range req.Scope {
 		if !h.scopeStrategy(client.GetScopes(), scope) {
 			return core.ErrInvalidScope
 		}
 	}
 
-	err := h.audienceStrategy(client.GetAudience(), req.RequestedAudience)
+	err := h.audienceStrategy(client.GetAudience(), req.Audience)
 	if err != nil {
 		return err
 	}
@@ -71,21 +68,22 @@ func (h *ClientCredentialsGrantHandler) HandleTokenRequest(
 
 	accessTokenLifetime := h.config.GetAccessTokenLifetime()
 	req.Session.SetExpiresAt(core.AccessToken, timex.NowUTC().Add(accessTokenLifetime))
-
-	err = h.issueToken(ctx, req, res, accessTokenLifetime)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func (h *ClientCredentialsGrantHandler) issueToken(
+func (h *ClientCredentialsGrantHandler) HandleTokenResponse(
 	ctx context.Context,
 	req *core.TokenRequest,
 	res *core.TokenResponse,
-	accessTokenLifetime time.Duration,
 ) error {
+	if !req.GrantType.ExactOne("client_credentials") {
+		return core.ErrUnknownRequest
+	}
+
+	if !req.Client.GetGrantTypes().IncludeOne("client_credentials") {
+		return core.ErrUnauthorizedClient
+	}
+
 	token, signature, err := h.accessTokenStrategy.Generate(req)
 	if err != nil {
 		return err
@@ -96,9 +94,14 @@ func (h *ClientCredentialsGrantHandler) issueToken(
 		return err
 	}
 
+	accessTokenLifetime := h.config.GetAccessTokenLifetime()
+	if req.Session.GetExpiresAt(core.AccessToken).IsZero() {
+		res.ExpiresIn = time.Duration(accessTokenLifetime.Seconds())
+	}
+	res.ExpiresIn = time.Duration(req.Session.GetExpiresAt(core.AccessToken).UnixNano() - timex.NowUTC().UnixNano())
+
 	res.AccessToken = token
 	res.TokenType = core.BearerToken
-	res.ExpiresIn = int64(accessTokenLifetime.Seconds())
 	res.Scope = req.GrantedScope
 	return nil
 }

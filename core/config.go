@@ -15,3 +15,11 @@ type AccessTokenLifetimeProvider interface {
 type RefreshTokenLifetimeProvider interface {
 	GetRefreshTokenLifetime() time.Duration
 }
+
+type SecretsHashingProvider interface {
+	GetSecretsHasher() Hasher
+}
+
+type DebugModeProvider interface {
+	IsDebugging() bool
+}

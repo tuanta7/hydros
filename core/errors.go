@@ -1,6 +1,8 @@
 package core
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 )
 
@@ -9,10 +11,29 @@ type RFC6749Error struct {
 	DescriptionField string
 	HintField        string
 	CodeField        int
+	DebugField       string
+	cause            error
 }
 
-func (e RFC6749Error) Error() string {
+func (e *RFC6749Error) Error() string {
 	return e.ErrorField
+}
+
+func (e *RFC6749Error) WithHint(hint string, args ...interface{}) *RFC6749Error {
+	err := *e
+	err.HintField = fmt.Sprintf(hint, args...)
+	return &err
+}
+
+func (e *RFC6749Error) WithWrap(cause error) *RFC6749Error {
+	e.cause = cause
+	return e
+}
+
+func (e *RFC6749Error) WithDebug(debug string) *RFC6749Error {
+	err := *e
+	err.DebugField = debug
+	return &err
 }
 
 const (
@@ -20,6 +41,11 @@ const (
 )
 
 var (
+	ErrServerError = &RFC6749Error{
+		ErrorField:       "server_error",
+		DescriptionField: "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",
+		CodeField:        http.StatusInternalServerError,
+	}
 	ErrUnknownRequest = &RFC6749Error{
 		ErrorField:       errUnknownErrorName,
 		DescriptionField: "The handler is not responsible for this request.",
@@ -64,4 +90,29 @@ var (
 		HintField:        "Token validation failed.",
 		CodeField:        http.StatusUnauthorized,
 	}
+	ErrInvalidRequest = &RFC6749Error{
+		ErrorField:       "invalid_request",
+		DescriptionField: "The request is missing a required parameter, includes an invalid parameter value, includes a parameter more than once, or is otherwise malformed.",
+		HintField:        "Make sure that the various parameters are correct, be aware of case sensitivity and trim your parameters. Make sure that the client you are using has exactly whitelisted the redirect_uri you specified.",
+		CodeField:        http.StatusBadRequest,
+	}
+	ErrInvalidClient = &RFC6749Error{
+		ErrorField:       "invalid_client",
+		DescriptionField: "Client authentication failed (e.g., unknown client, no client authentication included, or unsupported authentication method).",
+		CodeField:        http.StatusUnauthorized,
+	}
 )
+
+func ErrorToRFC6749Error(err error) *RFC6749Error {
+	var e *RFC6749Error
+	if errors.As(err, &e) {
+		return e
+	}
+	return &RFC6749Error{
+		ErrorField:       errUnknownErrorName,
+		DescriptionField: "The error is unrecognizable",
+		DebugField:       err.Error(),
+		CodeField:        http.StatusInternalServerError,
+		cause:            err,
+	}
+}
