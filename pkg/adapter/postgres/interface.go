@@ -20,4 +20,5 @@ type Pool interface {
 type Client interface {
 	Pool() Pool
 	SQLBuilder() squirrel.StatementBuilderType
+	Close()
 }

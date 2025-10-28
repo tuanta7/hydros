@@ -11,6 +11,7 @@ import (
 )
 
 type Server struct {
+	cfg          *config.Config
 	router       *gin.Engine
 	server       *http.Server
 	oauthHandler *v1.OAuthHandler
@@ -18,6 +19,7 @@ type Server struct {
 
 func NewServer(cfg *config.Config, oauthHandler *v1.OAuthHandler) *Server {
 	return &Server{
+		cfg:    cfg,
 		router: gin.New(),
 		server: &http.Server{
 			Addr:    fmt.Sprintf("%s:%s", cfg.RestServerHost, cfg.RestServerPort),
@@ -28,6 +30,7 @@ func NewServer(cfg *config.Config, oauthHandler *v1.OAuthHandler) *Server {
 }
 
 func (s *Server) Run() error {
+	gin.SetMode(s.cfg.ReleaseMode)
 	return s.server.ListenAndServe()
 }
 

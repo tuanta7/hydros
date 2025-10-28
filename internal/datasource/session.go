@@ -11,9 +11,9 @@ import (
 )
 
 // TokenRequestSession is used to store the token request in the database.
+// It is the direct replacement of OAuth2RequestSQL in ory/fosite
 type TokenRequestSession struct {
 	Signature         string         `db:"signature"`
-	Challenge         sql.NullString `db:"challenge"`
 	RequestID         string         `db:"request_id"`
 	RequestedAt       time.Time      `db:"requested_at"`
 	ClientID          string         `db:"client_id"`
@@ -22,9 +22,10 @@ type TokenRequestSession struct {
 	RequestedAudience string         `db:"requested_audience"`
 	GrantedAudience   string         `db:"granted_audience"`
 	Form              string         `db:"form_data"`
+	Session           []byte         `db:"session_data"`
 	Subject           string         `db:"subject"`
 	Active            bool           `db:"active"`
-	Session           []byte         `db:"session_data"`
+	Challenge         sql.NullString `db:"challenge"`
 
 	// InternalExpiresAt denormalizes the expiry from the session to additionally store it as a row.
 	InternalExpiresAt sql.NullTime `db:"expires_at" json:"-"`

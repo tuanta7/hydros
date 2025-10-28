@@ -20,6 +20,10 @@ func (c *client) SQLBuilder() squirrel.StatementBuilderType {
 	return c.sqlBuilder
 }
 
+func (c *client) Close() {
+	c.pool.Close()
+}
+
 func NewClient(dsn string, options ...Option) (Client, error) {
 	pool, err := newPool(dsn, options...)
 	if err != nil {

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 
+	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 
 	"github.com/tuanta7/hydros/internal/domain"
@@ -11,22 +12,26 @@ import (
 
 type ClientRepository interface {
 	List(ctx context.Context, page, pageSize uint64) ([]*domain.Client, error)
+	Create(ctx context.Context, client *domain.Client) error
+	Get(ctx context.Context, id string) (*domain.Client, error)
 }
 
 type clientRepository struct {
-	pgClient postgres.Client
+	tableName string
+	pgClient  postgres.Client
 }
 
-func NewRepository(pgc postgres.Client) ClientRepository {
+func NewClientRepository(pgc postgres.Client) ClientRepository {
 	return &clientRepository{
-		pgClient: pgc,
+		tableName: "client",
+		pgClient:  pgc,
 	}
 }
 
-func (s *clientRepository) List(ctx context.Context, page, pageSize uint64) ([]*domain.Client, error) {
-	query, args, err := s.pgClient.SQLBuilder().
+func (r *clientRepository) List(ctx context.Context, page, pageSize uint64) ([]*domain.Client, error) {
+	query, args, err := r.pgClient.SQLBuilder().
 		Select("*").
-		From("").
+		From(r.tableName).
 		Offset(pageSize * (page - 1)).
 		Limit(pageSize).
 		ToSql()
@@ -34,20 +39,13 @@ func (s *clientRepository) List(ctx context.Context, page, pageSize uint64) ([]*
 		return nil, err
 	}
 
-	rows, err := s.pgClient.Pool().Query(ctx, query, args...)
+	rows, err := r.pgClient.Pool().Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	clients, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (*domain.Client, error) {
-		c, err := pgx.RowToStructByName[domain.Client](row)
-		if err != nil {
-			return nil, err
-		}
-
-		return &c, nil
-	})
+	clients, err := pgx.CollectRows(rows, toClient)
 	if err != nil {
 		return nil, err
 	}
@@ -55,6 +53,56 @@ func (s *clientRepository) List(ctx context.Context, page, pageSize uint64) ([]*
 	return clients, nil
 }
 
-func (s *clientRepository) Create(ctx context.Context, client *domain.Client) error {
+func (r *clientRepository) Create(ctx context.Context, client *domain.Client) error {
+	query, args, err := r.pgClient.SQLBuilder().
+		Insert(r.tableName).
+		Columns("id", "name", "description").
+		Values(
+			client.ID,
+			client.Name,
+			client.Description,
+		).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = r.pgClient.Pool().Exec(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (r *clientRepository) Get(ctx context.Context, id string) (*domain.Client, error) {
+	query, args, err := r.pgClient.SQLBuilder().
+		Select("*").
+		From("").
+		Where(squirrel.Eq{"id": id}).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.pgClient.Pool().Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := pgx.CollectOneRow(rows, toClient)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+func toClient(row pgx.CollectableRow) (*domain.Client, error) {
+	c, err := pgx.RowToStructByName[domain.Client](row)
+	if err != nil {
+		return nil, err
+	}
+
+	return &c, nil
 }

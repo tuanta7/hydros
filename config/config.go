@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -13,17 +14,23 @@ import (
 
 type Config struct {
 	Version        string `koanf:"version"`
+	ReleaseMode    string `koanf:"release_mode"`
+	LogLevel       string `koanf:"log_level"`
 	RestServerHost string `koanf:"rest_server_host"`
 	RestServerPort string `koanf:"rest_server_port"`
-	GrpcServerHost string `koanf:"grpc_server_host"`
-	GrpcServerPort string `koanf:"grpc_server_port"`
-	GlobalSecret   string `koanf:"global_secret"`
+	GRPCServerHost string `koanf:"grpc_server_host"`
+	GRPCServerPort string `koanf:"grpc_server_port"`
+	GlobalSecret   string `koanf:"global_secret" json:"-"`
 	KeyEntropy     int    `koanf:"key_entropy"`
 
 	Lifetime    *LifetimeConfig    `koanf:"lifetime"`
 	Obfuscation *ObfuscationConfig `koanf:"obfuscation"`
 	Redis       *RedisConfig       `koanf:"redis"`
 	Postgres    *PostgresConfig    `koanf:"postgres"`
+}
+
+func (c *Config) IsDebugging() bool {
+	return c.ReleaseMode == "debug"
 }
 
 type RedisConfig struct {
@@ -41,6 +48,25 @@ type PostgresConfig struct {
 	Password string `koanf:"password"`
 	Database string `koanf:"database"`
 	Params   map[string]string
+}
+
+func (c *PostgresConfig) DSN(opts ...map[string]string) string {
+	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s",
+		c.Username,
+		c.Password,
+		c.Host,
+		c.Port,
+		c.Database,
+	)
+
+	if len(opts) > 0 {
+		for k, v := range opts[0] {
+			dsn += fmt.Sprintf("&%s=%s", k, v)
+		}
+	}
+
+	dsn = strings.Replace(dsn, "&", "?", 1)
+	return dsn
 }
 
 func LoadConfig(envFiles ...string) *Config {

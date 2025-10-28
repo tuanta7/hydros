@@ -13,4 +13,6 @@ var (
 
 type Repository interface {
 	List(ctx context.Context, page, pageSize uint64) ([]*domain.Client, error)
+	Create(ctx context.Context, client *domain.Client) error
+	Get(ctx context.Context, id string) (*domain.Client, error)
 }

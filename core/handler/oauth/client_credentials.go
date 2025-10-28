@@ -36,11 +36,7 @@ func NewClientCredentialsGrantHandler(
 	}
 }
 
-func (h *ClientCredentialsGrantHandler) HandleTokenRequest(
-	ctx context.Context,
-	req *core.TokenRequest,
-	res *core.TokenResponse,
-) error {
+func (h *ClientCredentialsGrantHandler) HandleTokenRequest(ctx context.Context, req *core.TokenRequest) error {
 	if !req.GrantType.ExactOne("client_credentials") {
 		return core.ErrUnknownRequest
 	}
