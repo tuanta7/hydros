@@ -7,6 +7,7 @@
 #
 # Binaries for programs and plugins
 buf/
+hydros
 *.exe
 *.exe~
 *.dll

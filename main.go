@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/tuanta7/hydros/cmd"
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/handler/oauth"
@@ -38,9 +39,12 @@ func main() {
 	logger, err := zapx.NewLogger(cfg.LogLevel)
 	panicErr(err)
 
-	cmd := &cli.Command{
-		Name:  "Hydros",
+	c := &cli.Command{
+		Name:  "hydros",
 		Usage: "OIDC and OAuth2.1 Provider",
+		Commands: []*cli.Command{
+			cmd.NewCreateClientsCommand(),
+		},
 		Action: func(ctx context.Context, command *cli.Command) error {
 			pgClient, err := postgres.NewClient(cfg.Postgres.DSN())
 			panicErr(err)
@@ -56,7 +60,7 @@ func main() {
 			defer redisClient.Close()
 
 			clientRepo := pgsource.NewClientRepository(pgClient)
-			clientUC := client.NewUseCase(clientRepo, logger)
+			clientUC := client.NewUseCase(cfg, clientRepo, logger)
 
 			clients, err := clientRepo.List(context.Background(), 1, 10)
 			fmt.Println(clients)
@@ -97,7 +101,7 @@ func main() {
 		},
 	}
 
-	if err := cmd.Run(context.Background(), os.Args); err != nil {
+	if err := c.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err)
 	}
 }

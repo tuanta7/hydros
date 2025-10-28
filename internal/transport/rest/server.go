@@ -43,7 +43,8 @@ func (s *Server) Shutdown(ctx context.Context) error {
 }
 
 func (s *Server) RegisterRoutes() {
-	s.router.GET("/oauth/authorize", nil)
+	// Authorization Service
+	s.router.GET("/oauth/authorize", s.oauthHandler.Authorize)
 	s.router.POST("/oauth/token", s.oauthHandler.Token)
 	s.router.GET("/oauth/introspect", nil)
 
@@ -51,7 +52,11 @@ func (s *Server) RegisterRoutes() {
 	s.router.GET("/oauth/logout", nil)
 	s.router.POST("/oauth/logout", nil)
 
-	s.router.GET("/self-service/login", nil)
+	// Identity Service
+	s.router.GET("/self-service/login", nil)  // ui
+	s.router.POST("/self-service/login", nil) // submit
+	s.router.GET("/self-service/consent", nil)
+	s.router.POST("/self-service/consent", nil)
 
 	s.server.Handler = s.router
 }

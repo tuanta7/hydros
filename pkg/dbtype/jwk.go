@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/tuanta7/hydros/core"
 )
 
 type JWKSet struct {
-	*jwt.VerificationKeySet
+	*core.JSONWebKeySet
 }
 
 func (j *JWKSet) Scan(value any) error {

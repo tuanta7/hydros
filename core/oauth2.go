@@ -7,6 +7,7 @@ import (
 )
 
 type TokenType string
+type GrantType string
 
 const (
 	BearerToken = "Bearer"
@@ -15,6 +16,10 @@ const (
 	RefreshToken      TokenType = "refresh_token"
 	AuthorizationCode TokenType = "authorize_code"
 	IDToken           TokenType = "id_token"
+
+	GrantTypeRefreshToken      GrantType = "refresh_token"
+	GrantTypeAuthorizationCode GrantType = "authorization_code"
+	GrantTypeClientCredentials GrantType = "client_credentials"
 )
 
 // OAuth2 implements the OAuth2Provider interface.

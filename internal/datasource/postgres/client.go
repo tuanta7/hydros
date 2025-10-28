@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"context"
+	"maps"
+	"slices"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -54,14 +56,14 @@ func (r *clientRepository) List(ctx context.Context, page, pageSize uint64) ([]*
 }
 
 func (r *clientRepository) Create(ctx context.Context, client *domain.Client) error {
+	m := client.ColumnMap()
+	column := maps.Keys(m)
+	values := maps.Values(m)
+
 	query, args, err := r.pgClient.SQLBuilder().
 		Insert(r.tableName).
-		Columns("id", "name", "description").
-		Values(
-			client.ID,
-			client.Name,
-			client.Description,
-		).
+		Columns(slices.Collect(column)...).
+		Values(slices.Collect(values)...).
 		ToSql()
 	if err != nil {
 		return err

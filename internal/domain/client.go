@@ -4,7 +4,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/pkg/dbtype"
 )
@@ -69,11 +68,11 @@ func (c Client) GetRequestURIs() []string {
 	return c.RequestURIs
 }
 
-func (c Client) GetJWKs() *jwt.VerificationKeySet {
+func (c Client) GetJWKs() *core.JSONWebKeySet {
 	if c.JWKs == nil {
 		return nil
 	}
-	return c.JWKs.VerificationKeySet
+	return c.JWKs.JSONWebKeySet
 }
 
 func (c Client) GetJWKsURI() string {
@@ -82,4 +81,25 @@ func (c Client) GetJWKsURI() string {
 
 func (c Client) GetTokenEndpointAuthMethod() string {
 	return c.TokenEndpointAuthMethod
+}
+
+func (c Client) ColumnMap() map[string]any {
+	return map[string]any{
+		"id":                              c.ID,
+		"name":                            c.Name,
+		"description":                     c.Description,
+		"secret":                          c.Secret,
+		"scope":                           c.Scope,
+		"redirect_uris":                   c.RedirectURIs,
+		"grant_types":                     c.GrantTypes,
+		"response_types":                  c.ResponseTypes,
+		"audience":                        c.Audience,
+		"request_uris":                    c.RequestURIs,
+		"jwks":                            c.JWKs,
+		"jwks_uri":                        c.JWKsURI,
+		"token_endpoint_auth_method":      c.TokenEndpointAuthMethod,
+		"token_endpoint_auth_signing_alg": c.TokenEndpointAuthSigningAlg,
+		"created_at":                      c.CreatedAt,
+		"updated_at":                      c.UpdatedAt,
+	}
 }

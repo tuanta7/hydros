@@ -2,7 +2,6 @@ package oauth
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/tuanta7/hydros/core"
@@ -29,18 +28,6 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(
 	}
 
 	return nil
-}
-
-func (h *AuthorizationCodeGrantHandler) AuthenticateClient(
-	ctx context.Context,
-	req *core.TokenRequest,
-) error {
-	if req.Client != nil && req.Client.IsPublic() {
-		return nil
-	}
-
-	// TODO: support confidential client
-	return errors.New("confidential client is not supported yet")
 }
 
 func (h *AuthorizationCodeGrantHandler) HandleTokenRequest(

@@ -22,6 +22,7 @@ type ClientCredentialsGrantHandler struct {
 	accessTokenStorage  storage.AccessTokenStorage
 }
 
+// NewClientCredentialsGrantHandler returns a new handler with default matching strategies
 func NewClientCredentialsGrantHandler(
 	config ClientCredentialsGrantConfig,
 	accessTokenStrategy strategy.TokenStrategy,

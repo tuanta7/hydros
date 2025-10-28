@@ -7,7 +7,7 @@ RUN GO111MODULE=on go mod download
 RUN go mod vendor
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o hydros ./cmd/server/
+RUN CGO_ENABLED=0 GOOS=linux go build -o hydros .
 
 RUN make install-goose
 

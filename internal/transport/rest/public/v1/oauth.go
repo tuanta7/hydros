@@ -19,9 +19,15 @@ func NewOAuthHandler(oauth2 core.OAuth2Provider) *OAuthHandler {
 	}
 }
 
+func (h *OAuthHandler) Authorize(c *gin.Context) {
+	ctx := c.Request.Context()
+	h.oauth2.WriteAuthorizeResponse(ctx, c.Writer, nil, nil)
+}
+
 func (h *OAuthHandler) Token(c *gin.Context) {
+	ctx := c.Request.Context()
 	session := domain.NewSession()
-	tokenRequest, err := h.oauth2.NewTokenRequest(c.Request.Context(), c.Request, session)
+	tokenRequest, err := h.oauth2.NewTokenRequest(ctx, c.Request, session)
 	if err != nil {
 		h.logger.Error("error validating token request",
 			zap.Error(err),
@@ -32,15 +38,15 @@ func (h *OAuthHandler) Token(c *gin.Context) {
 
 	// TODO: Implement rfc8693 token exchange
 
-	tokenResponse, err := h.oauth2.NewTokenResponse(c.Request.Context(), tokenRequest)
+	tokenResponse, err := h.oauth2.NewTokenResponse(ctx, tokenRequest)
 	if err != nil {
 		h.logger.Error("error populating token response",
 			zap.Error(err),
 			zap.String("method", "oauth2.NewTokenResponse"),
 		)
-		h.oauth2.WriteTokenError(c.Request.Context(), c.Writer, tokenRequest, err)
+		h.oauth2.WriteTokenError(ctx, c.Writer, tokenRequest, err)
 		return
 	}
 
-	h.oauth2.WriteTokenResponse(c.Request.Context(), c.Writer, tokenRequest, tokenResponse)
+	h.oauth2.WriteTokenResponse(ctx, c.Writer, tokenRequest, tokenResponse)
 }
