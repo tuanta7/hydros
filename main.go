@@ -17,7 +17,7 @@ import (
 	"github.com/tuanta7/hydros/core/token/hmac"
 	pgsource "github.com/tuanta7/hydros/internal/datasource/postgres"
 	redissource "github.com/tuanta7/hydros/internal/datasource/redis"
-	restprivatev1 "github.com/tuanta7/hydros/internal/transport/rest/private/v1"
+	restadminv1 "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
 	restpublicv1 "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
 	clientuc "github.com/tuanta7/hydros/internal/usecase/client"
 	"github.com/tuanta7/hydros/pkg/adapter/postgres"
@@ -59,7 +59,11 @@ func main() {
 		[]core.AuthorizeHandler{},
 		[]core.TokenHandler{
 			oauth.NewClientCredentialsGrantHandler(cfg, hmacStrategy, sessionStorage),
-		})
+		},
+		[]core.IntrospectionHandler{
+			oauth.NewTokenIntrospectionHandler(cfg, hmacStrategy, nil, sessionStorage, nil),
+		},
+	)
 
 	c := &cli.Command{
 		Name:  "hydros",
@@ -76,8 +80,8 @@ func main() {
 			cmd.NewCreateClientsCommand(clientUC),
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
-			clientHandler := restprivatev1.NewClientHandler(clientUC)
-			oauthHandler := restpublicv1.NewOAuthHandler(oauthCore, logger)
+			clientHandler := restadminv1.NewClientHandler(clientUC)
+			oauthHandler := restpublicv1.NewOAuthHandler(cfg, oauthCore, logger)
 
 			restServer := rest.NewServer(cfg, clientHandler, oauthHandler)
 			errCh := make(chan error)

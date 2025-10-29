@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 )
@@ -50,7 +49,7 @@ func (o *OAuth2) NewTokenRequest(ctx context.Context, req *http.Request, session
 		return nil, ErrInvalidRequest.WithHint("HTTP method is '%s', expected 'POST'.", req.Method)
 	}
 
-	form, err := BindForm(req)
+	form, err := BindPostForm(req)
 	if err != nil {
 		return nil, ErrInvalidRequest.WithHint("Unable to parse HTTP body, make sure to send a properly formatted form request body.").WithWrap(err)
 	} else if len(form) == 0 {
@@ -110,26 +109,7 @@ func (o *OAuth2) NewTokenResponse(ctx context.Context, req *TokenRequest) (*Toke
 }
 
 func (o *OAuth2) WriteTokenError(ctx context.Context, rw http.ResponseWriter, req *TokenRequest, err error) {
-	rw.Header().Set("Content-Type", "application/json;charset=UTF-8")
-	rw.Header().Set("Cache-Control", "no-store")
-	rw.Header().Set("Pragma", "no-cache")
-
-	rfcErr := ErrorToRFC6749Error(err)
-
-	jsonErr, err := json.Marshal(rfcErr)
-	if err != nil {
-		if o.config.IsDebugging() {
-			errPayload := fmt.Sprintf(
-				`{"error":"server_error","error_description":"%s"}`,
-				EscapeJSONString(err.Error()),
-			)
-			http.Error(rw, errPayload, http.StatusInternalServerError)
-		}
-		http.Error(rw, `{"error":"server_error"}`, http.StatusInternalServerError)
-	}
-
-	rw.WriteHeader(rfcErr.CodeField)
-	_, _ = rw.Write(jsonErr)
+	o.writeError(ctx, rw, err)
 }
 
 func (o *OAuth2) WriteTokenResponse(ctx context.Context, rw http.ResponseWriter, req *TokenRequest, resp *TokenResponse) {

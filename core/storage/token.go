@@ -19,5 +19,6 @@ type AccessTokenStorage interface {
 }
 
 type RefreshTokenStorage interface {
+	GetRefreshTokenSession(ctx context.Context, signature string, session core.Session) (*core.TokenRequest, error)
 	RotateRefreshToken(ctx context.Context, requestID string, signature string) (err error)
 }

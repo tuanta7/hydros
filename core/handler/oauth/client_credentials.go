@@ -10,12 +10,12 @@ import (
 	"github.com/tuanta7/hydros/pkg/timex"
 )
 
-type ClientCredentialsGrantConfig interface {
+type ClientCredentialsGrantConfigurator interface {
 	core.AccessTokenLifetimeProvider
 }
 
 type ClientCredentialsGrantHandler struct {
-	config              ClientCredentialsGrantConfig
+	config              ClientCredentialsGrantConfigurator
 	scopeStrategy       strategy.ScopeStrategy
 	audienceStrategy    strategy.AudienceStrategy
 	accessTokenStrategy strategy.TokenStrategy
@@ -24,7 +24,7 @@ type ClientCredentialsGrantHandler struct {
 
 // NewClientCredentialsGrantHandler returns a new handler with default matching strategies
 func NewClientCredentialsGrantHandler(
-	config ClientCredentialsGrantConfig,
+	config ClientCredentialsGrantConfigurator,
 	accessTokenStrategy strategy.TokenStrategy,
 	storage storage.AccessTokenStorage,
 ) *ClientCredentialsGrantHandler {

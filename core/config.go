@@ -23,3 +23,7 @@ type SecretsHashingProvider interface {
 type DebugModeProvider interface {
 	IsDebugging() bool
 }
+
+type DisableRefreshTokenValidationProvider interface {
+	IsDisableRefreshTokenValidation() bool
+}

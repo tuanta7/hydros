@@ -18,7 +18,7 @@ func BindForm(r *http.Request) (url.Values, error) {
 	return r.Form, nil
 }
 
-// BindPostForm is the same as BindForm, but for POST/PUT/PATCH requests only.
+// BindPostForm is the same as BindForm, but return post form data only.
 func BindPostForm(r *http.Request) (url.Values, error) {
 	err := r.ParseMultipartForm(1 << 20)
 	if err != nil && !errors.Is(err, http.ErrNotMultipart) {
@@ -31,7 +31,7 @@ func BindPostForm(r *http.Request) (url.Values, error) {
 func AccessTokenFromRequest(r *http.Request) string {
 	parts := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
 	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-		form, err := BindForm(r)
+		form, err := BindForm(r) // this gets both url and body params
 		if err != nil {
 			return ""
 		}

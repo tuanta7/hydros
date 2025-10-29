@@ -29,10 +29,11 @@ const (
 
 // OAuth2 implements the OAuth2Provider interface.
 type OAuth2 struct {
-	config            Configurator
-	store             Storage
-	authorizeHandlers []AuthorizeHandler
-	tokenHandlers     []TokenHandler
+	config               Configurator
+	store                Storage
+	authorizeHandlers    []AuthorizeHandler
+	tokenHandlers        []TokenHandler
+	introspectionHandler []IntrospectionHandler
 }
 
 func NewOAuth2(
@@ -40,12 +41,14 @@ func NewOAuth2(
 	store Storage,
 	authorizeHandlers []AuthorizeHandler,
 	tokenHandlers []TokenHandler,
+	introspectionHandler []IntrospectionHandler,
 ) *OAuth2 {
 	return &OAuth2{
-		config:            config,
-		store:             store,
-		authorizeHandlers: authorizeHandlers,
-		tokenHandlers:     tokenHandlers,
+		config:               config,
+		store:                store,
+		authorizeHandlers:    authorizeHandlers,
+		tokenHandlers:        tokenHandlers,
+		introspectionHandler: introspectionHandler,
 	}
 }
 
@@ -60,6 +63,10 @@ type OAuth2Provider interface {
 	NewTokenResponse(ctx context.Context, req *TokenRequest) (*TokenResponse, error)
 	WriteTokenError(ctx context.Context, rw http.ResponseWriter, req *TokenRequest, err error)
 	WriteTokenResponse(ctx context.Context, rw http.ResponseWriter, req *TokenRequest, resp *TokenResponse)
+
+	IntrospectToken(ctx context.Context, req *http.Request, session Session) (*IntrospectionResponse, error)
+	WriteIntrospectionError(ctx context.Context, rw http.ResponseWriter, err error)
+	WriteIntrospectionResponse(ctx context.Context, rw http.ResponseWriter, r *IntrospectionResponse)
 }
 
 type Configurator interface {
@@ -78,4 +85,8 @@ type AuthorizeHandler interface {
 type TokenHandler interface {
 	HandleTokenRequest(ctx context.Context, req *TokenRequest) error
 	HandleTokenResponse(ctx context.Context, req *TokenRequest, res *TokenResponse) error
+}
+
+type IntrospectionHandler interface {
+	IntrospectToken(context.Context, *IntrospectionRequest, *TokenRequest) (TokenType, error)
 }

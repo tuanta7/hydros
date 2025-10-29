@@ -4,6 +4,16 @@ import "strings"
 
 type Arguments []string
 
+func (r Arguments) Append(args ...string) Arguments {
+	for _, arg := range args {
+		if r.Include(arg) {
+			continue
+		}
+	}
+
+	return append(r, args...)
+}
+
 func (r Arguments) ExactOne(name string) bool {
 	return len(r) == 1 && r[0] == name
 }

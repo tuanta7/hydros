@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/tuanta7/hydros/config"
-	v1private "github.com/tuanta7/hydros/internal/transport/rest/private/v1"
+	v1admin "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
 	v1public "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
 )
 
@@ -15,11 +15,11 @@ type Server struct {
 	cfg           *config.Config
 	router        *gin.Engine
 	server        *http.Server
-	clientHandler *v1private.ClientHandler
+	clientHandler *v1admin.ClientHandler
 	oauthHandler  *v1public.OAuthHandler
 }
 
-func NewServer(cfg *config.Config, clientHandler *v1private.ClientHandler, oauthHandler *v1public.OAuthHandler) *Server {
+func NewServer(cfg *config.Config, clientHandler *v1admin.ClientHandler, oauthHandler *v1public.OAuthHandler) *Server {
 	return &Server{
 		cfg:    cfg,
 		router: gin.New(),
@@ -48,17 +48,18 @@ func (s *Server) Shutdown(ctx context.Context) error {
 }
 
 func (s *Server) RegisterRoutes() {
-	// Authorization Service
+	// Authorization Service - OAuth APIs
 	s.router.GET("/oauth/authorize", s.oauthHandler.HandleAuthorizeRequest)
 	s.router.POST("/oauth/token", s.oauthHandler.HandleTokenRequest)
-	s.router.GET("/oauth/introspect", s.oauthHandler.HandleIntrospectionRequest)
-
+	s.router.POST("/oauth/introspect", s.oauthHandler.HandleIntrospectionRequest)
 	s.router.POST("/oauth/revoke", nil)
 	s.router.GET("/oauth/logout", nil)
 	s.router.POST("/oauth/logout", nil)
 
-	s.router.GET("/clients", s.clientHandler.List)
-	s.router.POST("/clients", s.clientHandler.Create)
+	// Authorization Service - Admin APIs
+	adminRouter := s.router.Group("/admin/api/v1")
+	adminRouter.GET("/clients", s.clientHandler.List)
+	adminRouter.POST("/clients", s.clientHandler.Create)
 
 	// Identity Service
 	s.router.GET("/self-service/login", nil)  // ui

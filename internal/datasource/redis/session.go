@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/tuanta7/hydros/config"
@@ -85,7 +86,7 @@ func (s *TokenSessionStorage) CreateAccessTokenSession(ctx context.Context, sign
 	}
 
 	key := s.prefixKey(core.AccessToken, signature)
-	err = s.redis.Set(ctx, key, buf.Bytes(), s.cfg.Lifetime.AccessToken)
+	err = s.redis.Set(ctx, key, buf.Bytes(), s.cfg.GetAccessTokenLifetime())
 	if err != nil {
 		return err
 	}
@@ -99,13 +100,6 @@ func (s *TokenSessionStorage) sessionFromRequest(
 	req *core.TokenRequest,
 	tokenType core.TokenType,
 ) (*datasource.TokenRequestSession, error) {
-	subject := ""
-	if req.Session == nil {
-		// TODO
-	} else {
-		subject = req.Session.GetSubject()
-	}
-
 	session, err := json.Marshal(req.Session)
 	if err != nil {
 		return nil, err
@@ -131,13 +125,18 @@ func (s *TokenSessionStorage) sessionFromRequest(
 
 	return &datasource.TokenRequestSession{
 		Signature:         signature,
-		Challenge:         challenge,
 		RequestID:         req.ID,
 		RequestedAt:       req.RequestedAt,
 		ClientID:          req.Client.GetID(),
-		Subject:           subject,
-		Active:            true,
+		Scope:             strings.Join(req.Scope, "|"),
+		GrantedScope:      strings.Join(req.GrantedScope, "|"),
+		Audience:          strings.Join(req.Audience, "|"),
+		GrantedAudience:   strings.Join(req.GrantedAudience, "|"),
+		Form:              req.Form.Encode(),
 		Session:           session,
+		Subject:           req.Session.GetSubject(),
+		Active:            true,
+		Challenge:         challenge,
 		InternalExpiresAt: sql.NullTime{Valid: true, Time: req.Session.GetExpiresAt(tokenType).UTC()},
 	}, nil
 }

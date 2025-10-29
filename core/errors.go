@@ -1,6 +1,8 @@
 package core
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -101,6 +103,12 @@ var (
 		DescriptionField: "Client authentication failed (e.g., unknown client, no client authentication included, or unsupported authentication method).",
 		CodeField:        http.StatusUnauthorized,
 	}
+	ErrRequestUnauthorized = &RFC6749Error{
+		ErrorField:       "request_unauthorized",
+		DescriptionField: "The request could not be authorized.",
+		HintField:        "Check that you provided valid credentials in the right format.",
+		CodeField:        http.StatusUnauthorized,
+	}
 )
 
 func ErrorToRFC6749Error(err error) *RFC6749Error {
@@ -115,4 +123,27 @@ func ErrorToRFC6749Error(err error) *RFC6749Error {
 		CodeField:        http.StatusInternalServerError,
 		cause:            err,
 	}
+}
+
+func (o *OAuth2) writeError(ctx context.Context, rw http.ResponseWriter, err error) {
+	rw.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	rw.Header().Set("Cache-Control", "no-store")
+	rw.Header().Set("Pragma", "no-cache")
+
+	rfcErr := ErrorToRFC6749Error(err)
+
+	jsonErr, err := json.Marshal(rfcErr)
+	if err != nil {
+		if o.config.IsDebugging() {
+			errPayload := fmt.Sprintf(
+				`{"error":"server_error","error_description":"%s"}`,
+				EscapeJSONString(err.Error()),
+			)
+			http.Error(rw, errPayload, http.StatusInternalServerError)
+		}
+		http.Error(rw, `{"error":"server_error"}`, http.StatusInternalServerError)
+	}
+
+	rw.WriteHeader(rfcErr.CodeField)
+	_, _ = rw.Write(jsonErr)
 }
