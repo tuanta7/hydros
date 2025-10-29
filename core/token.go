@@ -66,6 +66,10 @@ func (o *OAuth2) NewTokenRequest(ctx context.Context, req *http.Request, session
 	tokenRequest.Form = form
 	tokenRequest.Client = client
 
+	tokenRequest.GrantType = form["grant_type"]
+	tokenRequest.Audience = form["audience"]
+	tokenRequest.Scope = form["scope"]
+
 	handled := false
 	for _, th := range o.tokenHandlers {
 		he := th.HandleTokenRequest(ctx, tokenRequest)

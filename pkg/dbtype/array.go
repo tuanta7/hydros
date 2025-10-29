@@ -28,8 +28,8 @@ func (m *StringArray) Scan(value interface{}) error {
 }
 
 // Value implements the driver Valuer interface.
-func (m *StringArray) Value() (driver.Value, error) {
-	if len(*m) == 0 {
+func (m StringArray) Value() (driver.Value, error) {
+	if len(m) == 0 {
 		return "[]", nil
 	}
 

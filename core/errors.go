@@ -7,11 +7,11 @@ import (
 )
 
 type RFC6749Error struct {
-	ErrorField       string
-	DescriptionField string
-	HintField        string
-	CodeField        int
-	DebugField       string
+	ErrorField       string `json:"error"`
+	DescriptionField string `json:"error_description"`
+	HintField        string `json:"hint,omitempty"`
+	CodeField        int    `json:"-"`
+	DebugField       string `json:"-"`
 	cause            error
 }
 

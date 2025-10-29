@@ -2,8 +2,6 @@ package postgres
 
 import (
 	"context"
-	"maps"
-	"slices"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -57,13 +55,18 @@ func (r *clientRepository) List(ctx context.Context, page, pageSize uint64) ([]*
 
 func (r *clientRepository) Create(ctx context.Context, client *domain.Client) error {
 	m := client.ColumnMap()
-	column := maps.Keys(m)
-	values := maps.Values(m)
+	var columns []string
+	var values []any
+
+	for k, v := range m {
+		columns = append(columns, k)
+		values = append(values, v)
+	}
 
 	query, args, err := r.pgClient.SQLBuilder().
 		Insert(r.tableName).
-		Columns(slices.Collect(column)...).
-		Values(slices.Collect(values)...).
+		Columns(columns...).
+		Values(values...).
 		ToSql()
 	if err != nil {
 		return err
@@ -80,7 +83,7 @@ func (r *clientRepository) Create(ctx context.Context, client *domain.Client) er
 func (r *clientRepository) Get(ctx context.Context, id string) (*domain.Client, error) {
 	query, args, err := r.pgClient.SQLBuilder().
 		Select("*").
-		From("").
+		From(r.tableName).
 		Where(squirrel.Eq{"id": id}).
 		ToSql()
 	if err != nil {

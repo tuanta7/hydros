@@ -23,10 +23,10 @@ type Config struct {
 	GlobalSecret   string `koanf:"global_secret" json:"-"`
 	KeyEntropy     int    `koanf:"key_entropy"`
 
-	Lifetime    *LifetimeConfig    `koanf:"lifetime"`
-	Obfuscation *ObfuscationConfig `koanf:"obfuscation"`
-	Redis       *RedisConfig       `koanf:"redis"`
-	Postgres    *PostgresConfig    `koanf:"postgres"`
+	Lifetime    LifetimeConfig    `koanf:"lifetime"`
+	Obfuscation ObfuscationConfig `koanf:"obfuscation"`
+	Redis       RedisConfig       `koanf:"redis"`
+	Postgres    PostgresConfig    `koanf:"postgres"`
 }
 
 func (c *Config) IsDebugging() bool {

@@ -26,6 +26,7 @@ type Client struct {
 	TokenEndpointAuthSigningAlg string             `json:"token_endpoint_auth_signing_alg,omitempty" db:"token_endpoint_auth_signing_alg"`
 	CreatedAt                   time.Time          `json:"created_at,omitempty" db:"created_at"`
 	UpdatedAt                   time.Time          `json:"updated_at,omitempty" db:"updated_at"`
+	// TODO: Support rfc7591 dynamic client registration
 }
 
 func (c Client) GetID() string {

@@ -6,6 +6,7 @@ import (
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/go-playground/assert/v2"
 	"github.com/stretchr/testify/suite"
+	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/internal/domain"
 )
 
@@ -23,7 +24,7 @@ func (s *ClientRepositoryTestSuite) TestClientCreate() {
 		Name:        gofakeit.Username(),
 		Description: gofakeit.Comment(),
 
-		TokenEndpointAuthMethod:     "none",
+		TokenEndpointAuthMethod:     core.ClientAuthenticationMethodNone,
 		TokenEndpointAuthSigningAlg: "none",
 	}
 

@@ -14,3 +14,7 @@ func NewLogger(logLevel string) (*Logger, error) {
 
 	return &Logger{logger}, nil
 }
+
+func (l *Logger) Sync() error {
+	return l.Logger.Sync()
+}

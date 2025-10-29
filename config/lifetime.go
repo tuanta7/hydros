@@ -13,5 +13,8 @@ func (c *Config) GetAuthorizationCodeLifetime() time.Duration {
 }
 
 func (c *Config) GetAccessTokenLifetime() time.Duration {
+	if c.Lifetime.AccessToken == 0 {
+		return time.Hour
+	}
 	return c.Lifetime.AccessToken
 }

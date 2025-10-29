@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS client
     jwks_uri                        TEXT                    NOT NULL,
     token_endpoint_auth_method      VARCHAR(25)             NOT NULL,
     token_endpoint_auth_signing_alg VARCHAR(10)             NOT NULL,
-    created_at                      timestamp default now() NOT NULL,
-    updated_at                      timestamp default now() NOT NULL,
+    created_at                      TIMESTAMP DEFAULT now() NOT NULL,
+    updated_at                      TIMESTAMP DEFAULT now() NOT NULL,
     PRIMARY KEY (id)
 );
 

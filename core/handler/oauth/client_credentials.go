@@ -95,7 +95,9 @@ func (h *ClientCredentialsGrantHandler) HandleTokenResponse(
 	if req.Session.GetExpiresAt(core.AccessToken).IsZero() {
 		res.ExpiresIn = time.Duration(accessTokenLifetime.Seconds())
 	}
-	res.ExpiresIn = time.Duration(req.Session.GetExpiresAt(core.AccessToken).UnixNano() - timex.NowUTC().UnixNano())
+
+	expiresInNano := time.Duration(req.Session.GetExpiresAt(core.AccessToken).UnixNano() - timex.NowUTC().UnixNano())
+	res.ExpiresIn = time.Duration(expiresInNano.Round(time.Second).Seconds())
 
 	res.AccessToken = token
 	res.TokenType = core.BearerToken

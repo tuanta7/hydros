@@ -3,11 +3,13 @@ package client
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/internal/domain"
+	"github.com/tuanta7/hydros/pkg/helper"
 	"github.com/tuanta7/hydros/pkg/timex"
 	"github.com/tuanta7/hydros/pkg/zapx"
 	"go.uber.org/zap"
@@ -42,15 +44,23 @@ func (u *UseCase) ListClients(ctx context.Context, page, pageSize uint64) ([]cor
 }
 
 func (u *UseCase) CreateClient(ctx context.Context, client *domain.Client) error {
-	if client.ID == "" {
-		client.ID = strings.Replace(uuid.NewString(), "-", "", -1)
+	secret := ""
+	if client.Secret != "" {
+		secret = client.Secret
+	} else {
+		secret = helper.GenerateSecret(26)
 	}
 
-	hashedSecret, err := u.cfg.Obfuscation.SecretHasher.Hash(ctx, []byte(client.Secret))
+	hashedSecret, err := u.cfg.GetSecretsHasher().Hash(ctx, []byte(secret))
 	if err != nil {
 		return err
 	}
+
 	client.Secret = string(hashedSecret)
+
+	if client.ID == "" {
+		client.ID = strings.Replace(uuid.NewString(), "-", "", -1)
+	}
 
 	if client.TokenEndpointAuthMethod == "" {
 		client.TokenEndpointAuthMethod = "none"
@@ -60,7 +70,7 @@ func (u *UseCase) CreateClient(ctx context.Context, client *domain.Client) error
 		client.TokenEndpointAuthSigningAlg = "none"
 	}
 
-	client.CreatedAt = timex.NowUTC()
+	client.CreatedAt = timex.NowUTC().Round(time.Second)
 	client.UpdatedAt = client.CreatedAt
 
 	err = u.clientRepo.Create(ctx, client)
@@ -70,6 +80,11 @@ func (u *UseCase) CreateClient(ctx context.Context, client *domain.Client) error
 			zap.String("method", "clientRepo.Create"),
 		)
 		return err
+	}
+
+	if !client.IsPublic() {
+		// let the creator know the secret for only once
+		client.Secret = secret
 	}
 
 	return nil

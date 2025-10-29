@@ -4,6 +4,7 @@ import (
 	"github.com/mohae/deepcopy"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/handler/oidc"
+	"github.com/tuanta7/hydros/core/token/jwt"
 )
 
 // Session is used for methods that handle business logic related to sessions.
@@ -28,6 +29,12 @@ func (s *Session) Clone() core.Session {
 	return deepcopy.Copy(s).(core.Session)
 }
 
-func NewSession() *Session {
-	return &Session{}
+func NewSession(subject string) *Session {
+	return &Session{
+		IDTokenSession: &oidc.IDTokenSession{
+			Claims:  &jwt.IDTokenClaims{},
+			Headers: &jwt.Headers{},
+			Subject: subject,
+		},
+	}
 }

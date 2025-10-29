@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -18,8 +17,9 @@ import (
 	"github.com/tuanta7/hydros/core/token/hmac"
 	pgsource "github.com/tuanta7/hydros/internal/datasource/postgres"
 	redissource "github.com/tuanta7/hydros/internal/datasource/redis"
+	restprivatev1 "github.com/tuanta7/hydros/internal/transport/rest/private/v1"
 	restpublicv1 "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
-	"github.com/tuanta7/hydros/internal/usecase/client"
+	clientuc "github.com/tuanta7/hydros/internal/usecase/client"
 	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 	"github.com/tuanta7/hydros/pkg/adapter/redis"
 	"github.com/tuanta7/hydros/pkg/zapx"
@@ -31,53 +31,55 @@ import (
 
 func main() {
 	cfg := config.LoadConfig(".env")
-	if b, err := json.MarshalIndent(cfg, "", "\t"); err == nil {
-		fmt.Printf("Config: %s", string(b))
-		fmt.Println()
-	}
-
 	logger, err := zapx.NewLogger(cfg.LogLevel)
 	panicErr(err)
+	defer logger.Sync()
+
+	pgClient, err := postgres.NewClient(cfg.Postgres.DSN())
+	panicErr(err)
+	defer pgClient.Close()
+
+	clientRepo := pgsource.NewClientRepository(pgClient)
+	clientUC := clientuc.NewUseCase(cfg, clientRepo, logger)
+
+	redisClient, err := redis.NewClient(
+		context.Background(),
+		fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		redis.WithCredential(cfg.Redis.Username, cfg.Redis.Password),
+		redis.WithDB(cfg.Redis.DB),
+	)
+	panicErr(err)
+	defer redisClient.Close()
+
+	sessionStorage := redissource.NewTokenSessionStorage(cfg, redisClient)
+	hmacStrategy, err := hmac.NewHMAC([]byte(cfg.GlobalSecret), cfg.KeyEntropy)
+	panicErr(err)
+
+	oauthCore := core.NewOAuth2(cfg, clientUC,
+		[]core.AuthorizeHandler{},
+		[]core.TokenHandler{
+			oauth.NewClientCredentialsGrantHandler(cfg, hmacStrategy, sessionStorage),
+		})
 
 	c := &cli.Command{
 		Name:  "hydros",
 		Usage: "OIDC and OAuth2.1 Provider",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:     "with-identity",
+				Aliases:  []string{"idp"},
+				Usage:    "run with identity provider endpoint enabled",
+				Required: false,
+			},
+		},
 		Commands: []*cli.Command{
-			cmd.NewCreateClientsCommand(),
+			cmd.NewCreateClientsCommand(clientUC),
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
-			pgClient, err := postgres.NewClient(cfg.Postgres.DSN())
-			panicErr(err)
-			defer pgClient.Close()
+			clientHandler := restprivatev1.NewClientHandler(clientUC)
+			oauthHandler := restpublicv1.NewOAuthHandler(oauthCore, logger)
 
-			redisClient, err := redis.NewClient(
-				context.Background(),
-				fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
-				redis.WithCredential(cfg.Redis.Username, cfg.Redis.Password),
-				redis.WithDB(cfg.Redis.DB),
-			)
-			panicErr(err)
-			defer redisClient.Close()
-
-			clientRepo := pgsource.NewClientRepository(pgClient)
-			clientUC := client.NewUseCase(cfg, clientRepo, logger)
-
-			clients, err := clientRepo.List(context.Background(), 1, 10)
-			fmt.Println(clients)
-			panicErr(err)
-
-			sessionStorage := redissource.NewTokenSessionStorage(cfg, redisClient)
-			hmacStrategy, err := hmac.NewHMAC([]byte(cfg.GlobalSecret), cfg.KeyEntropy)
-			panicErr(err)
-
-			oauthCore := core.NewOAuth2(cfg, clientUC,
-				[]core.AuthorizeHandler{},
-				[]core.TokenHandler{
-					oauth.NewClientCredentialsGrantHandler(cfg, hmacStrategy, sessionStorage),
-				})
-			oauthHandler := restpublicv1.NewOAuthHandler(oauthCore)
-
-			restServer := rest.NewServer(cfg, oauthHandler)
+			restServer := rest.NewServer(cfg, clientHandler, oauthHandler)
 			errCh := make(chan error)
 			go func() {
 				if err := restServer.Run(); err != nil {

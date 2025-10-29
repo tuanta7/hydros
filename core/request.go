@@ -12,7 +12,7 @@ type Request struct {
 	RequestedAt     time.Time  `json:"requested_at" form:"-"`
 	Scope           Arguments  `json:"scope" form:"scope"`
 	GrantedScope    Arguments  `json:"granted_scope" form:"-"`
-	Audience        Arguments  `json:"requested_audience" form:"audience"`
+	Audience        Arguments  `json:"audience" form:"audience"`
 	GrantedAudience Arguments  `json:"granted_audience" form:"-"`
 	Form            url.Values `json:"form" form:"-"`
 	Client          Client     `json:"client" form:"-"`
