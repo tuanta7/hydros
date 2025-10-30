@@ -19,9 +19,11 @@ import (
 	"github.com/tuanta7/hydros/core/strategy"
 	pgsource "github.com/tuanta7/hydros/internal/datasource/postgres"
 	redissource "github.com/tuanta7/hydros/internal/datasource/redis"
+	"github.com/tuanta7/hydros/internal/domain"
 	restadminv1 "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
 	restpublicv1 "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
 	clientuc "github.com/tuanta7/hydros/internal/usecase/client"
+	"github.com/tuanta7/hydros/internal/usecase/jwk"
 	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 	"github.com/tuanta7/hydros/pkg/adapter/redis"
 	"github.com/tuanta7/hydros/pkg/zapx"
@@ -44,6 +46,8 @@ func main() {
 	clientRepo := pgsource.NewClientRepository(pgClient)
 	clientUC := clientuc.NewUseCase(cfg, clientRepo, logger)
 
+	jwkUC := jwk.NewUseCase()
+
 	redisClient, err := redis.NewClient(
 		context.Background(),
 		fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
@@ -54,7 +58,7 @@ func main() {
 	defer redisClient.Close()
 
 	sessionStorage := redissource.NewTokenSessionStorage(cfg, redisClient)
-	tokenStrategy, err := getTokenStrategy(cfg)
+	tokenStrategy, err := getTokenStrategy(context.Background(), cfg, jwkUC)
 	panicErr(err)
 
 	oauthCore := core.NewOAuth2(cfg, clientUC,
@@ -137,14 +141,15 @@ func shutdownServer(servers ...transport.Server) (err error) {
 	return nil
 }
 
-func getTokenStrategy(cfg *config.Config) (strategy.TokenStrategy, error) {
+func getTokenStrategy(ctx context.Context, cfg *config.Config, jwkUC *jwk.UseCase) (strategy.TokenStrategy, error) {
 	hmacSigner, err := hmac.NewSigner(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	if cfg.GetAccessTokenFormat() == "jwt" {
-		jwtSigner, err := jwt.NewSigner(cfg)
+		getPrivateKeyFn := jwkUC.GetOrCreateJWKFn(ctx, domain.AccessTokenSet)
+		jwtSigner, err := jwt.NewSigner(cfg, getPrivateKeyFn)
 		if err != nil {
 			return nil, err
 		}

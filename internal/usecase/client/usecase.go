@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -44,6 +45,10 @@ func (u *UseCase) ListClients(ctx context.Context, page, pageSize uint64) ([]cor
 }
 
 func (u *UseCase) CreateClient(ctx context.Context, client *domain.Client) error {
+	if client == nil {
+		return errors.New("client cannot be nil")
+	}
+
 	secret := ""
 	if client.Secret != "" {
 		secret = client.Secret

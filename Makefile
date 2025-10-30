@@ -3,6 +3,12 @@ MIGRATIONS_FOLDER=migrations
 PROTO_FOLDER=protobuf/proto
 BUF_VERSION?=1.58.0
 
+build:
+	CGO_ENABLED=0 GOOS=linux go build -o hydros .
+
+create-client:
+	./hydros create-client
+
 env-example:
 	awk -F'=' 'BEGIN {OFS="="} \
     	/^[[:space:]]*#/ {print; next} \

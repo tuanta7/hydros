@@ -32,6 +32,7 @@ func NewCreateClientsCommand(clientUC *client.UseCase) *cli.Command {
 
 			c := &domain.Client{
 				Name:                    name,
+				Description:             gofakeit.Comment(),
 				Scope:                   "example:read",
 				GrantTypes:              []string{string(core.GrantTypeClientCredentials)},
 				Audience:                []string{"example.com"},

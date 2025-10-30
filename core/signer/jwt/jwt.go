@@ -1,10 +1,13 @@
 package jwt
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	gojwt "github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/x"
 )
@@ -13,20 +16,29 @@ type Configurator interface {
 	core.AccessTokenIssuerProvider
 }
 
+type GetPrivateKeyFn func(ctx context.Context, kid ...string) (core.JSONWebKey, error)
+
 type DefaultSigner struct {
-	config     Configurator
-	privateKey *core.JSONWebKey
+	config          Configurator
+	getPrivateKeyFn GetPrivateKeyFn
 }
 
-func NewSigner(cfg Configurator) (*DefaultSigner, error) {
+func NewSigner(cfg Configurator, fn GetPrivateKeyFn) (*DefaultSigner, error) {
 	return &DefaultSigner{
-		config: cfg,
+		config:          cfg,
+		getPrivateKeyFn: fn,
 	}, nil
 }
 
-func (s DefaultSigner) Generate(request *core.TokenRequest, tokenType core.TokenType) (string, string, error) {
+func (s DefaultSigner) Generate(ctx context.Context, request *core.TokenRequest, tokenType core.TokenType) (string, string, error) {
+	key, err := s.getPrivateKeyFn(ctx)
+	if err != nil {
+		return "", "", err
+	}
+
 	claims := &Claims{
 		RegisteredClaims: gojwt.RegisteredClaims{
+			ID:        strings.Replace(uuid.NewString(), "-", "", -1),
 			Issuer:    s.config.GetAccessTokenIssuer(),
 			Subject:   request.Session.GetSubject(),
 			Audience:  gojwt.ClaimStrings(request.GrantedAudience),
@@ -37,9 +49,18 @@ func (s DefaultSigner) Generate(request *core.TokenRequest, tokenType core.Token
 		Scope:    strings.Join(request.GrantedScope, " "),
 	}
 
-	// TODO: Finish implementation
-	token := gojwt.NewWithClaims(gojwt.SigningMethodHS512, claims)
-	signedToken, err := token.SignedString([]byte("PRIVATE-KEY-OR-SECRET"))
+	algorithm := key.GetAlgorithm()
+	if algorithm == nil || algorithm == gojwt.SigningMethodNone {
+		return "", "", fmt.Errorf("invalid signing algorithm: %s", algorithm)
+	}
+	token := gojwt.NewWithClaims(algorithm, claims)
+
+	privateKey := key.GetPrivateKey()
+	if privateKey == nil {
+		return "", "", errors.New("private key is not set")
+	}
+
+	signedToken, err := token.SignedString(privateKey)
 	if err != nil {
 		return "", "", err
 	}
@@ -55,12 +76,22 @@ func (s DefaultSigner) GetSignature(token string) string {
 	return parts[2]
 }
 
-func (s DefaultSigner) Validate(token string) (err error) {
+func (s DefaultSigner) Validate(ctx context.Context, token string) (err error) {
+	key, err := s.getPrivateKeyFn(ctx)
+	if err != nil {
+		return err
+	}
+
+	publicKey := key.GetPublicKey()
+	if publicKey == nil {
+		return errors.New("public key is not set")
+	}
+
 	parser := gojwt.Parser{}
 	claims := &Claims{}
 
 	t, err := parser.ParseWithClaims(token, claims, func(t *gojwt.Token) (any, error) {
-		return []byte("PUBLIC-KEY-OR-SECRET"), nil
+		return publicKey, nil
 	})
 	if err != nil {
 		return err
