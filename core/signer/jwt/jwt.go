@@ -88,13 +88,12 @@ func (s DefaultSigner) Validate(ctx context.Context, token string) (err error) {
 	}
 
 	parser := gojwt.Parser{}
-	claims := &Claims{}
 
-	t, err := parser.ParseWithClaims(token, claims, func(t *gojwt.Token) (any, error) {
+	t, err := parser.ParseWithClaims(token, &Claims{}, func(t *gojwt.Token) (any, error) {
 		return publicKey, nil
 	})
 	if err != nil {
-		return err
+		return toRFCErr(err)
 	}
 
 	if t.Method == gojwt.SigningMethodNone {
@@ -102,4 +101,26 @@ func (s DefaultSigner) Validate(ctx context.Context, token string) (err error) {
 	}
 
 	return nil
+}
+
+func toRFCErr(err error) *core.RFC6749Error {
+	switch {
+	case err == nil:
+		return nil
+	case errors.Is(err, gojwt.ErrTokenMalformed):
+		return core.ErrInvalidTokenFormat
+	case errors.Is(err, gojwt.ErrSignatureInvalid) || errors.Is(err, gojwt.ErrTokenUnverifiable):
+		return core.ErrTokenSignatureMismatch
+	case errors.Is(err, gojwt.ErrTokenExpired):
+		return core.ErrTokenExpired
+	case errors.Is(err, gojwt.ErrTokenInvalidAudience) ||
+		errors.Is(err, gojwt.ErrTokenUsedBeforeIssued) ||
+		errors.Is(err, gojwt.ErrTokenInvalidIssuer) ||
+		errors.Is(err, gojwt.ErrTokenInvalidClaims) ||
+		errors.Is(err, gojwt.ErrTokenNotValidYet) ||
+		errors.Is(err, gojwt.ErrTokenInvalidId):
+		return core.ErrTokenClaim
+	default:
+		return core.ErrRequestUnauthorized
+	}
 }

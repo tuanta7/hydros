@@ -29,3 +29,19 @@ func NewRequest() *Request {
 		Form:            url.Values{},
 	}
 }
+
+// Merge merges back target request values into the current one.
+func (r *Request) Merge(target *Request) {
+	r.ID = target.ID
+	r.RequestedAt = target.RequestedAt
+	r.Scope = r.Scope.Append(target.Scope...)
+	r.GrantedScope = r.GrantedScope.Append(target.GrantedScope...)
+	r.Audience = r.Audience.Append(target.Audience...)
+	r.GrantedAudience = r.GrantedAudience.Append(target.GrantedAudience...)
+	r.Client = target.Client
+	r.Session = target.Session
+
+	for k, v := range target.Form {
+		r.Form[k] = v
+	}
+}

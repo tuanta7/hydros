@@ -26,6 +26,11 @@ type DefaultSigner struct {
 }
 
 func NewSigner(config SignerConfigurator) (*DefaultSigner, error) {
+	secret := config.GetGlobalSecret()
+	if len(secret) < 64 {
+		return nil, fmt.Errorf("secret for signing HMAC-SHA512/256 is expected to be at least 64 bytes long, got %d bytes", len(secret))
+	}
+
 	return &DefaultSigner{
 		config: config,
 	}, nil

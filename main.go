@@ -67,12 +67,8 @@ func main() {
 			oauth.NewClientCredentialsGrantHandler(cfg, tokenStrategy, sessionStorage),
 		},
 		[]core.IntrospectionHandler{
-			oauth.NewTokenIntrospectionHandler(
-				cfg,
-				tokenStrategy,
-				sessionStorage,
-				sessionStorage,
-			),
+			oauth.NewJWTIntrospectionHandler(tokenStrategy),
+			oauth.NewTokenIntrospectionHandler(cfg, tokenStrategy, sessionStorage),
 		},
 	)
 

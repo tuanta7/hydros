@@ -89,6 +89,12 @@ var (
 		HintField:        "Check that you provided  a valid token in the right format.",
 		CodeField:        http.StatusBadRequest,
 	}
+	ErrTokenClaim = &RFC6749Error{
+		ErrorField:       "token_claim",
+		DescriptionField: "The token failed validation due to a claim mismatch.",
+		HintField:        "One or more token claims failed validation.",
+		CodeField:        http.StatusUnauthorized,
+	}
 	ErrNotFound = &RFC6749Error{
 		ErrorField:       "not_found",
 		DescriptionField: "Could not find the requested resource(s).",
