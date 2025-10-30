@@ -24,6 +24,7 @@ type Config struct {
 	OAuth       OAuthConfig       `koanf:"oauth"`
 	Lifetime    LifetimeConfig    `koanf:"lifetime"`
 	HMAC        HMACConfig        `koanf:"hmac"`
+	JWT         JWTConfig         `koanf:"jwt"`
 	Obfuscation ObfuscationConfig `koanf:"obfuscation"`
 	Redis       RedisConfig       `koanf:"redis"`
 	Postgres    PostgresConfig    `koanf:"postgres"`
@@ -86,7 +87,7 @@ func LoadConfig(envFiles ...string) *Config {
 	}
 
 	// JSON config will override env config
-	f := file.Provider("config/config.json")
+	f := file.Provider("static/config.json")
 	err = k.Load(f, json.Parser())
 	if err != nil {
 		log.Fatalf("error loading json config: %v", err)

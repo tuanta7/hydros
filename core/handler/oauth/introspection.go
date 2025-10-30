@@ -59,6 +59,15 @@ func (h *TokenIntrospectionHandler) IntrospectToken(
 		tokenType = core.RefreshToken
 		signature := h.tokenStrategy.RefreshTokenSignature(ctx, ir.Token)
 		tokenRequestDB, err = h.refreshTokenStorage.GetRefreshTokenSession(ctx, signature, tr.Session)
+		if err != nil {
+			return "", err
+		}
+
+		err = h.tokenStrategy.ValidateRefreshToken(ctx, tokenRequestDB, ir.Token)
+		if err != nil {
+			return "", err
+		}
+
 	case core.IDToken:
 		tokenType = core.IDToken
 		fallthrough
@@ -67,10 +76,14 @@ func (h *TokenIntrospectionHandler) IntrospectToken(
 		tokenType = core.AccessToken
 		signature := h.tokenStrategy.AccessTokenSignature(ctx, ir.Token)
 		tokenRequestDB, err = h.accessTokenStorage.GetAccessTokenSession(ctx, signature, tr.Session)
-	}
+		if err != nil {
+			return "", err
+		}
 
-	if err != nil {
-		return "", err
+		err = h.tokenStrategy.ValidateAccessToken(ctx, tokenRequestDB, ir.Token)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	for _, scope := range ir.Scope {

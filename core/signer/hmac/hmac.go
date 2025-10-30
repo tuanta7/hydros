@@ -1,6 +1,7 @@
 package hmac
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha512"
@@ -30,7 +31,7 @@ func NewSigner(config SignerConfigurator) (*DefaultSigner, error) {
 	}, nil
 }
 
-func (s *DefaultSigner) Generate(request *core.TokenRequest, _ core.TokenType) (string, string, error) {
+func (s *DefaultSigner) Generate(ctx context.Context, request *core.TokenRequest, _ core.TokenType) (string, string, error) {
 	entropy := s.config.GetTokenEntropy()
 	if entropy < 64 {
 		entropy = 64
@@ -63,7 +64,7 @@ func (s *DefaultSigner) GetSignature(token string) string {
 	return split[1]
 }
 
-func (s *DefaultSigner) Validate(token string) (err error) {
+func (s *DefaultSigner) Validate(ctx context.Context, token string) (err error) {
 	tokenKey, tokenSignature, ok := strings.Cut(token, ".")
 	if !ok {
 		return core.ErrInvalidTokenFormat
