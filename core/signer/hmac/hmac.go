@@ -6,7 +6,6 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"fmt"
-	"hash"
 	"io"
 	"strings"
 
@@ -15,44 +14,48 @@ import (
 
 var b64 = base64.URLEncoding.WithPadding(base64.NoPadding)
 
-type Strategy struct {
-	entropy int
-	secret  []byte
-	// rotatedSecrets [][]byte // currently not used
-	hasher func() hash.Hash
+type SignerConfigurator interface {
+	core.TokenEntropyProvider
+	core.GlobalSecretProvider
+	core.HMACHashingProvider
 }
 
-func NewHMAC(secret []byte, entropy int) (*Strategy, error) {
-	if len(secret) < 64 {
-		return nil, fmt.Errorf("secret for signing HMAC-SHA512/256 is expected to be at least 64 bytes long, got %d bytes", len(secret))
-	}
+type DefaultSigner struct {
+	config SignerConfigurator
+}
 
-	if entropy < 64 {
-		return nil, fmt.Errorf("entropy for HMAC-SHA512/256 is expected to be at least 64 bytes, got %d bytes", entropy)
-	}
-
-	return &Strategy{
-		entropy: entropy,
-		secret:  secret,
-		hasher:  sha512.New512_256, // default to HMAC-SHA512/256
+func NewSigner(config SignerConfigurator) (*DefaultSigner, error) {
+	return &DefaultSigner{
+		config: config,
 	}, nil
 }
 
-func (s *Strategy) Generate(request *core.TokenRequest) (string, string, error) {
-	tokenKey, err := randomBytes(s.entropy)
+func (s *DefaultSigner) Generate(request *core.TokenRequest, _ core.TokenType) (string, string, error) {
+	entropy := s.config.GetTokenEntropy()
+	if entropy < 64 {
+		entropy = 64
+	}
+
+	tokenKey, err := randomBytes(entropy)
 	if err != nil {
 		return "", "", err
 	}
 
+	secret := s.config.GetGlobalSecret()
+	if len(secret) < 64 {
+		return "", "", fmt.Errorf("secret for signing HMAC-SHA512/256 is expected to be at least 64 bytes long, got %d bytes", len(secret))
+	}
+
 	tokenKey = append(tokenKey, []byte(request.ID)...)
-	signature := s.hmacSign(tokenKey)
+	signingKey := secret[:64]
+	signature := s.hmacSign(tokenKey, signingKey)
 
 	encodedSignature := b64.EncodeToString(signature)
 	encodedTokenKey := fmt.Sprintf("%s.%s", b64.EncodeToString(tokenKey), encodedSignature)
 	return encodedTokenKey, encodedSignature, nil
 }
 
-func (s *Strategy) GetSignature(token string) string {
+func (s *DefaultSigner) GetSignature(token string) string {
 	split := strings.Split(token, ".")
 	if len(split) != 2 {
 		return ""
@@ -60,7 +63,7 @@ func (s *Strategy) GetSignature(token string) string {
 	return split[1]
 }
 
-func (s *Strategy) Validate(token string) (err error) {
+func (s *DefaultSigner) Validate(token string) (err error) {
 	tokenKey, tokenSignature, ok := strings.Cut(token, ".")
 	if !ok {
 		return core.ErrInvalidTokenFormat
@@ -80,7 +83,12 @@ func (s *Strategy) Validate(token string) (err error) {
 		return err
 	}
 
-	expectedSignature := s.hmacSign(decodedTokenKey)
+	secret := s.config.GetGlobalSecret()
+	if len(secret) < 64 {
+		return fmt.Errorf("secret for signing HMAC-SHA512/256 is expected to be at least 64 bytes long, got %d bytes", len(secret))
+	}
+
+	expectedSignature := s.hmacSign(decodedTokenKey, secret[:64])
 	if !hmac.Equal(expectedSignature, decodedTokenSignature) {
 		return core.ErrTokenSignatureMismatch
 	}
@@ -88,8 +96,13 @@ func (s *Strategy) Validate(token string) (err error) {
 	return nil
 }
 
-func (s *Strategy) hmacSign(tokenKey []byte) []byte {
-	h := hmac.New(s.hasher, s.secret[:64])
+func (s *DefaultSigner) hmacSign(tokenKey []byte, secret []byte) []byte {
+	hasher := s.config.GetHMACHasher()
+	if hasher == nil {
+		hasher = sha512.New512_256
+	}
+
+	h := hmac.New(hasher, secret)
 	_, err := h.Write(tokenKey)
 	if err != nil {
 		panic(err) // Write to hash never returns an error

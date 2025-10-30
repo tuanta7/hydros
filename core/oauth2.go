@@ -20,11 +20,6 @@ const (
 	GrantTypeRefreshToken      GrantType = "refresh_token"
 	GrantTypeAuthorizationCode GrantType = "authorization_code"
 	GrantTypeClientCredentials GrantType = "client_credentials"
-
-	ClientAuthenticationMethodBasic = "client_secret_basic"
-	ClientAuthenticationMethodPost  = "client_secret_post"
-	ClientAuthenticationMethodJWT   = "client_secret_jwt"
-	ClientAuthenticationMethodNone  = "none"
 )
 
 // OAuth2 implements the OAuth2Provider interface.

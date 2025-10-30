@@ -1,19 +1,11 @@
 package core
 
-import (
-	"crypto/rsa"
-)
-
-type VerificationKey interface {
-	*rsa.PublicKey | []byte
+type JSONWebKeySet struct {
+	Keys []JSONWebKey `json:"keys"`
 }
 type JSONWebKey struct {
-	Key       *rsa.PublicKey // fixed for now
+	Key       any
 	KeyID     string
 	Algorithm string
 	Use       string
-}
-
-type JSONWebKeySet struct {
-	Keys []JSONWebKey
 }

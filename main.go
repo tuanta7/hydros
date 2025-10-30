@@ -14,7 +14,9 @@ import (
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/handler/oauth"
-	"github.com/tuanta7/hydros/core/token/hmac"
+	"github.com/tuanta7/hydros/core/signer/hmac"
+	"github.com/tuanta7/hydros/core/signer/jwt"
+	"github.com/tuanta7/hydros/core/strategy"
 	pgsource "github.com/tuanta7/hydros/internal/datasource/postgres"
 	redissource "github.com/tuanta7/hydros/internal/datasource/redis"
 	restadminv1 "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
@@ -52,16 +54,21 @@ func main() {
 	defer redisClient.Close()
 
 	sessionStorage := redissource.NewTokenSessionStorage(cfg, redisClient)
-	hmacStrategy, err := hmac.NewHMAC([]byte(cfg.GlobalSecret), cfg.KeyEntropy)
+	tokenStrategy, err := getTokenStrategy(cfg)
 	panicErr(err)
 
 	oauthCore := core.NewOAuth2(cfg, clientUC,
 		[]core.AuthorizeHandler{},
 		[]core.TokenHandler{
-			oauth.NewClientCredentialsGrantHandler(cfg, hmacStrategy, sessionStorage),
+			oauth.NewClientCredentialsGrantHandler(cfg, tokenStrategy, sessionStorage),
 		},
 		[]core.IntrospectionHandler{
-			oauth.NewTokenIntrospectionHandler(cfg, hmacStrategy, nil, sessionStorage, nil),
+			oauth.NewTokenIntrospectionHandler(
+				cfg,
+				tokenStrategy,
+				sessionStorage,
+				sessionStorage,
+			),
 		},
 	)
 
@@ -72,7 +79,7 @@ func main() {
 			&cli.BoolFlag{
 				Name:     "with-identity",
 				Aliases:  []string{"idp"},
-				Usage:    "run with identity provider endpoint enabled",
+				Usage:    "enable identity provider endpoints ",
 				Required: false,
 			},
 		},
@@ -128,6 +135,24 @@ func shutdownServer(servers ...transport.Server) (err error) {
 	}
 
 	return nil
+}
+
+func getTokenStrategy(cfg *config.Config) (strategy.TokenStrategy, error) {
+	hmacSigner, err := hmac.NewSigner(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.GetAccessTokenFormat() == "jwt" {
+		jwtSigner, err := jwt.NewSigner(cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		return strategy.NewJWTStrategy(hmacSigner, jwtSigner), nil
+	}
+
+	return strategy.NewHMACStrategy(cfg, hmacSigner), nil
 }
 
 func panicErr(err error) {

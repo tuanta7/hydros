@@ -6,6 +6,8 @@ import (
 	"errors"
 	"net/http"
 	"time"
+
+	"github.com/tuanta7/hydros/core/x"
 )
 
 type TokenRequest struct {
@@ -49,7 +51,7 @@ func (o *OAuth2) NewTokenRequest(ctx context.Context, req *http.Request, session
 		return nil, ErrInvalidRequest.WithHint("HTTP method is '%s', expected 'POST'.", req.Method)
 	}
 
-	form, err := BindPostForm(req)
+	form, err := x.BindPostForm(req)
 	if err != nil {
 		return nil, ErrInvalidRequest.WithHint("Unable to parse HTTP body, make sure to send a properly formatted form request body.").WithWrap(err)
 	} else if len(form) == 0 {
@@ -101,7 +103,7 @@ func (o *OAuth2) NewTokenResponse(ctx context.Context, req *TokenRequest) (*Toke
 
 	if tokenResponse.AccessToken == "" || tokenResponse.TokenType == "" {
 		return nil, ErrInvalidRequest.
-			WithHint("Tn internal server occurred while trying to complete the request.").
+			WithHint("An internal server occurred while trying to complete the request.").
 			WithDebug("Access token or token type not set")
 	}
 

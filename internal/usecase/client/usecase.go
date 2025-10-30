@@ -8,9 +8,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
+	"github.com/tuanta7/hydros/core/x"
 	"github.com/tuanta7/hydros/internal/domain"
 	"github.com/tuanta7/hydros/pkg/helper"
-	"github.com/tuanta7/hydros/pkg/timex"
 	"github.com/tuanta7/hydros/pkg/zapx"
 	"go.uber.org/zap"
 )
@@ -70,7 +70,7 @@ func (u *UseCase) CreateClient(ctx context.Context, client *domain.Client) error
 		client.TokenEndpointAuthSigningAlg = "none"
 	}
 
-	client.CreatedAt = timex.NowUTC().Round(time.Second)
+	client.CreatedAt = x.NowUTC().Round(time.Second)
 	client.UpdatedAt = client.CreatedAt
 
 	err = u.clientRepo.Create(ctx, client)

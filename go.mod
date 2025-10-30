@@ -8,6 +8,7 @@ require (
 	github.com/brianvoe/gofakeit/v7 v7.8.1
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-playground/assert/v2 v2.2.0
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/joho/godotenv v1.5.1

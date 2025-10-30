@@ -7,7 +7,7 @@ import (
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/storage"
 	"github.com/tuanta7/hydros/core/strategy"
-	"github.com/tuanta7/hydros/pkg/timex"
+	"github.com/tuanta7/hydros/core/x"
 )
 
 type ClientCredentialsGrantConfigurator interface {
@@ -18,7 +18,7 @@ type ClientCredentialsGrantHandler struct {
 	config              ClientCredentialsGrantConfigurator
 	scopeStrategy       strategy.ScopeStrategy
 	audienceStrategy    strategy.AudienceStrategy
-	accessTokenStrategy strategy.TokenStrategy
+	accessTokenStrategy strategy.AccessTokenStrategy
 	accessTokenStorage  storage.AccessTokenStorage
 }
 
@@ -64,7 +64,7 @@ func (h *ClientCredentialsGrantHandler) HandleTokenRequest(ctx context.Context, 
 	}
 
 	accessTokenLifetime := h.config.GetAccessTokenLifetime()
-	req.Session.SetExpiresAt(core.AccessToken, timex.NowUTC().Add(accessTokenLifetime))
+	req.Session.SetExpiresAt(core.AccessToken, x.NowUTC().Add(accessTokenLifetime))
 	return nil
 }
 
@@ -81,7 +81,7 @@ func (h *ClientCredentialsGrantHandler) HandleTokenResponse(
 		return core.ErrUnauthorizedClient
 	}
 
-	token, signature, err := h.accessTokenStrategy.Generate(req)
+	token, signature, err := h.accessTokenStrategy.GenerateAccessToken(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (h *ClientCredentialsGrantHandler) HandleTokenResponse(
 		res.ExpiresIn = time.Duration(accessTokenLifetime.Seconds())
 	}
 
-	expiresInNano := time.Duration(req.Session.GetExpiresAt(core.AccessToken).UnixNano() - timex.NowUTC().UnixNano())
+	expiresInNano := time.Duration(req.Session.GetExpiresAt(core.AccessToken).UnixNano() - x.NowUTC().UnixNano())
 	res.ExpiresIn = time.Duration(expiresInNano.Round(time.Second).Seconds())
 
 	res.AccessToken = token

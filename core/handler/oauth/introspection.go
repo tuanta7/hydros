@@ -13,28 +13,25 @@ type TokenIntrospectionConfigurator interface {
 }
 
 type TokenIntrospectionHandler struct {
-	config               TokenIntrospectionConfigurator
-	scopeStrategy        strategy.ScopeStrategy
-	accessTokenStrategy  strategy.TokenStrategy
-	refreshTokenStrategy strategy.TokenStrategy
-	accessTokenStorage   storage.AccessTokenStorage
-	refreshTokenStorage  storage.RefreshTokenStorage
+	config              TokenIntrospectionConfigurator
+	scopeStrategy       strategy.ScopeStrategy
+	tokenStrategy       strategy.TokenStrategy
+	accessTokenStorage  storage.AccessTokenStorage
+	refreshTokenStorage storage.RefreshTokenStorage
 }
 
 func NewTokenIntrospectionHandler(
 	config TokenIntrospectionConfigurator,
-	accessTokenStrategy strategy.TokenStrategy,
-	refreshTokenStrategy strategy.TokenStrategy,
+	tokenStrategy strategy.TokenStrategy,
 	accessTokenStorage storage.AccessTokenStorage,
 	refreshTokenStorage storage.RefreshTokenStorage,
 ) *TokenIntrospectionHandler {
 	return &TokenIntrospectionHandler{
-		config:               config,
-		scopeStrategy:        strategy.ExactScopeStrategy,
-		accessTokenStrategy:  accessTokenStrategy,
-		refreshTokenStrategy: refreshTokenStrategy,
-		accessTokenStorage:   accessTokenStorage,
-		refreshTokenStorage:  refreshTokenStorage,
+		config:              config,
+		scopeStrategy:       strategy.ExactScopeStrategy,
+		tokenStrategy:       tokenStrategy,
+		accessTokenStorage:  accessTokenStorage,
+		refreshTokenStorage: refreshTokenStorage,
 	}
 }
 
@@ -44,7 +41,7 @@ func (h *TokenIntrospectionHandler) IntrospectToken(
 	tr *core.TokenRequest,
 ) (core.TokenType, error) {
 	if h.config.IsDisableRefreshTokenValidation() {
-		signature := h.accessTokenStrategy.GetSignature(ir.Token)
+		signature := h.tokenStrategy.AccessTokenSignature(ctx, ir.Token)
 		_, err := h.accessTokenStorage.GetAccessTokenSession(ctx, signature, tr.Session)
 		if err != nil {
 			return "", err
@@ -60,7 +57,7 @@ func (h *TokenIntrospectionHandler) IntrospectToken(
 	switch ir.TokenTypeHint {
 	case core.RefreshToken:
 		tokenType = core.RefreshToken
-		signature := h.refreshTokenStrategy.GetSignature(ir.Token)
+		signature := h.tokenStrategy.RefreshTokenSignature(ctx, ir.Token)
 		tokenRequestDB, err = h.refreshTokenStorage.GetRefreshTokenSession(ctx, signature, tr.Session)
 	case core.IDToken:
 		tokenType = core.IDToken
@@ -68,7 +65,7 @@ func (h *TokenIntrospectionHandler) IntrospectToken(
 	default:
 		// default to access token
 		tokenType = core.AccessToken
-		signature := h.accessTokenStrategy.GetSignature(ir.Token)
+		signature := h.tokenStrategy.AccessTokenSignature(ctx, ir.Token)
 		tokenRequestDB, err = h.accessTokenStorage.GetAccessTokenSession(ctx, signature, tr.Session)
 	}
 

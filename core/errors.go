@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+
+	"github.com/tuanta7/hydros/core/x"
 )
 
 type RFC6749Error struct {
@@ -75,6 +77,12 @@ var (
 		HintField:        "Check that you provided a valid token in the right format.",
 		CodeField:        http.StatusBadRequest,
 	}
+	ErrTokenExpired = &RFC6749Error{
+		ErrorField:       "invalid_token",
+		DescriptionField: "Token expired.",
+		HintField:        "The token expired.",
+		CodeField:        http.StatusUnauthorized,
+	}
 	ErrTokenSignatureMismatch = &RFC6749Error{
 		ErrorField:       "token_signature_mismatch",
 		DescriptionField: "Token signature mismatch.",
@@ -137,7 +145,7 @@ func (o *OAuth2) writeError(ctx context.Context, rw http.ResponseWriter, err err
 		if o.config.IsDebugging() {
 			errPayload := fmt.Sprintf(
 				`{"error":"server_error","error_description":"%s"}`,
-				EscapeJSONString(err.Error()),
+				x.EscapeJSONString(err.Error()),
 			)
 			http.Error(rw, errPayload, http.StatusInternalServerError)
 		}

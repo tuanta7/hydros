@@ -20,11 +20,10 @@ type Config struct {
 	RestServerPort string `koanf:"rest_server_port"`
 	GRPCServerHost string `koanf:"grpc_server_host"`
 	GRPCServerPort string `koanf:"grpc_server_port"`
-	GlobalSecret   string `koanf:"global_secret" json:"-"`
-	KeyEntropy     int    `koanf:"key_entropy"`
 
 	OAuth       OAuthConfig       `koanf:"oauth"`
 	Lifetime    LifetimeConfig    `koanf:"lifetime"`
+	HMAC        HMACConfig        `koanf:"hmac"`
 	Obfuscation ObfuscationConfig `koanf:"obfuscation"`
 	Redis       RedisConfig       `koanf:"redis"`
 	Postgres    PostgresConfig    `koanf:"postgres"`
@@ -86,6 +85,7 @@ func LoadConfig(envFiles ...string) *Config {
 		log.Fatalf("error loading env config: %v", err)
 	}
 
+	// JSON config will override env config
 	f := file.Provider("config/config.json")
 	err = k.Load(f, json.Parser())
 	if err != nil {

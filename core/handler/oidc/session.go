@@ -5,7 +5,7 @@ import (
 
 	"github.com/mohae/deepcopy"
 	"github.com/tuanta7/hydros/core"
-	"github.com/tuanta7/hydros/core/token/jwt"
+	"github.com/tuanta7/hydros/core/signer/jwt"
 )
 
 type Session interface {

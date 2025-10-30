@@ -1,4 +1,4 @@
-package core
+package x
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // BindForm reads form data from both application/x-www-form-urlencoded and multipart/form-data.
@@ -52,4 +53,13 @@ func EscapeJSONString(str string) string {
 	// Escape quotation mark.
 	str = strings.ReplaceAll(str, `"`, `\"`)
 	return str
+}
+
+func NowUTC() time.Time {
+	return time.Now().UTC()
+}
+
+func IsExpired(created time.Time, expiresInSeconds int64) bool {
+	expiredAt := created.Add(time.Duration(expiresInSeconds) * time.Second)
+	return NowUTC().After(expiredAt)
 }

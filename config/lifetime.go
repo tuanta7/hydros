@@ -8,7 +8,17 @@ type LifetimeConfig struct {
 	RefreshToken      time.Duration `koanf:"refresh_token" default:"720h"`
 }
 
+func (c *Config) GetRefreshTokenLifetime() time.Duration {
+	if c.Lifetime.RefreshToken == 0 {
+		return time.Hour * 24 * 30
+	}
+	return c.Lifetime.RefreshToken
+}
+
 func (c *Config) GetAuthorizationCodeLifetime() time.Duration {
+	if c.Lifetime.AuthorizationCode == 0 {
+		return time.Minute * 10
+	}
 	return c.Lifetime.AuthorizationCode
 }
 

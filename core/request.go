@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/tuanta7/hydros/pkg/timex"
+	"github.com/tuanta7/hydros/core/x"
 )
 
 type Request struct {
@@ -21,7 +21,7 @@ type Request struct {
 
 func NewRequest() *Request {
 	return &Request{
-		RequestedAt:     timex.NowUTC(),
+		RequestedAt:     x.NowUTC(),
 		Scope:           Arguments{},
 		Audience:        Arguments{},
 		GrantedAudience: Arguments{},

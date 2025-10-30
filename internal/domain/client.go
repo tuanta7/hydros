@@ -10,22 +10,25 @@ import (
 
 // Client represents an OAuth2.1 and IDToken Connect client.
 type Client struct {
-	ID                          string             `json:"id" db:"id"`
-	Name                        string             `json:"name" db:"name"`
-	Description                 string             `json:"description" db:"description"`
-	Secret                      string             `json:"secret,omitempty" db:"secret"`
-	Scope                       string             `json:"scope" db:"scope"`
-	RedirectURIs                dbtype.StringArray `json:"redirect_uris" db:"redirect_uris"`
-	GrantTypes                  dbtype.StringArray `json:"grant_types" db:"grant_types"`
-	ResponseTypes               dbtype.StringArray `json:"response_types" db:"response_types"`
-	Audience                    dbtype.StringArray `json:"audience" db:"audience"`
-	RequestURIs                 dbtype.StringArray `json:"request_uris,omitempty" db:"request_uris"`
-	JWKs                        *dbtype.JWKSet     `json:"jwks,omitempty" db:"jwks"`
-	JWKsURI                     string             `json:"jwks_uri,omitempty" db:"jwks_uri"`
-	TokenEndpointAuthMethod     string             `json:"token_endpoint_auth_method,omitempty" db:"token_endpoint_auth_method"`
-	TokenEndpointAuthSigningAlg string             `json:"token_endpoint_auth_signing_alg,omitempty" db:"token_endpoint_auth_signing_alg"`
-	CreatedAt                   time.Time          `json:"created_at,omitempty" db:"created_at"`
-	UpdatedAt                   time.Time          `json:"updated_at,omitempty" db:"updated_at"`
+	ID            string             `json:"id" db:"id"`
+	Name          string             `json:"name" db:"name"`
+	Description   string             `json:"description" db:"description"`
+	Secret        string             `json:"secret,omitempty" db:"secret"`
+	Scope         string             `json:"scope" db:"scope"`
+	RedirectURIs  dbtype.StringArray `json:"redirect_uris" db:"redirect_uris"`
+	GrantTypes    dbtype.StringArray `json:"grant_types" db:"grant_types"`
+	ResponseTypes dbtype.StringArray `json:"response_types" db:"response_types"`
+	Audience      dbtype.StringArray `json:"audience" db:"audience"`
+	RequestURIs   dbtype.StringArray `json:"request_uris,omitempty" db:"request_uris"`
+
+	// JWKs and JWKsURI are mutually exclusive, they are used for authenticate clients using the private_key_jwt method.
+	JWKs                        *dbtype.JWKSet `json:"jwks,omitempty" db:"jwks"`
+	JWKsURI                     string         `json:"jwks_uri,omitempty" db:"jwks_uri"`
+	TokenEndpointAuthMethod     string         `json:"token_endpoint_auth_method,omitempty" db:"token_endpoint_auth_method"`
+	TokenEndpointAuthSigningAlg string         `json:"token_endpoint_auth_signing_alg,omitempty" db:"token_endpoint_auth_signing_alg"`
+
+	CreatedAt time.Time `json:"created_at,omitempty" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at,omitempty" db:"updated_at"`
 	// TODO: Support rfc7591 dynamic client registration
 }
 

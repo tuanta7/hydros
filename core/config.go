@@ -1,8 +1,15 @@
 package core
 
 import (
+	"hash"
 	"time"
 )
+
+type LifetimeConfigProvider interface {
+	AccessTokenLifetimeProvider
+	RefreshTokenLifetimeProvider
+	AuthorizationCodeLifetimeProvider
+}
 
 type AuthorizationCodeLifetimeProvider interface {
 	GetAuthorizationCodeLifetime() time.Duration
@@ -26,4 +33,24 @@ type DebugModeProvider interface {
 
 type DisableRefreshTokenValidationProvider interface {
 	IsDisableRefreshTokenValidation() bool
+}
+
+type AccessTokenFormatProvider interface {
+	GetAccessTokenFormat() string
+}
+
+type AccessTokenIssuerProvider interface {
+	GetAccessTokenIssuer() string
+}
+
+type TokenEntropyProvider interface {
+	GetTokenEntropy() int
+}
+
+type GlobalSecretProvider interface {
+	GetGlobalSecret() []byte
+}
+
+type HMACHashingProvider interface {
+	GetHMACHasher() func() hash.Hash
 }

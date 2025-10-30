@@ -7,15 +7,17 @@ import (
 )
 
 const (
-	keyClientAssertion     = "client_assertion"
-	keyClientAssertionType = "client_assertion_type"
-	clientAssertionJWTType = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+	ClientAuthenticationMethodNone  = "none"
+	ClientAuthenticationMethodBasic = "client_secret_basic"
+	ClientAuthenticationMethodPost  = "client_secret_post"
+	ClientAuthenticationMethodJWT   = "private_key_jwt" // client assertion
+	ClientAssertionJWTType          = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
 )
 
 // AuthenticateClient check if the client needs authentication and returns the client if it does.
 func (o *OAuth2) AuthenticateClient(ctx context.Context, r *http.Request, form url.Values) (Client, error) {
-	if at := form.Get(keyClientAssertionType); at == clientAssertionJWTType {
-		assertion := form.Get(keyClientAssertion)
+	if at := form.Get("client_assertion_type"); at == ClientAssertionJWTType {
+		assertion := form.Get("client_assertion")
 		if len(assertion) == 0 {
 			return nil, ErrInvalidRequest.WithHint("Missing client assertion")
 		}

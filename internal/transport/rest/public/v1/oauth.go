@@ -4,8 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
+	"github.com/tuanta7/hydros/core/x"
 	"github.com/tuanta7/hydros/internal/domain"
-	"github.com/tuanta7/hydros/pkg/timex"
 	"github.com/tuanta7/hydros/pkg/zapx"
 	"go.uber.org/zap"
 )
@@ -50,8 +50,8 @@ func (h *OAuthHandler) HandleTokenRequest(c *gin.Context) {
 	}
 
 	session.ClientID = tokenRequest.Client.GetID()
-	session.IDTokenSession.Claims.Issuer = h.cfg.GetIssuerURL()
-	session.IDTokenSession.Claims.IssuedAt = timex.NowUTC()
+	session.IDTokenSession.Claims.Issuer = h.cfg.GetAccessTokenIssuer()
+	session.IDTokenSession.Claims.IssuedAt = x.NowUTC()
 
 	// TODO: Implement rfc8693 token exchange
 

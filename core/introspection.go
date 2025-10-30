@@ -6,6 +6,8 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+
+	"github.com/tuanta7/hydros/core/x"
 )
 
 type IntrospectionRequest struct {
@@ -38,7 +40,7 @@ func (o *OAuth2) IntrospectToken(ctx context.Context, req *http.Request, session
 		return nil, ErrInvalidRequest.WithHint("HTTP method is '%s', expected 'POST'.", req.Method)
 	}
 
-	form, err := BindPostForm(req)
+	form, err := x.BindPostForm(req)
 	if err != nil {
 		return nil, ErrInvalidRequest.WithHint("Unable to parse HTTP body, make sure to send a properly formatted form request body.").WithWrap(err)
 	} else if len(form) == 0 {
@@ -51,7 +53,7 @@ func (o *OAuth2) IntrospectToken(ctx context.Context, req *http.Request, session
 		Scope:         strings.Fields(form.Get("scope")),
 	}
 
-	if clientToken := AccessTokenFromRequest(req); clientToken != "" {
+	if clientToken := x.AccessTokenFromRequest(req); clientToken != "" {
 		if request.Token == clientToken {
 			return nil, ErrRequestUnauthorized.WithHint("Bearer and introspection token are identical.")
 		}

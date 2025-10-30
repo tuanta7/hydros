@@ -10,8 +10,8 @@ import (
 )
 
 type AuthorizationCodeGrantHandler struct {
-	authorizationCodeStrategy strategy.TokenStrategy
-	authorizationCodeStorage  storage.AuthorizationCodeStorage
+	tokenStrategy            strategy.TokenStrategy
+	authorizationCodeStorage storage.AuthorizationCodeStorage
 }
 
 func NewAuthorizationCodeGrantHandler() *AuthorizationCodeGrantHandler {
@@ -40,7 +40,7 @@ func (h *AuthorizationCodeGrantHandler) HandleTokenRequest(
 	}
 
 	code := req.Code
-	signature := h.authorizationCodeStrategy.GetSignature(code)
+	signature := h.tokenStrategy.AuthorizeCodeSignature(ctx, code)
 	authorizeRequest, err := h.authorizationCodeStorage.GetAuthorizationCodeSession(ctx, signature, req.Session)
 	if err != nil {
 		return err

@@ -17,21 +17,21 @@ type ClientRepository interface {
 }
 
 type clientRepository struct {
-	tableName string
-	pgClient  postgres.Client
+	table    string
+	pgClient postgres.Client
 }
 
 func NewClientRepository(pgc postgres.Client) ClientRepository {
 	return &clientRepository{
-		tableName: "client",
-		pgClient:  pgc,
+		table:    "client",
+		pgClient: pgc,
 	}
 }
 
 func (r *clientRepository) List(ctx context.Context, page, pageSize uint64) ([]*domain.Client, error) {
 	query, args, err := r.pgClient.SQLBuilder().
 		Select("*").
-		From(r.tableName).
+		From(r.table).
 		Offset(pageSize * (page - 1)).
 		Limit(pageSize).
 		ToSql()
@@ -64,7 +64,7 @@ func (r *clientRepository) Create(ctx context.Context, client *domain.Client) er
 	}
 
 	query, args, err := r.pgClient.SQLBuilder().
-		Insert(r.tableName).
+		Insert(r.table).
 		Columns(columns...).
 		Values(values...).
 		ToSql()
@@ -83,7 +83,7 @@ func (r *clientRepository) Create(ctx context.Context, client *domain.Client) er
 func (r *clientRepository) Get(ctx context.Context, id string) (*domain.Client, error) {
 	query, args, err := r.pgClient.SQLBuilder().
 		Select("*").
-		From(r.tableName).
+		From(r.table).
 		Where(squirrel.Eq{"id": id}).
 		ToSql()
 	if err != nil {

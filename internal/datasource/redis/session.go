@@ -94,6 +94,19 @@ func (s *TokenSessionStorage) CreateAccessTokenSession(ctx context.Context, sign
 	return nil
 }
 
+func (s *TokenSessionStorage) DeleteAccessTokenSession(ctx context.Context, signature string) error {
+	key := s.prefixKey(core.AccessToken, signature)
+	return s.redis.Del(ctx, key)
+}
+
+func (s *TokenSessionStorage) GetRefreshTokenSession(ctx context.Context, signature string, session core.Session) (*core.TokenRequest, error) {
+	return nil, nil
+}
+
+func (s *TokenSessionStorage) RotateRefreshToken(ctx context.Context, requestID string, signature string) (err error) {
+	return nil
+}
+
 func (s *TokenSessionStorage) sessionFromRequest(
 	ctx context.Context,
 	signature string,
@@ -139,9 +152,4 @@ func (s *TokenSessionStorage) sessionFromRequest(
 		Challenge:         challenge,
 		InternalExpiresAt: sql.NullTime{Valid: true, Time: req.Session.GetExpiresAt(tokenType).UTC()},
 	}, nil
-}
-
-func (s *TokenSessionStorage) DeleteAccessTokenSession(ctx context.Context, signature string) error {
-	key := s.prefixKey(core.AccessToken, signature)
-	return s.redis.Del(ctx, key)
 }
