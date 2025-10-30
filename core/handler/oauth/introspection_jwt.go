@@ -7,6 +7,7 @@ import (
 	"github.com/tuanta7/hydros/core/strategy"
 )
 
+// JWTIntrospectionHandler is used to quickly eliminate invalid tokens so we don't have to query the database.
 type JWTIntrospectionHandler struct {
 	tokenStrategy strategy.AccessTokenStrategy
 }
@@ -22,5 +23,16 @@ func (h *JWTIntrospectionHandler) IntrospectToken(
 	ir *core.IntrospectionRequest,
 	tr *core.TokenRequest,
 ) (core.TokenType, error) {
-	return "", nil
+	sig := h.tokenStrategy.AccessTokenSignature(ctx, ir.Token)
+	if sig == "" {
+		// this might be an opaque token
+		return "", core.ErrUnknownRequest
+	}
+
+	err := h.tokenStrategy.ValidateAccessToken(ctx, tr, ir.Token)
+	if err != nil {
+		return "", err
+	}
+
+	return core.AccessToken, nil
 }

@@ -17,6 +17,8 @@ type TokenStorage interface {
 	storage.RefreshTokenStorage
 }
 
+// TokenIntrospectionHandler will validate the token and return the token information. This handler is always needed
+// to run since we need to check the token revocation status.
 type TokenIntrospectionHandler struct {
 	config        TokenIntrospectionConfigurator
 	scopeStrategy strategy.ScopeStrategy
