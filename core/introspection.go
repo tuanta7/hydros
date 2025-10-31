@@ -107,7 +107,8 @@ func (o *OAuth2) WriteIntrospectionError(ctx context.Context, rw http.ResponseWr
 	rw.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	rw.Header().Set("Cache-Control", "no-store")
 	rw.Header().Set("Pragma", "no-cache")
-	http.Error(rw, `{"active":"false"}`, http.StatusInternalServerError)
+	rw.WriteHeader(http.StatusInternalServerError)
+	_, _ = rw.Write([]byte(`{"active":"false"}`))
 }
 
 func (o *OAuth2) WriteIntrospectionResponse(ctx context.Context, rw http.ResponseWriter, resp *IntrospectionResponse) {

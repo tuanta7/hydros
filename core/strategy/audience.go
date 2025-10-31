@@ -2,6 +2,10 @@ package strategy
 
 import "errors"
 
+type AudienceStrategyProvider interface {
+	GetAudienceStrategy() AudienceStrategy
+}
+
 type AudienceStrategy func(haystack []string, needle []string) error
 
 func ExactAudienceStrategy(haystack []string, needle []string) error {

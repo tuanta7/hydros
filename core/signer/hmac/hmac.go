@@ -36,7 +36,7 @@ func NewSigner(config SignerConfigurator) (*DefaultSigner, error) {
 	}, nil
 }
 
-func (s *DefaultSigner) Generate(ctx context.Context, request *core.TokenRequest, _ core.TokenType) (string, string, error) {
+func (s *DefaultSigner) Generate(ctx context.Context, request *core.Request, _ core.TokenType) (string, string, error) {
 	entropy := s.config.GetTokenEntropy()
 	if entropy < 64 {
 		entropy = 64

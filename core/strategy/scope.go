@@ -2,6 +2,10 @@ package strategy
 
 import "strings"
 
+type ScopeStrategyProvider interface {
+	GetScopeStrategy() ScopeStrategy
+}
+
 type ScopeStrategy func(haystack []string, needle string) bool
 
 func ExactScopeStrategy(haystack []string, needle string) bool {

@@ -14,6 +14,8 @@ import (
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/handler/oauth"
+	"github.com/tuanta7/hydros/core/handler/oidc"
+	"github.com/tuanta7/hydros/core/handler/pkce"
 	"github.com/tuanta7/hydros/core/signer/hmac"
 	"github.com/tuanta7/hydros/core/signer/jwt"
 	"github.com/tuanta7/hydros/core/strategy"
@@ -61,9 +63,20 @@ func main() {
 	tokenStrategy, err := getTokenStrategy(context.Background(), cfg, jwkUC)
 	panicErr(err)
 
+	oauthAuthorizationCodeGrantHandler := oauth.NewAuthorizationCodeGrantHandler()
+	oidcAuthorizationCodeFlowHandler := oidc.NewOpenIDConnectAuthorizationCodeFlowHandler()
+	pkceHandler := pkce.NewProofKeyForCodeExchangeHandler(cfg)
+
 	oauthCore := core.NewOAuth2(cfg, clientUC,
-		[]core.AuthorizeHandler{},
+		[]core.AuthorizeHandler{
+			oauthAuthorizationCodeGrantHandler,
+			oidcAuthorizationCodeFlowHandler,
+			pkceHandler,
+		},
 		[]core.TokenHandler{
+			oauthAuthorizationCodeGrantHandler,
+			oidcAuthorizationCodeFlowHandler,
+			pkceHandler,
 			oauth.NewClientCredentialsGrantHandler(cfg, tokenStrategy, sessionStorage),
 		},
 		[]core.IntrospectionHandler{

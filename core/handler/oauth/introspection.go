@@ -68,7 +68,7 @@ func (h *TokenIntrospectionHandler) IntrospectToken(
 			return "", err
 		}
 
-		err = h.tokenStrategy.ValidateRefreshToken(ctx, tokenRequestDB, ir.Token)
+		err = h.tokenStrategy.ValidateRefreshToken(ctx, &tokenRequestDB.Request, ir.Token)
 		if err != nil {
 			return "", err
 		}
@@ -85,7 +85,7 @@ func (h *TokenIntrospectionHandler) IntrospectToken(
 			return "", err
 		}
 
-		err = h.tokenStrategy.ValidateAccessToken(ctx, tokenRequestDB, ir.Token)
+		err = h.tokenStrategy.ValidateAccessToken(ctx, &tokenRequestDB.Request, ir.Token)
 		if err != nil {
 			return "", err
 		}

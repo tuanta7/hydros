@@ -16,20 +16,20 @@ type TokenStrategy interface {
 
 type AccessTokenStrategy interface {
 	AccessTokenSignature(ctx context.Context, token string) string
-	GenerateAccessToken(ctx context.Context, request *core.TokenRequest) (token string, signature string, err error)
-	ValidateAccessToken(ctx context.Context, request *core.TokenRequest, token string) (err error)
+	GenerateAccessToken(ctx context.Context, request *core.Request) (token string, signature string, err error)
+	ValidateAccessToken(ctx context.Context, request *core.Request, token string) (err error)
 }
 
 type RefreshTokenStrategy interface {
 	RefreshTokenSignature(ctx context.Context, token string) string
-	GenerateRefreshToken(ctx context.Context, request *core.TokenRequest) (token string, signature string, err error)
-	ValidateRefreshToken(ctx context.Context, request *core.TokenRequest, token string) (err error)
+	GenerateRefreshToken(ctx context.Context, request *core.Request) (token string, signature string, err error)
+	ValidateRefreshToken(ctx context.Context, request *core.Request, token string) (err error)
 }
 
 type AuthorizeCodeStrategy interface {
 	AuthorizeCodeSignature(ctx context.Context, code string) string
-	GenerateAuthorizeCode(ctx context.Context, request *core.TokenRequest) (code string, signature string, err error)
-	ValidateAuthorizeCode(ctx context.Context, request *core.TokenRequest, code string) (err error)
+	GenerateAuthorizeCode(ctx context.Context, request *core.Request) (code string, signature string, err error)
+	ValidateAuthorizeCode(ctx context.Context, request *core.Request, code string) (err error)
 }
 
 type HMACStrategy struct {
@@ -48,11 +48,11 @@ func (hs HMACStrategy) AccessTokenSignature(ctx context.Context, token string) s
 	return hs.hmac.GetSignature(token)
 }
 
-func (hs HMACStrategy) GenerateAccessToken(ctx context.Context, request *core.TokenRequest) (token string, signature string, err error) {
+func (hs HMACStrategy) GenerateAccessToken(ctx context.Context, request *core.Request) (token string, signature string, err error) {
 	return hs.hmac.Generate(ctx, request, core.AccessToken)
 }
 
-func (hs HMACStrategy) ValidateAccessToken(ctx context.Context, request *core.TokenRequest, token string) (err error) {
+func (hs HMACStrategy) ValidateAccessToken(ctx context.Context, request *core.Request, token string) (err error) {
 	exp := request.Session.GetExpiresAt(core.AccessToken)
 	if expiredAt := request.RequestedAt.Add(hs.config.GetAccessTokenLifetime()); exp.IsZero() && expiredAt.Before(x.NowUTC()) {
 		return core.ErrTokenExpired.WithHint("Access token expired at '%s'.", expiredAt)
@@ -69,11 +69,11 @@ func (hs HMACStrategy) RefreshTokenSignature(ctx context.Context, token string) 
 	return hs.hmac.GetSignature(token)
 }
 
-func (hs HMACStrategy) GenerateRefreshToken(ctx context.Context, request *core.TokenRequest) (token string, signature string, err error) {
+func (hs HMACStrategy) GenerateRefreshToken(ctx context.Context, request *core.Request) (token string, signature string, err error) {
 	return hs.hmac.Generate(ctx, request, core.RefreshToken)
 }
 
-func (hs HMACStrategy) ValidateRefreshToken(ctx context.Context, request *core.TokenRequest, token string) (err error) {
+func (hs HMACStrategy) ValidateRefreshToken(ctx context.Context, request *core.Request, token string) (err error) {
 	exp := request.Session.GetExpiresAt(core.RefreshToken)
 	if !exp.IsZero() && exp.Before(x.NowUTC()) {
 		return core.ErrTokenExpired.WithHint("Refresh token expired at '%s'.", exp)
@@ -87,11 +87,11 @@ func (hs HMACStrategy) AuthorizeCodeSignature(ctx context.Context, code string) 
 	return hs.hmac.GetSignature(code)
 }
 
-func (hs HMACStrategy) GenerateAuthorizeCode(ctx context.Context, request *core.TokenRequest) (code string, signature string, err error) {
+func (hs HMACStrategy) GenerateAuthorizeCode(ctx context.Context, request *core.Request) (code string, signature string, err error) {
 	return hs.hmac.Generate(ctx, request, core.AuthorizationCode)
 }
 
-func (hs HMACStrategy) ValidateAuthorizeCode(ctx context.Context, request *core.TokenRequest, code string) (err error) {
+func (hs HMACStrategy) ValidateAuthorizeCode(ctx context.Context, request *core.Request, code string) (err error) {
 	exp := request.Session.GetExpiresAt(core.AuthorizationCode)
 	if expiredAt := request.RequestedAt.Add(hs.config.GetAuthorizationCodeLifetime()); exp.IsZero() && expiredAt.Before(x.NowUTC()) {
 		return core.ErrTokenExpired.WithHint("Authorize code expired at '%s'.", expiredAt)
@@ -120,11 +120,11 @@ func (js JWTStrategy) AccessTokenSignature(ctx context.Context, token string) st
 	return js.jwt.GetSignature(token)
 }
 
-func (js JWTStrategy) GenerateAccessToken(ctx context.Context, request *core.TokenRequest) (token string, signature string, err error) {
+func (js JWTStrategy) GenerateAccessToken(ctx context.Context, request *core.Request) (token string, signature string, err error) {
 	return js.jwt.Generate(ctx, request, core.AccessToken)
 }
 
-func (js JWTStrategy) ValidateAccessToken(ctx context.Context, request *core.TokenRequest, token string) (err error) {
+func (js JWTStrategy) ValidateAccessToken(ctx context.Context, request *core.Request, token string) (err error) {
 	return js.jwt.Validate(ctx, token)
 }
 
@@ -132,11 +132,11 @@ func (js JWTStrategy) RefreshTokenSignature(ctx context.Context, token string) s
 	return js.hmac.GetSignature(token)
 }
 
-func (js JWTStrategy) GenerateRefreshToken(ctx context.Context, request *core.TokenRequest) (token string, signature string, err error) {
+func (js JWTStrategy) GenerateRefreshToken(ctx context.Context, request *core.Request) (token string, signature string, err error) {
 	return js.hmac.Generate(ctx, request, core.RefreshToken)
 }
 
-func (js JWTStrategy) ValidateRefreshToken(ctx context.Context, request *core.TokenRequest, token string) (err error) {
+func (js JWTStrategy) ValidateRefreshToken(ctx context.Context, request *core.Request, token string) (err error) {
 	return js.hmac.Validate(ctx, token)
 }
 
@@ -144,10 +144,10 @@ func (js JWTStrategy) AuthorizeCodeSignature(ctx context.Context, code string) s
 	return js.hmac.GetSignature(code)
 }
 
-func (js JWTStrategy) GenerateAuthorizeCode(ctx context.Context, request *core.TokenRequest) (code string, signature string, err error) {
+func (js JWTStrategy) GenerateAuthorizeCode(ctx context.Context, request *core.Request) (code string, signature string, err error) {
 	return js.hmac.Generate(ctx, request, core.AuthorizationCode)
 }
 
-func (js JWTStrategy) ValidateAuthorizeCode(ctx context.Context, request *core.TokenRequest, code string) (err error) {
+func (js JWTStrategy) ValidateAuthorizeCode(ctx context.Context, request *core.Request, code string) (err error) {
 	return js.hmac.Validate(ctx, code)
 }

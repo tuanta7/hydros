@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+type DebugModeProvider interface {
+	IsDebugging() bool
+}
+
 type LifetimeConfigProvider interface {
 	AccessTokenLifetimeProvider
 	RefreshTokenLifetimeProvider
@@ -23,12 +27,8 @@ type RefreshTokenLifetimeProvider interface {
 	GetRefreshTokenLifetime() time.Duration
 }
 
-type SecretsHashingProvider interface {
+type SecretsHasherProvider interface {
 	GetSecretsHasher() Hasher
-}
-
-type DebugModeProvider interface {
-	IsDebugging() bool
 }
 
 type DisableRefreshTokenValidationProvider interface {
@@ -53,4 +53,20 @@ type GlobalSecretProvider interface {
 
 type HMACHashingProvider interface {
 	GetHMACHasher() func() hash.Hash
+}
+
+type MinParameterEntropyProvider interface {
+	GetMinParameterEntropy() int
+}
+
+type EnforcePKCEProvider interface {
+	GetEnforcePKCE() bool
+}
+
+type EnforcePKCEForPublicClientsProvider interface {
+	GetEnforcePKCEForPublicClients() bool
+}
+
+type EnablePKCEPlainChallengeMethodProvider interface {
+	IsEnablePKCEPlainChallengeMethod() bool
 }

@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/tuanta7/hydros/core"
@@ -12,12 +13,12 @@ import (
 
 type ClientCredentialsGrantConfigurator interface {
 	core.AccessTokenLifetimeProvider
+	strategy.ScopeStrategyProvider
+	strategy.AudienceStrategyProvider
 }
 
 type ClientCredentialsGrantHandler struct {
 	config              ClientCredentialsGrantConfigurator
-	scopeStrategy       strategy.ScopeStrategy
-	audienceStrategy    strategy.AudienceStrategy
 	accessTokenStrategy strategy.AccessTokenStrategy
 	accessTokenStorage  storage.AccessTokenStorage
 }
@@ -32,8 +33,6 @@ func NewClientCredentialsGrantHandler(
 		config:              config,
 		accessTokenStorage:  storage,
 		accessTokenStrategy: accessTokenStrategy,
-		scopeStrategy:       strategy.ExactScopeStrategy,
-		audienceStrategy:    strategy.ExactAudienceStrategy,
 	}
 }
 
@@ -43,24 +42,34 @@ func (h *ClientCredentialsGrantHandler) HandleTokenRequest(ctx context.Context, 
 	}
 
 	client := req.Client
+	if client == nil {
+		// should never happen because this client must be authenticated to get here
+		return core.ErrInvalidClient.WithHint("The requested OAuth 2.0 Client does not exist.")
+	}
 
 	if !client.GetGrantTypes().IncludeOne("client_credentials") {
 		return core.ErrUnauthorizedClient
 	}
 
+	scopeStrategy := h.config.GetScopeStrategy()
 	for _, scope := range req.Scope {
-		if !h.scopeStrategy(client.GetScopes(), scope) {
+		if !scopeStrategy(client.GetScopes(), scope) {
 			return core.ErrInvalidScope
 		}
 	}
 
-	err := h.audienceStrategy(client.GetAudience(), req.Audience)
+	audienceStrategy := h.config.GetAudienceStrategy()
+	err := audienceStrategy(client.GetAudience(), req.Audience)
 	if err != nil {
 		return err
 	}
 
 	if client.IsPublic() {
 		return core.ErrInvalidGrant
+	}
+
+	if req.Session == nil {
+		return errors.New("session cannot be nil")
 	}
 
 	accessTokenLifetime := h.config.GetAccessTokenLifetime()
@@ -81,7 +90,7 @@ func (h *ClientCredentialsGrantHandler) HandleTokenResponse(
 		return core.ErrUnauthorizedClient
 	}
 
-	token, signature, err := h.accessTokenStrategy.GenerateAccessToken(ctx, req)
+	token, signature, err := h.accessTokenStrategy.GenerateAccessToken(ctx, &req.Request)
 	if err != nil {
 		return err
 	}
@@ -101,6 +110,5 @@ func (h *ClientCredentialsGrantHandler) HandleTokenResponse(
 
 	res.AccessToken = token
 	res.TokenType = core.BearerToken
-	res.Scope = req.GrantedScope
 	return nil
 }

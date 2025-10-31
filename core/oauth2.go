@@ -65,8 +65,9 @@ type OAuth2Provider interface {
 }
 
 type Configurator interface {
-	SecretsHashingProvider
 	DebugModeProvider
+	MinParameterEntropyProvider
+	SecretsHasherProvider
 }
 
 type Storage interface {

@@ -13,8 +13,8 @@ type TokenStorage interface {
 }
 
 type AuthorizationCodeStorage interface {
-	CreateAuthorizeCodeSession(ctx context.Context, code string, req *core.TokenRequest) (err error)
-	GetAuthorizationCodeSession(ctx context.Context, code string, session core.Session) (*core.TokenRequest, error)
+	CreateAuthorizeCodeSession(ctx context.Context, code string, req *core.Request) (err error)
+	GetAuthorizationCodeSession(ctx context.Context, code string, session core.Session) (*core.Request, error)
 	InvalidateAuthorizeCodeSession(ctx context.Context, code string) (err error)
 }
 

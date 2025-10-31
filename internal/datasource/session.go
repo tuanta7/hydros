@@ -3,6 +3,7 @@ package datasource
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"net/url"
 	"strings"
 	"time"
@@ -48,6 +49,14 @@ func (s *TokenRequestSession) ToRequest(
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if session != nil {
+		if err := json.Unmarshal(jsonSession, session); err != nil {
+			return nil, err
+		}
+	} else {
+		//
 	}
 
 	form, err := url.ParseQuery(s.Form)

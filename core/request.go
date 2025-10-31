@@ -45,3 +45,29 @@ func (r *Request) Merge(target *Request) {
 		r.Form[k] = v
 	}
 }
+
+// Sanitize removes sensitive data from the request for storage.
+func (r *Request) Sanitize(allowedParameters []string) Request {
+	sr := Request{}
+	allowed := map[string]bool{
+		"grant_type":    true,
+		"response_type": true,
+		"scope":         true,
+		"client_id":     true,
+	}
+
+	for _, k := range allowedParameters {
+		allowed[k] = true
+	}
+
+	sr = *r
+	sr.ID = r.ID
+	sr.Form = url.Values{}
+	for k, v := range r.Form {
+		if allowed[k] {
+			sr.Form[k] = v
+		}
+	}
+
+	return sr
+}

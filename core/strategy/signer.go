@@ -8,6 +8,6 @@ import (
 
 type Signer interface {
 	GetSignature(token string) string
-	Generate(ctx context.Context, request *core.TokenRequest, tokenType core.TokenType) (token string, signature string, err error)
+	Generate(ctx context.Context, request *core.Request, tokenType core.TokenType) (token string, signature string, err error)
 	Validate(ctx context.Context, token string) (err error)
 }

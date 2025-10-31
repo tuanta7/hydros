@@ -30,7 +30,7 @@ func NewSigner(cfg Configurator, fn GetPrivateKeyFn) (*DefaultSigner, error) {
 	}, nil
 }
 
-func (s DefaultSigner) Generate(ctx context.Context, request *core.TokenRequest, tokenType core.TokenType) (string, string, error) {
+func (s DefaultSigner) Generate(ctx context.Context, request *core.Request, tokenType core.TokenType) (string, string, error) {
 	key, err := s.getPrivateKeyFn(ctx)
 	if err != nil {
 		return "", "", err

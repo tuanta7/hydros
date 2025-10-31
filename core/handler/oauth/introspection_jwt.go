@@ -29,7 +29,7 @@ func (h *JWTIntrospectionHandler) IntrospectToken(
 		return "", core.ErrUnknownRequest
 	}
 
-	err := h.tokenStrategy.ValidateAccessToken(ctx, tr, ir.Token)
+	err := h.tokenStrategy.ValidateAccessToken(ctx, &tr.Request, ir.Token)
 	if err != nil {
 		return "", err
 	}
