@@ -24,14 +24,14 @@ func (ns *NullDuration) Scan(value interface{}) error {
 	return nil
 }
 
-func (ns *NullDuration) Value() (driver.Value, error) {
+func (ns NullDuration) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
 	return int64(ns.Duration), nil
 }
 
-func (ns *NullDuration) MarshalJSON() ([]byte, error) {
+func (ns NullDuration) MarshalJSON() ([]byte, error) {
 	if !ns.Valid {
 		return []byte("null"), nil
 	}

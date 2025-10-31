@@ -6,8 +6,10 @@ CREATE TABLE IF NOT EXISTS jwk
     key        TEXT                    NOT NULL,
     algorithm  TEXT                    NOT NULL,
     use        VARCHAR(10)             NOT NULL,
-    created_at TIMESTAMP DEFAULT now() NOT NULL
+    active     BOOLEAN   DEFAULT FALSE NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL
 );
+
 -- +goose StatementBegin
 SELECT 'up SQL query';
 -- +goose StatementEnd

@@ -52,11 +52,13 @@ func (s *TokenRequestSession) ToRequest(
 	}
 
 	if session != nil {
+		// use the session parameter to help reconstruct the session data since we only have the JSON formated data
 		if err := json.Unmarshal(jsonSession, session); err != nil {
 			return nil, err
 		}
 	} else {
-		//
+		// if the session parameter is nil, we can't reconstruct the session data, so we just ignore it and
+		// return the request with a nil session
 	}
 
 	form, err := url.ParseQuery(s.Form)
@@ -74,6 +76,8 @@ func (s *TokenRequestSession) ToRequest(
 			GrantedAudience: strings.Split(s.GrantedAudience, "|"),
 			Form:            form,
 			Client: &domain.Client{
+				// I have not figured out how to get the full client object from the database like hydra,
+				// so just use the ID for now.
 				ID: s.ClientID,
 			},
 			Session: session,

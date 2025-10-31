@@ -42,12 +42,17 @@ func (h *OAuthHandler) HandleTokenRequest(c *gin.Context) {
 		return
 	}
 
-	tokenRequest.GrantedScope = tokenRequest.GrantedScope.Append(tokenRequest.Scope...)
-	tokenRequest.GrantedAudience = tokenRequest.GrantedAudience.Append(tokenRequest.Audience...)
-
 	if tokenRequest.GrantType.ExactOne(string(core.GrantTypeClientCredentials)) {
 		session.Subject = tokenRequest.Client.GetID()
+
+		// TODO: Do we need to let client to set which type of token it wants?
+		if h.cfg.GetAccessTokenFormat() == "jwt" {
+			session.KeyID = ""
+		}
 	}
+
+	tokenRequest.GrantedScope = tokenRequest.GrantedScope.Append(tokenRequest.Scope...)
+	tokenRequest.GrantedAudience = tokenRequest.GrantedAudience.Append(tokenRequest.Audience...)
 
 	session.ClientID = tokenRequest.Client.GetID()
 	session.IDTokenSession.Claims.Issuer = h.cfg.GetAccessTokenIssuer()

@@ -28,6 +28,7 @@ import (
 	"github.com/tuanta7/hydros/internal/usecase/jwk"
 	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 	"github.com/tuanta7/hydros/pkg/adapter/redis"
+	"github.com/tuanta7/hydros/pkg/aead"
 	"github.com/tuanta7/hydros/pkg/zapx"
 
 	"github.com/tuanta7/hydros/internal/transport"
@@ -41,14 +42,18 @@ func main() {
 	panicErr(err)
 	defer logger.Sync()
 
+	aeadAES, err := aead.NewAESGCM([]byte(cfg.Obfuscation.AESSecretKey))
+	panicErr(err)
+
 	pgClient, err := postgres.NewClient(cfg.Postgres.DSN())
 	panicErr(err)
 	defer pgClient.Close()
 
+	jwkRepo := pgsource.NewKeyRepository(pgClient)
+	jwkUC := jwk.NewUseCase(cfg, aeadAES, jwkRepo, logger)
+
 	clientRepo := pgsource.NewClientRepository(pgClient)
 	clientUC := clientuc.NewUseCase(cfg, clientRepo, logger)
-
-	jwkUC := jwk.NewUseCase()
 
 	redisClient, err := redis.NewClient(
 		context.Background(),
@@ -157,7 +162,7 @@ func getTokenStrategy(ctx context.Context, cfg *config.Config, jwkUC *jwk.UseCas
 	}
 
 	if cfg.GetAccessTokenFormat() == "jwt" {
-		getPrivateKeyFn := jwkUC.GetOrCreateJWKFn(ctx, domain.AccessTokenSet)
+		getPrivateKeyFn := jwkUC.GetOrCreateJWKFn(domain.AccessTokenSet)
 		jwtSigner, err := jwt.NewSigner(cfg, getPrivateKeyFn)
 		if err != nil {
 			return nil, err

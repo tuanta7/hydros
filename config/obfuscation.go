@@ -3,6 +3,7 @@ package config
 import "github.com/tuanta7/hydros/core"
 
 type ObfuscationConfig struct {
+	AESSecretKey       string      `koanf:"aes_secret_key"`
 	EncryptSessionData bool        `koanf:"encrypt_session_data"`
 	BCryptCost         int         `koanf:"bcrypt_cost"`
 	SecretHasher       core.Hasher `koanf:"-" ` // bcrypt, argon2, pbkdf2, etc.

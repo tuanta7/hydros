@@ -2,10 +2,11 @@ package jwt
 
 import (
 	"context"
+	"crypto/rsa"
 	"errors"
-	"fmt"
 	"strings"
 
+	"github.com/go-jose/go-jose/v4"
 	gojwt "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/tuanta7/hydros/core"
@@ -16,7 +17,9 @@ type Configurator interface {
 	core.AccessTokenIssuerProvider
 }
 
-type GetPrivateKeyFn func(ctx context.Context, kid ...string) (core.JSONWebKey, error)
+// GetPrivateKeyFn return the current active key or an inactive key but still allowed to validate token signature.
+// The kid is optional, which is used to select the key that might be inactivated.
+type GetPrivateKeyFn func(ctx context.Context, kid ...string) (any, error)
 
 type DefaultSigner struct {
 	config          Configurator
@@ -31,11 +34,7 @@ func NewSigner(cfg Configurator, fn GetPrivateKeyFn) (*DefaultSigner, error) {
 }
 
 func (s DefaultSigner) Generate(ctx context.Context, request *core.Request, tokenType core.TokenType) (string, string, error) {
-	key, err := s.getPrivateKeyFn(ctx)
-	if err != nil {
-		return "", "", err
-	}
-
+	privateKey, algorithm, err := s.getSignKey(ctx)
 	claims := &Claims{
 		RegisteredClaims: gojwt.RegisteredClaims{
 			ID:        strings.Replace(uuid.NewString(), "-", "", -1),
@@ -49,23 +48,43 @@ func (s DefaultSigner) Generate(ctx context.Context, request *core.Request, toke
 		Scope:    strings.Join(request.GrantedScope, " "),
 	}
 
-	algorithm := key.GetAlgorithm()
-	if algorithm == nil || algorithm == gojwt.SigningMethodNone {
-		return "", "", fmt.Errorf("invalid signing algorithm: %s", algorithm)
-	}
 	token := gojwt.NewWithClaims(algorithm, claims)
-
-	privateKey := key.GetPrivateKey()
-	if privateKey == nil {
-		return "", "", errors.New("private key is not set")
-	}
-
 	signedToken, err := token.SignedString(privateKey)
 	if err != nil {
 		return "", "", err
 	}
 
 	return signedToken, s.GetSignature(signedToken), nil
+}
+
+func (s DefaultSigner) getSignKey(ctx context.Context) (any, gojwt.SigningMethod, error) {
+	key, err := s.getPrivateKeyFn(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var privateKey any
+	var algorithm gojwt.SigningMethod
+
+	switch t := key.(type) {
+	case *jose.JSONWebKey:
+		privateKey = t.Key
+		algorithm = core.AlgorithmMap[t.Algorithm]
+	case jose.JSONWebKey:
+		privateKey = t.Key
+		algorithm = core.AlgorithmMap[t.Algorithm]
+	case *rsa.PrivateKey:
+		privateKey = t
+		algorithm = gojwt.SigningMethodRS256
+	case string:
+		privateKey = []byte(t)
+		algorithm = gojwt.SigningMethodHS256
+	case []byte:
+		privateKey = t
+		algorithm = gojwt.SigningMethodHS256
+	}
+
+	return privateKey, algorithm, nil
 }
 
 func (s DefaultSigner) GetSignature(token string) string {
@@ -77,18 +96,12 @@ func (s DefaultSigner) GetSignature(token string) string {
 }
 
 func (s DefaultSigner) Validate(ctx context.Context, token string) (err error) {
-	key, err := s.getPrivateKeyFn(ctx)
+	publicKey, err := s.getVerificationKey(ctx)
 	if err != nil {
 		return err
 	}
 
-	publicKey := key.GetPublicKey()
-	if publicKey == nil {
-		return errors.New("public key is not set")
-	}
-
 	parser := gojwt.Parser{}
-
 	t, err := parser.ParseWithClaims(token, &Claims{}, func(t *gojwt.Token) (any, error) {
 		return publicKey, nil
 	})
@@ -101,6 +114,32 @@ func (s DefaultSigner) Validate(ctx context.Context, token string) (err error) {
 	}
 
 	return nil
+}
+
+func (s DefaultSigner) getVerificationKey(ctx context.Context) (any, error) {
+	key, err := s.getPrivateKeyFn(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if t, ok := key.(*jose.JSONWebKey); ok {
+		key = t.Key
+	}
+
+	if t, ok := key.(jose.JSONWebKey); ok {
+		key = t.Key
+	}
+
+	switch t := key.(type) {
+	case *rsa.PrivateKey:
+		return t.Public(), nil
+	case string:
+		return t, nil
+	case []byte:
+		return t, nil
+	}
+
+	return nil, errors.New("public key is not set")
 }
 
 func toRFCErr(err error) *core.RFC6749Error {

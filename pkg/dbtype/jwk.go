@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/tuanta7/hydros/core"
+	"github.com/go-jose/go-jose/v4"
 )
 
+// JWKSet or JKWs is a JSON array containing the public keys a server
+// uses to verify the signature on JWTs it receives.
 type JWKSet struct {
-	*core.JSONWebKeySet
+	*jose.JSONWebKeySet
 }
 
 func (j *JWKSet) Scan(value any) error {
@@ -21,7 +23,7 @@ func (j *JWKSet) Scan(value any) error {
 	return json.Unmarshal([]byte(v), j)
 }
 
-func (j *JWKSet) Value() (driver.Value, error) {
+func (j JWKSet) Value() (driver.Value, error) {
 	value, err := json.Marshal(j)
 	if err != nil {
 		return nil, err

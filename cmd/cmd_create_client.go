@@ -23,6 +23,12 @@ func NewCreateClientsCommand(clientUC *client.UseCase) *cli.Command {
 				Usage:    "client name",
 				Required: false,
 			},
+			&cli.StringFlag{
+				Name:     "file",
+				Aliases:  []string{"f"},
+				Usage:    "path to JSON file with client data",
+				Required: false,
+			},
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
 			name := command.String("name")

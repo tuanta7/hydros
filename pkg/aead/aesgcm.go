@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 )
@@ -16,6 +17,7 @@ type AESGCM struct {
 
 func NewAESGCM(key []byte) (*AESGCM, error) {
 	if len(key) != 32 {
+		// Enforce AES-256 key length
 		return nil, fmt.Errorf("key must be exactly 32 long bytes, got %d bytes", len(key))
 	}
 
@@ -23,16 +25,33 @@ func NewAESGCM(key []byte) (*AESGCM, error) {
 }
 
 func (c *AESGCM) Encrypt(ctx context.Context, plaintext, additionalData []byte) (string, error) {
-	ciphertext, err := encrypt(plaintext, c.key, additionalData)
+	block, err := aes.NewCipher(c.key)
 	if err != nil {
 		return "", err
 	}
 
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	_, err = io.ReadFull(rand.Reader, nonce)
+	if err != nil {
+		return "", err
+	}
+
+	ciphertext := gcm.Seal(nonce, nonce, plaintext, additionalData)
 	return base64.URLEncoding.EncodeToString(ciphertext), nil
 }
 
-func encrypt(plaintext []byte, key []byte, additionalData []byte) (ciphertext []byte, err error) {
-	block, err := aes.NewCipher(key[:])
+func (c *AESGCM) Decrypt(ctx context.Context, encodedCiphertext string, additionalData []byte) ([]byte, error) {
+	ciphertext, err := base64.URLEncoding.DecodeString(encodedCiphertext)
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := aes.NewCipher(c.key)
 	if err != nil {
 		return nil, err
 	}
@@ -42,11 +61,14 @@ func encrypt(plaintext []byte, key []byte, additionalData []byte) (ciphertext []
 		return nil, err
 	}
 
-	nonce := make([]byte, gcm.NonceSize())
-	_, err = io.ReadFull(rand.Reader, nonce)
+	if len(ciphertext) < gcm.NonceSize() {
+		return nil, errors.New("malformed ciphertext")
+	}
+
+	plaintext, err := gcm.Open(nil, ciphertext[:gcm.NonceSize()], ciphertext[gcm.NonceSize():], additionalData)
 	if err != nil {
 		return nil, err
 	}
 
-	return gcm.Seal(nonce, nonce, plaintext, additionalData), nil
+	return plaintext, nil
 }

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-jose/go-jose/v4"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/pkg/dbtype"
 )
@@ -72,7 +73,7 @@ func (c Client) GetRequestURIs() []string {
 	return c.RequestURIs
 }
 
-func (c Client) GetJWKs() *core.JSONWebKeySet {
+func (c Client) GetJWKs() *jose.JSONWebKeySet {
 	if c.JWKs == nil {
 		return nil
 	}
