@@ -24,8 +24,16 @@ type AuthorizationCodeGrantHandler struct {
 	tokenStorage  storage.TokenStorage
 }
 
-func NewAuthorizationCodeGrantHandler() *AuthorizationCodeGrantHandler {
-	return &AuthorizationCodeGrantHandler{}
+func NewAuthorizationCodeGrantHandler(
+	config AuthorizationCodeGrantConfigurator,
+	tokenStrategy strategy.TokenStrategy,
+	tokenStorage storage.TokenStorage,
+) *AuthorizationCodeGrantHandler {
+	return &AuthorizationCodeGrantHandler{
+		config:        config,
+		tokenStrategy: tokenStrategy,
+		tokenStorage:  tokenStorage,
+	}
 }
 
 func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(
@@ -39,7 +47,6 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(
 		return nil
 	}
 
-	req.DefaultResponseMode = core.ResponseModeQuery
 	if !x.IsURISecure(req.RedirectURI) {
 		return core.ErrInvalidRequest.WithHint("Redirect URL is using an insecure protocol, http is only allowed for hosts with suffix 'localhost', for example: http://app.localhost/.")
 	}
@@ -82,7 +89,8 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(
 	res.State = req.State
 	res.Scope = strings.Join(req.GrantedScope, " ")
 
-	req.HandledResponseTypes = req.HandledResponseTypes.Append("code")
+	// set default response mode to authorization code flow
+	req.DefaultResponseMode = core.ResponseModeQuery
 	return nil
 }
 

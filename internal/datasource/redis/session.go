@@ -54,7 +54,7 @@ func (s *TokenSessionStorage) GetAccessTokenSession(
 	ctx context.Context,
 	signature string,
 	session core.Session,
-) (*core.TokenRequest, error) {
+) (*core.Request, error) {
 	key := s.prefixKey(core.AccessToken, signature)
 
 	tokenBytes, err := s.redis.Get(ctx, key)
@@ -73,7 +73,7 @@ func (s *TokenSessionStorage) GetAccessTokenSession(
 	return token.ToRequest(ctx, signature, session, core.AccessToken, s.aead)
 }
 
-func (s *TokenSessionStorage) CreateAccessTokenSession(ctx context.Context, signature string, req *core.TokenRequest) error {
+func (s *TokenSessionStorage) CreateAccessTokenSession(ctx context.Context, signature string, req *core.Request) error {
 	session, err := s.sessionFromRequest(ctx, signature, req, core.AccessToken)
 	if err != nil {
 		return err
@@ -99,7 +99,7 @@ func (s *TokenSessionStorage) DeleteAccessTokenSession(ctx context.Context, sign
 	return s.redis.Del(ctx, key)
 }
 
-func (s *TokenSessionStorage) GetRefreshTokenSession(ctx context.Context, signature string, session core.Session) (*core.TokenRequest, error) {
+func (s *TokenSessionStorage) GetRefreshTokenSession(ctx context.Context, signature string, session core.Session) (*core.Request, error) {
 	return nil, nil
 }
 
@@ -107,10 +107,43 @@ func (s *TokenSessionStorage) RotateRefreshToken(ctx context.Context, requestID 
 	return nil
 }
 
+func (s *TokenSessionStorage) CreateAuthorizeCodeSession(
+	ctx context.Context,
+	signature string,
+	req *core.Request,
+) (err error) {
+	session, err := s.sessionFromRequest(ctx, signature, req, core.AuthorizationCode)
+	if err != nil {
+		return err
+	}
+
+	var buf bytes.Buffer
+	err = gob.NewEncoder(&buf).Encode(session)
+	if err != nil {
+		return err
+	}
+
+	key := s.prefixKey(core.AuthorizationCode, signature)
+	err = s.redis.Set(ctx, key, buf.Bytes(), s.cfg.GetAuthorizationCodeLifetime())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *TokenSessionStorage) GetAuthorizationCodeSession(ctx context.Context, signature string, session core.Session) (*core.Request, error) {
+	return nil, nil
+}
+
+func (s *TokenSessionStorage) InvalidateAuthorizeCodeSession(ctx context.Context, signature string) (err error) {
+	return nil
+}
+
 func (s *TokenSessionStorage) sessionFromRequest(
 	ctx context.Context,
 	signature string,
-	req *core.TokenRequest,
+	req *core.Request,
 	tokenType core.TokenType,
 ) (*datasource.TokenRequestSession, error) {
 	session, err := json.Marshal(req.Session)

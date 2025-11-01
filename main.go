@@ -68,7 +68,7 @@ func main() {
 	tokenStrategy, err := getTokenStrategy(context.Background(), cfg, jwkUC)
 	panicErr(err)
 
-	oauthAuthorizationCodeGrantHandler := oauth.NewAuthorizationCodeGrantHandler()
+	oauthAuthorizationCodeGrantHandler := oauth.NewAuthorizationCodeGrantHandler(cfg, tokenStrategy, sessionStorage)
 	oidcAuthorizationCodeFlowHandler := oidc.NewOpenIDConnectAuthorizationCodeFlowHandler()
 	pkceHandler := pkce.NewProofKeyForCodeExchangeHandler(cfg)
 

@@ -95,7 +95,7 @@ func (h *ClientCredentialsGrantHandler) HandleTokenResponse(
 		return err
 	}
 
-	err = h.accessTokenStorage.CreateAccessTokenSession(ctx, signature, req)
+	err = h.accessTokenStorage.CreateAccessTokenSession(ctx, signature, &req.Request)
 	if err != nil {
 		return err
 	}

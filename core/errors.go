@@ -65,10 +65,25 @@ var (
 		DescriptionField: "The provided authorization grant (e.g., authorization code, resource owner credentials) or refresh token is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.",
 		CodeField:        http.StatusBadRequest,
 	}
+	ErrRequestNotSupported = &RFC6749Error{
+		ErrorField:       "request_not_supported",
+		DescriptionField: "The OP does not support use of the request parameter.",
+		CodeField:        http.StatusBadRequest,
+	}
 	ErrUnauthorizedClient = &RFC6749Error{
 		ErrorField:       "unauthorized_client",
 		DescriptionField: "The client is not authorized to request a token using this method.",
 		HintField:        "Make sure that client id and secret are correctly specified and that the client exists.",
+		CodeField:        http.StatusBadRequest,
+	}
+	ErrInvalidState = &RFC6749Error{
+		ErrorField:       "invalid_state",
+		DescriptionField: "The state is missing or does not have enough characters and is therefore considered too weak.",
+		CodeField:        http.StatusBadRequest,
+	}
+	ErrUnsupportedResponseMode = &RFC6749Error{
+		ErrorField:       "unsupported_response_mode",
+		DescriptionField: "The authorization server does not support obtaining a response using this response mode.",
 		CodeField:        http.StatusBadRequest,
 	}
 	ErrInvalidTokenFormat = &RFC6749Error{

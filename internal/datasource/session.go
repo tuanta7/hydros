@@ -41,7 +41,7 @@ func (s *TokenRequestSession) ToRequest(
 	session core.Session,
 	tokenType core.TokenType,
 	aead aead.Cipher,
-) (*core.TokenRequest, error) {
+) (*core.Request, error) {
 	jsonSession := s.Session
 	if !gjson.ValidBytes(jsonSession) {
 		var err error
@@ -66,22 +66,20 @@ func (s *TokenRequestSession) ToRequest(
 		return nil, err
 	}
 
-	return &core.TokenRequest{
-		Request: core.Request{
-			ID:              s.RequestID,
-			RequestedAt:     s.RequestedAt,
-			Scope:           strings.Split(s.Scope, "|"),
-			GrantedScope:    strings.Split(s.GrantedScope, "|"),
-			Audience:        strings.Split(s.Audience, "|"),
-			GrantedAudience: strings.Split(s.GrantedAudience, "|"),
-			Form:            form,
-			Client: &domain.Client{
-				// I have not figured out how to get the full client object from the database like hydra,
-				// so just use the ID for now.
-				ID: s.ClientID,
-			},
-			Session: session,
+	return &core.Request{
+		ID:              s.RequestID,
+		RequestedAt:     s.RequestedAt,
+		Scope:           strings.Split(s.Scope, "|"),
+		GrantedScope:    strings.Split(s.GrantedScope, "|"),
+		Audience:        strings.Split(s.Audience, "|"),
+		GrantedAudience: strings.Split(s.GrantedAudience, "|"),
+		Form:            form,
+		Client: &domain.Client{
+			// I have not figured out how to get the full client object from the database like hydra,
+			// so just use the ID for now.
+			ID: s.ClientID,
 		},
+		Session: session,
 	}, nil
 }
 

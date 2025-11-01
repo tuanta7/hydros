@@ -18,24 +18,22 @@ const (
 )
 
 type AuthorizeRequest struct {
-	State                string       `json:"state" form:"state"`
-	RedirectURI          *url.URL     `json:"redirect_uri" form:"redirect_uri"`
-	ResponseTypes        Arguments    `json:"response_types" form:"response_types"`
-	HandledResponseTypes Arguments    `json:"handled_response_types" form:"-"`
-	ResponseMode         ResponseMode `json:"response_mode" form:"response_mode"`
-	DefaultResponseMode  ResponseMode `json:"default_response_mode" form:"-"`
-	CodeChallenge        string       `json:"code_challenge" form:"code_challenge"`
-	CodeChallengeMethod  string       `json:"code_challenge_method" form:"code_challenge_method"`
+	State               string       `json:"state" form:"state"`
+	RedirectURI         *url.URL     `json:"redirect_uri" form:"redirect_uri"`
+	ResponseTypes       Arguments    `json:"response_types" form:"response_types"`
+	ResponseMode        ResponseMode `json:"response_mode" form:"response_mode"`
+	DefaultResponseMode ResponseMode `json:"default_response_mode" form:"-"`
+	CodeChallenge       string       `json:"code_challenge" form:"code_challenge"`
+	CodeChallengeMethod string       `json:"code_challenge_method" form:"code_challenge_method"`
 	Request
 }
 
 func NewAuthorizeRequest() *AuthorizeRequest {
 	return &AuthorizeRequest{
-		ResponseTypes:        Arguments{},
-		HandledResponseTypes: Arguments{},
-		Request:              *NewRequest(),
-		ResponseMode:         ResponseModeDefault,
-		RedirectURI:          nil, // must be set to nil for redirect detection to work properly
+		ResponseTypes: Arguments{},
+		Request:       *NewRequest(),
+		ResponseMode:  ResponseModeDefault,
+		RedirectURI:   nil, // must be set to nil for redirect detection to work properly
 	}
 }
 
@@ -64,7 +62,27 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 	authorizeRequest.CodeChallenge = form.Get("code_challenge")
 	authorizeRequest.CodeChallengeMethod = form.Get("code_challenge_method")
 
-	return nil, nil
+	// Since the /authorize endpoint is now only used for the authorization code grant type, we can safely assume
+	// that the response type is always "query". For other grant types, the default response mode is "fragment".
+	authorizeRequest.DefaultResponseMode = ResponseModeQuery
+
+	if err = validateOpenIDConnectAuthorizeRequest(req, authorizeRequest); err != nil {
+		return nil, err
+	}
+
+	if err = parseAndValidateResponseMode(req, authorizeRequest); err != nil {
+		return nil, err
+	}
+
+	if err = parseAndValidateAuthorizeScope(req, authorizeRequest); err != nil {
+		return nil, err
+	}
+
+	if len(authorizeRequest.State) < o.config.GetMinParameterEntropy() {
+		return nil, ErrInvalidState.WithHint("Request parameter 'state' must be at least be %d characters long to ensure sufficient entropy.", o.config.GetMinParameterEntropy())
+	}
+
+	return authorizeRequest, nil
 }
 
 func (o *OAuth2) NewAuthorizeResponse(ctx context.Context, req *AuthorizeRequest, session Session) (*AuthorizeResponse, error) {

@@ -91,6 +91,8 @@ func (o *OAuth2) IntrospectToken(ctx context.Context, req *http.Request, session
 		Scope:     strings.Join(tr.Scope, " "),
 		ClientID:  tr.Client.GetID(),
 		TokenType: accessTokenType,
+		Subject:   tr.Session.GetSubject(),
+		Audience:  strings.Join(tr.Audience, " "),
 	}, nil
 }
 

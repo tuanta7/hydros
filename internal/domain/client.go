@@ -88,6 +88,16 @@ func (c Client) GetTokenEndpointAuthMethod() string {
 	return c.TokenEndpointAuthMethod
 }
 
+func (c Client) GetResponseModes() []core.ResponseMode {
+	// fixed for now
+	return []core.ResponseMode{
+		core.ResponseModeDefault,
+		core.ResponseModeQuery,
+		core.ResponseModeFormPost,
+		core.ResponseModeFragment,
+	}
+}
+
 func (c Client) ColumnMap() map[string]any {
 	return map[string]any{
 		"id":                              c.ID,

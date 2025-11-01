@@ -8,6 +8,7 @@ type Client interface {
 	GetRedirectURIs() []string
 	GetGrantTypes() Arguments
 	GetResponseTypes() Arguments
+	GetResponseModes() []ResponseMode
 	GetScopes() Arguments
 	IsPublic() bool
 	GetAudience() Arguments
