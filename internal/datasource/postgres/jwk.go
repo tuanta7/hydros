@@ -22,7 +22,7 @@ func NewKeyRepository(pgc postgres.Client) *JWKRepository {
 	}
 }
 
-func (r *JWKRepository) List(ctx context.Context, limit uint64) ([]*domain.JSONWebKey, error) {
+func (r *JWKRepository) List(ctx context.Context, limit uint64) ([]*domain.KeyData, error) {
 	query, args, err := r.pgClient.SQLBuilder().
 		Select("*").
 		From(r.table).
@@ -46,7 +46,7 @@ func (r *JWKRepository) List(ctx context.Context, limit uint64) ([]*domain.JSONW
 	return keys, nil
 }
 
-func (r *JWKRepository) Create(ctx context.Context, key *domain.JSONWebKey) error {
+func (r *JWKRepository) Create(ctx context.Context, key *domain.KeyData) error {
 	m := key.ColumnMap()
 	var columns []string
 	var values []any
@@ -73,14 +73,14 @@ func (r *JWKRepository) Create(ctx context.Context, key *domain.JSONWebKey) erro
 	return nil
 }
 
-func (r *JWKRepository) GetActiveKey(ctx context.Context, set domain.Set) (*domain.JSONWebKey, error) {
+func (r *JWKRepository) GetActiveKey(ctx context.Context, set domain.Set) (*domain.KeyData, error) {
 	query, args, err := r.pgClient.SQLBuilder().
 		Select("*").
 		From(r.table).
 		Where(
 			squirrel.And{
 				squirrel.Eq{"active": true},
-				squirrel.Eq{"set": set},
+				squirrel.Eq{"sid": set},
 			},
 		).
 		ToSql()
@@ -101,12 +101,12 @@ func (r *JWKRepository) GetActiveKey(ctx context.Context, set domain.Set) (*doma
 	return key, nil
 }
 
-func (r *JWKRepository) GetVerificationKey(ctx context.Context, set domain.Set, kid string) (*domain.JSONWebKey, error) {
+func (r *JWKRepository) GetInactiveVerificationKey(ctx context.Context, set domain.Set, kid string) (*domain.KeyData, error) {
 	return nil, errors.New("using inactive key to verify token is not supported yet")
 }
 
-func toJWK(row pgx.CollectableRow) (*domain.JSONWebKey, error) {
-	c, err := pgx.RowToStructByName[domain.JSONWebKey](row)
+func toJWK(row pgx.CollectableRow) (*domain.KeyData, error) {
+	c, err := pgx.RowToStructByName[domain.KeyData](row)
 	if err != nil {
 		return nil, err
 	}

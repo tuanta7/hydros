@@ -13,6 +13,15 @@ import (
 	"github.com/tuanta7/hydros/core/x"
 )
 
+var SupportedAlgorithm = map[string]gojwt.SigningMethod{
+	"RS512": gojwt.SigningMethodRS512,
+	"RS256": gojwt.SigningMethodRS256,
+	"HS512": gojwt.SigningMethodHS512,
+	"HS256": gojwt.SigningMethodHS256,
+	//"ES256": gojwt.SigningMethodES256,
+	//"ES512": gojwt.SigningMethodES512,
+}
+
 type Configurator interface {
 	core.AccessTokenIssuerProvider
 }
@@ -69,10 +78,10 @@ func (s DefaultSigner) getSignKey(ctx context.Context) (any, gojwt.SigningMethod
 	switch t := key.(type) {
 	case *jose.JSONWebKey:
 		privateKey = t.Key
-		algorithm = core.AlgorithmMap[t.Algorithm]
+		algorithm = SupportedAlgorithm[t.Algorithm]
 	case jose.JSONWebKey:
 		privateKey = t.Key
-		algorithm = core.AlgorithmMap[t.Algorithm]
+		algorithm = SupportedAlgorithm[t.Algorithm]
 	case *rsa.PrivateKey:
 		privateKey = t
 		algorithm = gojwt.SigningMethodRS256
