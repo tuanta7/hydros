@@ -14,6 +14,10 @@ func (r Arguments) Append(args ...string) Arguments {
 	return append(r, args...)
 }
 
+func (r Arguments) ExactAll(items ...string) bool {
+	return len(r) == len(items) && r.IncludeAll(items...)
+}
+
 func (r Arguments) ExactOne(name string) bool {
 	return len(r) == 1 && r[0] == name
 }

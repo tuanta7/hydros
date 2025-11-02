@@ -1,6 +1,8 @@
 package strategy
 
-import "errors"
+import (
+	"github.com/tuanta7/hydros/core"
+)
 
 type AudienceStrategyProvider interface {
 	GetAudienceStrategy() AudienceStrategy
@@ -22,7 +24,7 @@ func ExactAudienceStrategy(haystack []string, needle []string) error {
 		}
 
 		if !found {
-			return errors.New("TODO")
+			return core.ErrInvalidRequest.WithHint(`Requested audience "%s" has not been whitelisted by the OAuth 2.0 Client.`, n)
 		}
 	}
 

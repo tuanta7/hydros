@@ -26,7 +26,11 @@ func NewOAuthHandler(cfg *config.Config, oauth2 core.OAuth2Provider, logger *zap
 
 func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 	ctx := c.Request.Context()
-	h.oauth2.WriteAuthorizeResponse(ctx, c.Writer, nil, nil)
+	authorizeRequest, err := h.oauth2.NewAuthorizeRequest(ctx, c.Request)
+	if err != nil {
+		h.oauth2.WriteAuthorizeError(ctx, c.Writer, authorizeRequest, err)
+		return
+	}
 }
 
 func (h *OAuthHandler) HandleTokenRequest(c *gin.Context) {

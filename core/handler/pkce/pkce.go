@@ -26,7 +26,15 @@ func NewProofKeyForCodeExchangeHandler(config ProofKeyForCodeExchangeConfigurato
 	}
 }
 
-func (h *ProofKeyForCodeExchangeHandler) HandleAuthorizeRequest(
+func (h *ProofKeyForCodeExchangeHandler) HandleAuthorizeRequest(ctx context.Context, req *core.AuthorizeRequest) error {
+	if !req.ResponseTypes.IncludeAll("code") {
+		return nil
+	}
+
+	return nil
+}
+
+func (h *ProofKeyForCodeExchangeHandler) HandleAuthorizeResponse(
 	ctx context.Context,
 	req *core.AuthorizeRequest,
 	resp *core.AuthorizeResponse,

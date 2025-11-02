@@ -55,6 +55,11 @@ var (
 		DescriptionField: "The handler is not responsible for this request.",
 		CodeField:        http.StatusBadRequest,
 	}
+	ErrRegistrationNotSupported = &RFC6749Error{
+		DescriptionField: "The OP does not support use of the registration parameter.",
+		ErrorField:       "registration_not_supported",
+		CodeField:        http.StatusBadRequest,
+	}
 	ErrInvalidScope = &RFC6749Error{
 		ErrorField:       "invalid_scope",
 		DescriptionField: "The requested scope is invalid, unknown, or malformed.",
@@ -84,6 +89,11 @@ var (
 	ErrUnsupportedResponseMode = &RFC6749Error{
 		ErrorField:       "unsupported_response_mode",
 		DescriptionField: "The authorization server does not support obtaining a response using this response mode.",
+		CodeField:        http.StatusBadRequest,
+	}
+	ErrUnsupportedResponseType = &RFC6749Error{
+		ErrorField:       "unsupported_response_type",
+		DescriptionField: "The authorization server does not support obtaining a token using this method.",
 		CodeField:        http.StatusBadRequest,
 	}
 	ErrInvalidTokenFormat = &RFC6749Error{

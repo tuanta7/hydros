@@ -75,7 +75,8 @@ type Storage interface {
 }
 
 type AuthorizeHandler interface {
-	HandleAuthorizeRequest(ctx context.Context, req *AuthorizeRequest, res *AuthorizeResponse) error
+	HandleAuthorizeRequest(ctx context.Context, req *AuthorizeRequest) error
+	HandleAuthorizeResponse(ctx context.Context, req *AuthorizeRequest, res *AuthorizeResponse) error
 }
 
 type TokenHandler interface {
