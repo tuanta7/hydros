@@ -7,7 +7,7 @@ import (
 )
 
 type PKCERequestStorage interface {
-	GetPKCERequestSession(ctx context.Context, signature string, session core.Session) (*core.AuthorizeRequest, error)
-	CreatePKCERequestSession(ctx context.Context, signature string, request *core.AuthorizeRequest) error
+	GetPKCERequestSession(ctx context.Context, signature string, session core.Session) (*core.Request, error)
+	CreatePKCERequestSession(ctx context.Context, signature string, request *core.Request) error
 	DeletePKCERequestSession(ctx context.Context, signature string) error
 }

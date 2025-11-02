@@ -28,31 +28,12 @@ type AuthorizationCodeGrantHandler struct {
 
 func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(ctx context.Context, req *core.AuthorizeRequest) (err error) {
 	if !req.ResponseTypes.ExactOne("code") {
-		return nil
+		return core.ErrUnsupportedResponseType.WithHint("The server only supports the response_type 'code'.")
 	}
 
 	client := req.Client
 	if client == nil {
 		return core.ErrInvalidClient.WithHint("The requested OAuth 2.0 Client does not exist.")
-	}
-
-	registered := client.GetRedirectURIs()
-	if req.RedirectURI.String() == "" && len(registered) == 1 {
-		req.RedirectURI, err = url.Parse(registered[0]) // use the client only valid registered redirect_uri
-		if err != nil {
-			return core.ErrInvalidRequest.WithHint("Invalid redirect_uri \"%s\".", registered[0]).WithWrap(err)
-		}
-	}
-
-	if req.RedirectURI.String() != "" {
-		ok := x.IsMatchingURI(req.RedirectURI, registered)
-		if !ok {
-			return core.ErrInvalidRequest.WithHint("The 'redirect_uri' parameter does not match any of the OAuth 2.0 Client's pre-registered redirect urls.")
-		}
-	}
-
-	if len(req.ResponseTypes) == 0 {
-		return core.ErrUnsupportedResponseType.WithHint("The request is missing the 'response_type' parameter.")
 	}
 
 	if err = validateResponseType(req, client.GetResponseTypes()); err != nil {
@@ -73,6 +54,21 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(ctx context.Conte
 	audienceStrategy := h.config.GetAudienceStrategy()
 	if err = audienceStrategy(client.GetAudience(), req.Audience); err != nil {
 		return err
+	}
+
+	registered := client.GetRedirectURIs()
+	if req.RedirectURI.String() == "" && len(registered) == 1 {
+		req.RedirectURI, err = url.Parse(registered[0]) // use the client only valid registered redirect_uri
+		if err != nil {
+			return core.ErrInvalidRequest.WithHint("Invalid redirect_uri \"%s\".", registered[0]).WithWrap(err)
+		}
+	}
+
+	if req.RedirectURI.String() != "" {
+		ok := x.IsMatchingURI(req.RedirectURI, registered)
+		if !ok {
+			return core.ErrInvalidRequest.WithHint("The 'redirect_uri' parameter does not match any of the OAuth 2.0 Client's pre-registered redirect urls.")
+		}
 	}
 
 	if len(req.State) < h.config.GetMinParameterEntropy() {
@@ -101,7 +97,7 @@ func validateResponseMode(req *core.AuthorizeRequest, registered []core.Response
 func validateResponseType(req *core.AuthorizeRequest, registered []string) error {
 	var found bool
 	for _, t := range registered {
-		if req.ResponseTypes.ExactAll(x.SpaceSplit(t)...) {
+		if req.ResponseTypes.ExactAll(x.SplitSpace(t)...) {
 			found = true
 			break
 		}
@@ -131,9 +127,7 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeResponse(
 	res *core.AuthorizeResponse,
 ) error {
 	if !req.ResponseTypes.ExactOne("code") {
-		// we don't need to return ErrUnknownRequest here, because the /authorize endpoint is only for the
-		// authorization code grant type, there is no more handler to fall back to.
-		return nil
+		return core.ErrUnsupportedResponseType.WithHint("The server only supports the response_type 'code'.")
 	}
 
 	req.DefaultResponseMode = core.ResponseModeQuery

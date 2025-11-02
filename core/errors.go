@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/tuanta7/hydros/core/x"
 )
@@ -38,6 +39,13 @@ func (e *RFC6749Error) WithDebug(debug string) *RFC6749Error {
 	err := *e
 	err.DebugField = debug
 	return &err
+}
+
+func (e *RFC6749Error) ToValues() url.Values {
+	values := url.Values{}
+	values.Set("error", e.ErrorField)
+	values.Set("error_description", e.DescriptionField)
+	return values
 }
 
 const (
@@ -147,6 +155,11 @@ var (
 		DescriptionField: "The request could not be authorized.",
 		HintField:        "Check that you provided valid credentials in the right format.",
 		CodeField:        http.StatusUnauthorized,
+	}
+	ErrPKCERequired = &RFC6749Error{
+		ErrorField:       "pkce_required",
+		DescriptionField: "PKCE is required for OAuth 2.1.",
+		CodeField:        http.StatusBadRequest,
 	}
 )
 

@@ -59,14 +59,6 @@ type MinParameterEntropyProvider interface {
 	GetMinParameterEntropy() int
 }
 
-type EnforcePKCEProvider interface {
-	GetEnforcePKCE() bool
-}
-
-type EnforcePKCEForPublicClientsProvider interface {
-	GetEnforcePKCEForPublicClients() bool
-}
-
 type EnablePKCEPlainChallengeMethodProvider interface {
 	IsEnablePKCEPlainChallengeMethod() bool
 }

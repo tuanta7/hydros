@@ -106,7 +106,7 @@ func main() {
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
 			clientHandler := restadminv1.NewClientHandler(clientUC)
-			oauthHandler := restpublicv1.NewOAuthHandler(cfg, oauthCore, logger)
+			oauthHandler := restpublicv1.NewOAuthHandler(cfg, oauthCore, jwkUC, logger)
 
 			restServer := rest.NewServer(cfg, clientHandler, oauthHandler)
 			errCh := make(chan error)

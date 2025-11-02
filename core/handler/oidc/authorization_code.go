@@ -16,7 +16,11 @@ func NewOpenIDConnectAuthorizationCodeFlowHandler() *OpenIDConnectAuthorizationC
 }
 
 func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeRequest(ctx context.Context, req *core.AuthorizeRequest) error {
-	if !req.Scope.IncludeAll("openid") {
+	if req.ResponseTypes.ExactOne("code") {
+		return core.ErrUnsupportedResponseType
+	}
+
+	if req.Scope.IncludeAll("openid") {
 		return nil
 	}
 
@@ -55,7 +59,11 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeResponse(
 	req *core.AuthorizeRequest,
 	resp *core.AuthorizeResponse,
 ) error {
-	if req.ResponseTypes.ExactOne("code") && !(req.Scope.IncludeAll("openid")) {
+	if req.ResponseTypes.ExactOne("code") {
+		return core.ErrUnsupportedResponseType
+	}
+
+	if req.Scope.IncludeAll("openid") {
 		return nil
 	}
 

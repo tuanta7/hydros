@@ -2,7 +2,7 @@ package x
 
 import "strings"
 
-func SpaceSplit(s string) []string {
+func SplitSpace(s string) []string {
 	return RemoveEmpty(strings.Split(s, " "))
 }
 

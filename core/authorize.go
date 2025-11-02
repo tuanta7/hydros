@@ -38,9 +38,9 @@ func NewAuthorizeRequest() *AuthorizeRequest {
 }
 
 type AuthorizeResponse struct {
-	Code  string
-	State string
-	Scope string
+	Code  string `json:"code" form:"code"`
+	State string `json:"state" form:"state"`
+	Scope string `json:"scope" form:"scope"`
 }
 
 func NewAuthorizeResponse() *AuthorizeResponse {
@@ -71,8 +71,8 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 	authorizeRequest.DefaultResponseMode = ResponseModeQuery
 
 	authorizeRequest.State = form.Get("state")
-	authorizeRequest.Scope = x.SpaceSplit(form.Get("scope"))
-	authorizeRequest.ResponseTypes = x.SpaceSplit(form.Get("response_type"))
+	authorizeRequest.Scope = x.SplitSpace(form.Get("scope"))
+	authorizeRequest.ResponseTypes = x.SplitSpace(form.Get("response_type"))
 
 	authorizeRequest.CodeChallenge = form.Get("code_challenge")
 	authorizeRequest.CodeChallengeMethod = form.Get("code_challenge_method")
@@ -120,7 +120,7 @@ func parseAudience(request *AuthorizeRequest) error {
 	if len(audiences) > 1 {
 		request.Audience = x.RemoveEmpty(audiences)
 	} else if len(audiences) == 1 {
-		request.Audience = x.SpaceSplit(audiences[0])
+		request.Audience = x.SplitSpace(audiences[0])
 	} else {
 		request.Audience = []string{}
 	}
@@ -157,7 +157,30 @@ func (o *OAuth2) WriteAuthorizeError(ctx context.Context, rw http.ResponseWriter
 	rw.Header().Set("Cache-Control", "no-store")
 	rw.Header().Set("Pragma", "no-cache")
 
+	rfcErr := ErrorToRFC6749Error(err)
+	errors := rfcErr.ToValues()
+	errors.Set("state", req.State)
+
+	req.RedirectURI.Fragment = ""
+
 	var redirectURIString string
+	switch req.ResponseMode {
+	case ResponseModeFormPost:
+		rw.Header().Set("Content-Type", "text/html;charset=UTF-8")
+
+		// TODO: implement form post response mode
+		rw.WriteHeader(http.StatusNotImplemented)
+		_, _ = rw.Write([]byte("<html><body>Form post response mode not implemented.</body></html>"))
+
+		return
+	case ResponseModeFragment:
+		redirectURIString = req.RedirectURI.String() + "#" + errors.Encode()
+	default: // ResponseModeQuery
+		for k, v := range errors {
+			req.RedirectURI.Query()[k] = v
+		}
+		redirectURIString = req.RedirectURI.String()
+	}
 
 	rw.Header().Set("Location", redirectURIString)
 	rw.WriteHeader(http.StatusSeeOther)
@@ -166,4 +189,29 @@ func (o *OAuth2) WriteAuthorizeError(ctx context.Context, rw http.ResponseWriter
 func (o *OAuth2) WriteAuthorizeResponse(ctx context.Context, rw http.ResponseWriter, req *AuthorizeRequest, resp *AuthorizeResponse) {
 	rw.Header().Set("Cache-Control", "no-store")
 	rw.Header().Set("Pragma", "no-cache")
+
+	var redirectURIString string
+	switch req.ResponseMode {
+	case ResponseModeFormPost:
+		rw.Header().Set("Content-Type", "text/html;charset=UTF-8")
+
+		// TODO: implement form post response mode
+		rw.WriteHeader(http.StatusNotImplemented)
+		_, _ = rw.Write([]byte("<html><body>Form post response mode not implemented.</body></html>"))
+
+		return
+	case ResponseModeFragment:
+		req.RedirectURI.Fragment = ""
+		params := url.Values{}
+		params.Set("code", resp.Code)
+		params.Set("state", resp.State)
+		redirectURIString = req.RedirectURI.String() + "#" + params.Encode()
+	default:
+		req.RedirectURI.Query().Set("code", resp.Code)
+		req.RedirectURI.Query().Set("state", resp.State)
+		redirectURIString = req.RedirectURI.String()
+	}
+
+	rw.Header().Set("Location", redirectURIString)
+	rw.WriteHeader(http.StatusSeeOther)
 }

@@ -2,10 +2,12 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/go-jose/go-jose/v4"
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/x"
 	"github.com/tuanta7/hydros/internal/domain"
+	"github.com/tuanta7/hydros/internal/usecase/jwk"
 	"github.com/tuanta7/hydros/pkg/zapx"
 	"go.uber.org/zap"
 )
@@ -13,13 +15,15 @@ import (
 type OAuthHandler struct {
 	cfg    *config.Config
 	oauth2 core.OAuth2Provider
+	jwkUC  *jwk.UseCase
 	logger *zapx.Logger
 }
 
-func NewOAuthHandler(cfg *config.Config, oauth2 core.OAuth2Provider, logger *zapx.Logger) *OAuthHandler {
+func NewOAuthHandler(cfg *config.Config, oauth2 core.OAuth2Provider, jwkUC *jwk.UseCase, logger *zapx.Logger) *OAuthHandler {
 	return &OAuthHandler{
 		cfg:    cfg,
 		oauth2: oauth2,
+		jwkUC:  jwkUC,
 		logger: logger,
 	}
 }
@@ -31,6 +35,14 @@ func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 		h.oauth2.WriteAuthorizeError(ctx, c.Writer, authorizeRequest, err)
 		return
 	}
+
+	authorizeResponse, err := h.oauth2.NewAuthorizeResponse(ctx, authorizeRequest, nil)
+	if err != nil {
+		h.oauth2.WriteAuthorizeError(ctx, c.Writer, authorizeRequest, err)
+		return
+	}
+
+	h.oauth2.WriteAuthorizeResponse(ctx, c.Writer, authorizeRequest, authorizeResponse)
 }
 
 func (h *OAuthHandler) HandleTokenRequest(c *gin.Context) {
@@ -51,7 +63,17 @@ func (h *OAuthHandler) HandleTokenRequest(c *gin.Context) {
 
 		// TODO: Do we need to let client to set which type of token it wants?
 		if h.cfg.GetAccessTokenFormat() == "jwt" {
-			session.KeyID = ""
+			key, err := h.jwkUC.GetOrCreateJWKFn(domain.AccessTokenSet)(ctx)
+			if err != nil {
+				h.logger.Error("error getting jwk",
+					zap.Error(err),
+					zap.String("method", "jwk.GetOrCreateJWKFn"),
+				)
+				h.oauth2.WriteTokenError(ctx, c.Writer, tokenRequest, err)
+				return
+			}
+
+			session.KeyID = key.(*jose.JSONWebKey).KeyID
 		}
 	}
 
