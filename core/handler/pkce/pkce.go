@@ -48,7 +48,7 @@ func (h *ProofKeyForCodeExchangeHandler) HandleAuthorizeResponse(
 	}
 
 	if req.CodeChallenge == "" {
-		return core.ErrPKCERequired
+		return core.ErrInvalidRequest.WithHint("PKCE is required for OAuth 2.1.")
 	}
 
 	if err := h.validateChallengeMethod(req.CodeChallengeMethod); err != nil {

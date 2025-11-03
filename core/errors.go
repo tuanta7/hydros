@@ -156,11 +156,6 @@ var (
 		HintField:        "Check that you provided valid credentials in the right format.",
 		CodeField:        http.StatusUnauthorized,
 	}
-	ErrPKCERequired = &RFC6749Error{
-		ErrorField:       "pkce_required",
-		DescriptionField: "PKCE is required for OAuth 2.1.",
-		CodeField:        http.StatusBadRequest,
-	}
 )
 
 func ErrorToRFC6749Error(err error) *RFC6749Error {
