@@ -21,6 +21,7 @@ type Request struct {
 
 func NewRequest() *Request {
 	return &Request{
+		ID: 			 strings.Replace(uuid.NewString(), "-", "", -1),
 		RequestedAt:     x.NowUTC(),
 		Scope:           Arguments{},
 		Audience:        Arguments{},
