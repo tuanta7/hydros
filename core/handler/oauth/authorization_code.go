@@ -64,13 +64,10 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(ctx context.Conte
 		}
 	}
 
-	if req.RedirectURI.String() != "" {
-		ok := x.IsMatchingURI(req.RedirectURI, registered)
-		if !ok {
-			return core.ErrInvalidRequest.WithHint("The 'redirect_uri' parameter does not match any of the OAuth 2.0 Client's pre-registered redirect urls.")
-		}
+	if ok := x.IsMatchingURI(req.RedirectURI, registered); !ok {
+		return core.ErrInvalidRequest.WithHint("The 'redirect_uri' parameter does not match any of the OAuth 2.0 Client's pre-registered redirect urls.")
 	}
-
+	
 	if len(req.State) < h.config.GetMinParameterEntropy() {
 		return core.ErrInvalidState.WithHint("Request parameter 'state' must be at least be %d characters long to ensure sufficient entropy.", h.config.GetMinParameterEntropy())
 	}
