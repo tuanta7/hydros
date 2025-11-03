@@ -20,6 +20,10 @@ func IsLoopback(hostname string) bool {
 }
 
 func IsMatchingURI(uri *url.URL, haystack []string) bool {
+	if uri == nil {
+		return false
+	}
+	
 	for _, target := range haystack {
 		if target == uri.String() {
 			return true
