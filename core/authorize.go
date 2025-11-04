@@ -194,11 +194,6 @@ func (o *OAuth2) WriteAuthorizeError(ctx context.Context, rw http.ResponseWriter
 	errors.Set("state", req.State)
 
 	if !req.IsRedirectURIValid() {
-		u, _ := url.Parse("/error")
-		u.RawQuery = errors.Encode()
-
-		rw.Header().Set("Location", u.String())
-		rw.WriteHeader(http.StatusFound)
 		return
 	}
 

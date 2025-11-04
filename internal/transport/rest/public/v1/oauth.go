@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/tuanta7/hydros/config"
@@ -28,11 +30,26 @@ func NewOAuthHandler(cfg *config.Config, oauth2 core.OAuth2Provider, jwkUC *jwk.
 	}
 }
 
+func (h *OAuthHandler) writeAuthorizeError(c *gin.Context, req *core.AuthorizeRequest, err error) {
+	if req.IsRedirectURIValid() {
+		h.oauth2.WriteAuthorizeError(c.Request.Context(), c.Writer, req, err)
+		return
+	}
+
+	rfcErr := core.ErrorToRFC6749Error(err)
+	c.HTML(http.StatusOK, "errors.html", gin.H{
+		"Error":       rfcErr.ErrorField,
+		"Description": rfcErr.DescriptionField,
+		"Debug":       rfcErr.DebugField,
+		"Hint":        rfcErr.HintField,
+	})
+}
+
 func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 	ctx := c.Request.Context()
 	authorizeRequest, err := h.oauth2.NewAuthorizeRequest(ctx, c.Request)
 	if err != nil {
-		h.oauth2.WriteAuthorizeError(ctx, c.Writer, authorizeRequest, err)
+		h.writeAuthorizeError(c, authorizeRequest, err)
 		return
 	}
 
@@ -41,7 +58,7 @@ func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 
 	authorizeResponse, err := h.oauth2.NewAuthorizeResponse(ctx, authorizeRequest, session)
 	if err != nil {
-		h.oauth2.WriteAuthorizeError(ctx, c.Writer, authorizeRequest, err)
+		h.writeAuthorizeError(c, authorizeRequest, err)
 		return
 	}
 
