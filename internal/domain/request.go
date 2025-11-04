@@ -10,13 +10,12 @@ import (
 
 	"github.com/tidwall/gjson"
 	"github.com/tuanta7/hydros/core"
-
 	"github.com/tuanta7/hydros/pkg/aead"
 )
 
-// TokenRequestSession is used to store the token request in the database.
-// It is the direct replacement of OAuth2RequestSQL in ory/hydra
-type TokenRequestSession struct {
+// RequestSessionData is used to store request in the database.
+// It is the direct replacement of OAuth2RequestSQL in ory/hydra.
+type RequestSessionData struct {
 	Signature       string         `db:"signature"`
 	RequestID       string         `db:"request_id"`
 	RequestedAt     time.Time      `db:"requested_at"`
@@ -32,16 +31,35 @@ type TokenRequestSession struct {
 	Challenge       sql.NullString `db:"challenge"`
 
 	// InternalExpiresAt denormalizes the expiry from the session to additionally store it as a row.
-	InternalExpiresAt sql.NullTime `db:"expires_at" json:"-"`
+	InternalExpiresAt sql.NullTime `db:"-" json:"-"`
 }
 
-func (s *TokenRequestSession) ToRequest(
+func (s *RequestSessionData) ColumnMap() map[string]any {
+	return map[string]any{
+		"signature":        s.Signature,
+		"request_id":       s.RequestID,
+		"requested_at":     s.RequestedAt,
+		"client_id":        s.ClientID,
+		"scope":            s.Scope,
+		"granted_scope":    s.GrantedScope,
+		"audience":         s.Audience,
+		"granted_audience": s.GrantedAudience,
+		"form_data":        s.Form,
+		"session_data":     s.Session,
+		"subject":          s.Subject,
+		"active":           s.Active,
+		"challenge":        s.Challenge,
+		// "expires_at":       s.InternalExpiresAt,
+	}
+}
+
+func (s *RequestSessionData) ToRequest(
 	ctx context.Context,
 	signature string,
 	session core.Session,
 	tokenType core.TokenType,
 	aead aead.Cipher,
-) (*core.TokenRequest, error) {
+) (*core.Request, error) {
 	jsonSession := s.Session
 	if !gjson.ValidBytes(jsonSession) {
 		var err error
@@ -66,27 +84,19 @@ func (s *TokenRequestSession) ToRequest(
 		return nil, err
 	}
 
-	return &core.TokenRequest{
-		Request: core.Request{
-			ID:              s.RequestID,
-			RequestedAt:     s.RequestedAt,
-			Scope:           strings.Split(s.Scope, "|"),
-			GrantedScope:    strings.Split(s.GrantedScope, "|"),
-			Audience:        strings.Split(s.Audience, "|"),
-			GrantedAudience: strings.Split(s.GrantedAudience, "|"),
-			Form:            form,
-			Client: &Client{
-				// I have not figured out how to get the full client object from the database like hydra,
-				// so just use the ID for now.
-				ID: s.ClientID,
-			},
-			Session: session,
+	return &core.Request{
+		ID:              s.RequestID,
+		RequestedAt:     s.RequestedAt,
+		Scope:           strings.Split(s.Scope, "|"),
+		GrantedScope:    strings.Split(s.GrantedScope, "|"),
+		Audience:        strings.Split(s.Audience, "|"),
+		GrantedAudience: strings.Split(s.GrantedAudience, "|"),
+		Form:            form,
+		Client: &Client{
+			// I have not figured out how to get the full client object from the database like hydra,
+			// so just use the ID for now.
+			ID: s.ClientID,
 		},
+		Session: session,
 	}, nil
-}
-
-type RefreshRequestSession struct {
-	TokenRequestSession
-	FirstUsedAt          sql.NullTime   `db:"first_used_at"`
-	AccessTokenSignature sql.NullString `db:"access_token_signature"`
 }

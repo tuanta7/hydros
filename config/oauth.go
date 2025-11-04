@@ -7,14 +7,12 @@ const (
 )
 
 type OAuthConfig struct {
-	ScopeStrategy                   string `koanf:"scope_strategy"`
-	AudienceStrategy                string `koanf:"audience_strategy"`
-	MinParameterEntropy             int    `koanf:"min_parameter_entropy"`
-	DisableRefreshTokenValidation   bool   `koanf:"disable_refresh_token_validation"`
-	AccessTokenFormat               string `koanf:"access_token_format"` // must be "jwt" or "opaque"
-	EnforcePKCE                     bool   `koanf:"enforce_pkce"`
-	EnforcePKCEForPublicClients     bool   `koanf:"enforce_pkce_for_public_clients"`
-	DisablePKCEPlainChallengeMethod bool   `koanf:"disable_pkce_plain_challenge_method"`
+	ScopeStrategy                  string `koanf:"scope_strategy"`
+	AudienceStrategy               string `koanf:"audience_strategy"`
+	AccessTokenFormat              string `koanf:"access_token_format"` // must be "jwt" or "opaque"
+	MinParameterEntropy            int    `koanf:"min_parameter_entropy"`
+	DisableRefreshTokenValidation  bool   `koanf:"disable_refresh_token_validation"`
+	EnablePKCEPlainChallengeMethod bool   `koanf:"disable_pkce_plain_challenge_method"`
 }
 
 func (c *Config) GetScopeStrategy() strategy.ScopeStrategy {
@@ -57,14 +55,6 @@ func (c *Config) GetAccessTokenFormat() string {
 	return "opaque"
 }
 
-func (c *Config) GetEnforcePKCE() bool {
-	return c.OAuth.EnforcePKCE
-}
-
-func (c *Config) GetEnforcePKCEForPublicClients() bool {
-	return c.OAuth.EnforcePKCEForPublicClients
-}
-
 func (c *Config) IsEnablePKCEPlainChallengeMethod() bool {
-	return c.OAuth.DisablePKCEPlainChallengeMethod
+	return c.OAuth.EnablePKCEPlainChallengeMethod
 }

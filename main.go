@@ -26,6 +26,7 @@ import (
 	restpublicv1 "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
 	clientuc "github.com/tuanta7/hydros/internal/usecase/client"
 	"github.com/tuanta7/hydros/internal/usecase/jwk"
+	"github.com/tuanta7/hydros/internal/usecase/storage"
 	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 	"github.com/tuanta7/hydros/pkg/adapter/redis"
 	"github.com/tuanta7/hydros/pkg/aead"
@@ -64,13 +65,16 @@ func main() {
 	panicErr(err)
 	defer redisClient.Close()
 
-	sessionStorage := redissource.NewTokenSessionStorage(cfg, redisClient)
+	tokenCache := redissource.NewRequestSessionCache(cfg, aeadAES, redisClient)
+	tokenRepo := pgsource.NewRequestSessionRepo(pgClient)
+	tokenStorage := storage.NewRequestSessionStorage(cfg, aeadAES, tokenRepo, tokenCache)
+
 	tokenStrategy, err := getTokenStrategy(context.Background(), cfg, jwkUC)
 	panicErr(err)
 
-	oauthAuthorizationCodeGrantHandler := oauth.NewAuthorizationCodeGrantHandler(cfg, tokenStrategy, sessionStorage)
+	oauthAuthorizationCodeGrantHandler := oauth.NewAuthorizationCodeGrantHandler(cfg, tokenStrategy, tokenStorage)
 	oidcAuthorizationCodeFlowHandler := oidc.NewOpenIDConnectAuthorizationCodeFlowHandler()
-	pkceHandler := pkce.NewProofKeyForCodeExchangeHandler(cfg)
+	pkceHandler := pkce.NewProofKeyForCodeExchangeHandler(cfg, tokenStrategy, tokenStorage)
 
 	oauthCore := core.NewOAuth2(cfg, clientUC,
 		[]core.AuthorizeHandler{
@@ -82,11 +86,11 @@ func main() {
 			oauthAuthorizationCodeGrantHandler,
 			oidcAuthorizationCodeFlowHandler,
 			pkceHandler,
-			oauth.NewClientCredentialsGrantHandler(cfg, tokenStrategy, sessionStorage),
+			oauth.NewClientCredentialsGrantHandler(cfg, tokenStrategy, tokenStorage),
 		},
 		[]core.IntrospectionHandler{
 			oauth.NewJWTIntrospectionHandler(tokenStrategy),
-			oauth.NewTokenIntrospectionHandler(cfg, tokenStrategy, sessionStorage),
+			oauth.NewTokenIntrospectionHandler(cfg, tokenStrategy, tokenStorage),
 		},
 	)
 

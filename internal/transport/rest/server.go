@@ -20,6 +20,10 @@ type Server struct {
 }
 
 func NewServer(cfg *config.Config, clientHandler *v1admin.ClientHandler, oauthHandler *v1public.OAuthHandler) *Server {
+	if !cfg.IsDebugging() {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	return &Server{
 		cfg:    cfg,
 		router: gin.New(),
@@ -33,9 +37,7 @@ func NewServer(cfg *config.Config, clientHandler *v1admin.ClientHandler, oauthHa
 }
 
 func (s *Server) Run() error {
-	gin.SetMode(s.cfg.ReleaseMode)
 	s.RegisterRoutes()
-
 	return s.server.ListenAndServe()
 }
 

@@ -7,10 +7,8 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
-	"strings"
 
 	"github.com/go-jose/go-jose/v4"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core/signer/jwt"
@@ -54,7 +52,7 @@ func (u *UseCase) GenerateJWK(alg jose.SignatureAlgorithm, use string, kid ...st
 	if len(kid) > 0 {
 		jwk.KeyID = kid[0]
 	} else {
-		jwk.KeyID = strings.Replace(uuid.NewString(), "-", "", -1)
+		jwk.KeyID = x.RandomUUID()
 	}
 
 	switch alg {

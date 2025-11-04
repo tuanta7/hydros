@@ -9,7 +9,7 @@ type HMACConfig struct {
 	GlobalSecret  string           `koanf:"global_secret" json:"-"`
 	RotatedSecret string           `koanf:"rotated_secret" json:"-"`
 	KeyEntropy    int              `koanf:"key_entropy"`
-	Hasher        func() hash.Hash `koanf:"hasher"`
+	Hasher        func() hash.Hash `koanf:"-" json:"-"`
 }
 
 func (c *Config) GetTokenEntropy() int {

@@ -50,15 +50,11 @@ func NewAuthorizeResponse() *AuthorizeResponse {
 func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*AuthorizeRequest, error) {
 	authorizeRequest := NewAuthorizeRequest()
 
-	form, err := x.BindPostForm(req)
+	form, err := x.BindForm(req)
 	if err != nil {
 		return nil, ErrInvalidRequest.WithHint("Unable to parse HTTP body, make sure to send a properly formatted form request body.").WithWrap(err)
 	}
 	authorizeRequest.Form = form
-
-	if len(req.Form.Get("registration")) > 0 {
-		return nil, ErrRegistrationNotSupported
-	}
 
 	client, err := o.store.GetClient(ctx, form.Get("client_id"))
 	if err != nil {
@@ -66,20 +62,17 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 	}
 	authorizeRequest.Client = client
 
-	// Since the /authorize endpoint is now only used for the authorization code grant type, we can safely assume
-	// that the response type is always "query". For other grant types, the default response mode is "fragment".
-	authorizeRequest.DefaultResponseMode = ResponseModeQuery
+	redirectURI, err := url.Parse(authorizeRequest.Form.Get("redirect_uri"))
+	if err != nil {
+		return nil, ErrInvalidRequest.WithHint("Invalid redirect_uri \"%s\".", authorizeRequest.Form.Get("redirect_uri")).WithWrap(err)
+	}
+	authorizeRequest.RedirectURI = redirectURI
 
 	authorizeRequest.State = form.Get("state")
 	authorizeRequest.Scope = x.SplitSpace(form.Get("scope"))
 	authorizeRequest.ResponseTypes = x.SplitSpace(form.Get("response_type"))
-
 	authorizeRequest.CodeChallenge = form.Get("code_challenge")
 	authorizeRequest.CodeChallengeMethod = form.Get("code_challenge_method")
-
-	if err = parseRedirectURI(authorizeRequest); err != nil {
-		return nil, err
-	}
 
 	if err = parseAudience(authorizeRequest); err != nil {
 		return nil, err
@@ -89,8 +82,21 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 		return nil, err
 	}
 
+	if authorizeRequest.ResponseMode == ResponseModeDefault {
+		// Since the /authorize endpoint is now only used for the authorization code grant type, we can safely assume
+		// that the response type is always "query". For other grant types, the default response mode is "fragment".
+		authorizeRequest.DefaultResponseMode = ResponseModeQuery
+	}
+
+	if len(form.Get("registration")) > 0 {
+		return nil, ErrRegistrationNotSupported
+	}
+
 	for _, th := range o.authorizeHandlers {
-		if he := th.HandleAuthorizeRequest(ctx, authorizeRequest); he != nil {
+		// HandleAuthorizeRequest verifies the minimum requirements for the request to avoid overhead check before the
+		// login step, the rest of the checks are done after the login step.
+		he := th.HandleAuthorizeRequest(ctx, authorizeRequest)
+		if he != nil {
 			return nil, he
 		}
 	}
@@ -124,15 +130,6 @@ func parseAudience(request *AuthorizeRequest) error {
 	} else {
 		request.Audience = []string{}
 	}
-	return nil
-}
-
-func parseRedirectURI(request *AuthorizeRequest) (err error) {
-	request.RedirectURI, err = url.Parse(request.Form.Get("redirect_uri"))
-	if err != nil {
-		return ErrInvalidRequest.WithHint("Invalid redirect_uri \"%s\".", request.Form.Get("redirect_uri")).WithWrap(err)
-	}
-
 	return nil
 }
 

@@ -16,6 +16,7 @@ const (
 	RefreshToken      TokenType = "refresh_token"
 	AuthorizationCode TokenType = "authorize_code"
 	IDToken           TokenType = "id_token"
+	PKCECode          TokenType = "pkce_code"
 
 	GrantTypeRefreshToken      GrantType = "refresh_token"
 	GrantTypeAuthorizationCode GrantType = "authorization_code"

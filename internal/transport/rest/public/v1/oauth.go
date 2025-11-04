@@ -36,7 +36,10 @@ func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 		return
 	}
 
-	authorizeResponse, err := h.oauth2.NewAuthorizeResponse(ctx, authorizeRequest, nil)
+	// TODO: handle authentication
+	session := domain.NewSession("")
+
+	authorizeResponse, err := h.oauth2.NewAuthorizeResponse(ctx, authorizeRequest, session)
 	if err != nil {
 		h.oauth2.WriteAuthorizeError(ctx, c.Writer, authorizeRequest, err)
 		return

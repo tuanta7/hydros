@@ -21,7 +21,7 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeRequest(ctx c
 	}
 
 	if req.Scope.IncludeAll("openid") {
-		return nil
+		return nil // not an openid request
 	}
 
 	if req.RedirectURI.String() == "" {
@@ -34,11 +34,11 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeRequest(ctx c
 		return nil
 	}
 
-	// TODO: support JWT Request Object
 	if request != "" && requestURI != "" {
 		return core.ErrInvalidRequest.WithHint("OpenID Connect parameters 'request' and 'request_uri' were both given, but you can use at most one.")
 	}
 
+	// TODO: support JWT Request Object
 	oidcClient, ok := req.Client.(core.OpenIDConnectClient)
 	if !ok {
 		if requestURI != "" {
@@ -57,7 +57,7 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeRequest(ctx c
 func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeResponse(
 	ctx context.Context,
 	req *core.AuthorizeRequest,
-	resp *core.AuthorizeResponse,
+	res *core.AuthorizeResponse,
 ) error {
 	if req.ResponseTypes.ExactOne("code") {
 		return core.ErrUnsupportedResponseType
@@ -65,6 +65,10 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeResponse(
 
 	if req.Scope.IncludeAll("openid") {
 		return nil
+	}
+
+	if len(res.Code) == 0 {
+		return core.ErrMisconfiguration.WithDebug("The authorization code has not been issued yet, indicating a broken code configuration.")
 	}
 
 	return nil

@@ -13,29 +13,29 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
-	"github.com/tuanta7/hydros/internal/datasource"
+
 	"github.com/tuanta7/hydros/internal/domain"
 	"github.com/tuanta7/hydros/pkg/adapter/redis"
 	"github.com/tuanta7/hydros/pkg/aead"
 )
 
-type TokenSessionStorage struct {
+type RequestSessionCache struct {
 	cfg   *config.Config
 	aead  aead.Cipher
 	redis redis.Client
 }
 
-func NewTokenSessionStorage(cfg *config.Config, rc redis.Client) *TokenSessionStorage {
-	gob.Register(datasource.TokenRequestSession{})
-	gob.Register(datasource.RefreshRequestSession{})
+func NewRequestSessionCache(cfg *config.Config, aead aead.Cipher, rc redis.Client) *RequestSessionCache {
+	gob.Register(domain.RequestSessionData{})
 
-	return &TokenSessionStorage{
+	return &RequestSessionCache{
 		cfg:   cfg,
+		aead:  aead,
 		redis: rc,
 	}
 }
 
-func (s *TokenSessionStorage) prefixKey(tokenType core.TokenType, signature string) string {
+func (s *RequestSessionCache) prefixKey(tokenType core.TokenType, signature string) string {
 	switch tokenType {
 	case core.AccessToken:
 		return fmt.Sprintf("access_token:%s", signature)
@@ -50,7 +50,7 @@ func (s *TokenSessionStorage) prefixKey(tokenType core.TokenType, signature stri
 	return signature
 }
 
-func (s *TokenSessionStorage) GetAccessTokenSession(
+func (s *RequestSessionCache) GetAccessTokenSession(
 	ctx context.Context,
 	signature string,
 	session core.Session,
@@ -64,7 +64,7 @@ func (s *TokenSessionStorage) GetAccessTokenSession(
 		return nil, err
 	}
 
-	var token datasource.TokenRequestSession
+	var token domain.RequestSessionData
 	err = gob.NewDecoder(bytes.NewReader(tokenBytes)).Decode(&token)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func (s *TokenSessionStorage) GetAccessTokenSession(
 	return token.ToRequest(ctx, signature, session, core.AccessToken, s.aead)
 }
 
-func (s *TokenSessionStorage) CreateAccessTokenSession(ctx context.Context, signature string, req *core.Request) error {
+func (s *RequestSessionCache) CreateAccessTokenSession(ctx context.Context, signature string, req *core.Request) error {
 	session, err := s.sessionFromRequest(ctx, signature, req, core.AccessToken)
 	if err != nil {
 		return err
@@ -94,20 +94,12 @@ func (s *TokenSessionStorage) CreateAccessTokenSession(ctx context.Context, sign
 	return nil
 }
 
-func (s *TokenSessionStorage) DeleteAccessTokenSession(ctx context.Context, signature string) error {
+func (s *RequestSessionCache) DeleteAccessTokenSession(ctx context.Context, signature string) error {
 	key := s.prefixKey(core.AccessToken, signature)
 	return s.redis.Del(ctx, key)
 }
 
-func (s *TokenSessionStorage) GetRefreshTokenSession(ctx context.Context, signature string, session core.Session) (*core.Request, error) {
-	return nil, nil
-}
-
-func (s *TokenSessionStorage) RotateRefreshToken(ctx context.Context, requestID string, signature string) (err error) {
-	return nil
-}
-
-func (s *TokenSessionStorage) CreateAuthorizeCodeSession(
+func (s *RequestSessionCache) CreateAuthorizeCodeSession(
 	ctx context.Context,
 	signature string,
 	req *core.Request,
@@ -132,20 +124,20 @@ func (s *TokenSessionStorage) CreateAuthorizeCodeSession(
 	return nil
 }
 
-func (s *TokenSessionStorage) GetAuthorizationCodeSession(ctx context.Context, signature string, session core.Session) (*core.Request, error) {
+func (s *RequestSessionCache) GetAuthorizationCodeSession(ctx context.Context, signature string, session core.Session) (*core.Request, error) {
 	return nil, nil
 }
 
-func (s *TokenSessionStorage) InvalidateAuthorizeCodeSession(ctx context.Context, signature string) (err error) {
+func (s *RequestSessionCache) InvalidateAuthorizeCodeSession(ctx context.Context, signature string) (err error) {
 	return nil
 }
 
-func (s *TokenSessionStorage) sessionFromRequest(
+func (s *RequestSessionCache) sessionFromRequest(
 	ctx context.Context,
 	signature string,
 	req *core.Request,
 	tokenType core.TokenType,
-) (*datasource.TokenRequestSession, error) {
+) (*domain.RequestSessionData, error) {
 	session, err := json.Marshal(req.Session)
 	if err != nil {
 		return nil, err
@@ -169,7 +161,7 @@ func (s *TokenSessionStorage) sessionFromRequest(
 		}
 	}
 
-	return &datasource.TokenRequestSession{
+	return &domain.RequestSessionData{
 		Signature:         signature,
 		RequestID:         req.ID,
 		RequestedAt:       req.RequestedAt,

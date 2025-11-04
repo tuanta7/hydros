@@ -23,9 +23,7 @@ func (h *JWTIntrospectionHandler) IntrospectToken(
 	ir *core.IntrospectionRequest,
 	tr *core.TokenRequest,
 ) (core.TokenType, error) {
-	sig := h.tokenStrategy.AccessTokenSignature(ctx, ir.Token)
-	if sig == "" {
-		// this might be an opaque token
+	if sig := h.tokenStrategy.AccessTokenSignature(ctx, ir.Token); sig == "" {
 		return "", core.ErrUnknownRequest
 	}
 

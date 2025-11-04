@@ -14,13 +14,19 @@ type ProofKeyForCodeExchangeConfigurator interface {
 
 type ProofKeyForCodeExchangeHandler struct {
 	config       ProofKeyForCodeExchangeConfigurator
-	storage      storage.PKCERequestStorage
 	codeStrategy strategy.AuthorizeCodeStrategy
+	storage      storage.PKCERequestStorage
 }
 
-func NewProofKeyForCodeExchangeHandler(config ProofKeyForCodeExchangeConfigurator) *ProofKeyForCodeExchangeHandler {
+func NewProofKeyForCodeExchangeHandler(
+	config ProofKeyForCodeExchangeConfigurator,
+	codeStrategy strategy.AuthorizeCodeStrategy,
+	storage storage.PKCERequestStorage,
+) *ProofKeyForCodeExchangeHandler {
 	return &ProofKeyForCodeExchangeHandler{
-		config: config,
+		config:       config,
+		storage:      storage,
+		codeStrategy: codeStrategy,
 	}
 }
 
@@ -35,7 +41,7 @@ func (h *ProofKeyForCodeExchangeHandler) HandleAuthorizeRequest(ctx context.Cont
 func (h *ProofKeyForCodeExchangeHandler) HandleAuthorizeResponse(
 	ctx context.Context,
 	req *core.AuthorizeRequest,
-	resp *core.AuthorizeResponse,
+	res *core.AuthorizeResponse,
 ) error {
 	if !req.ResponseTypes.ExactOne("code") {
 		return core.ErrUnsupportedResponseType
@@ -57,12 +63,11 @@ func (h *ProofKeyForCodeExchangeHandler) HandleAuthorizeResponse(
 		req.CodeChallengeMethod = "plain"
 	}
 
-	code := resp.Code
-	if code == "" {
-		return core.ErrServerError.WithDebug("The PKCE handler must be loaded after the authorize code handler.")
+	if len(res.Code) == 0 {
+		return core.ErrMisconfiguration.WithDebug("The authorization code has not been issued yet, indicating a broken code configuration.")
 	}
 
-	signature := h.codeStrategy.AuthorizeCodeSignature(ctx, code)
+	signature := h.codeStrategy.AuthorizeCodeSignature(ctx, res.Code)
 	if err := h.storage.CreatePKCERequestSession(ctx, signature, req.Request.Sanitize(
 		"code_challenge",
 		"code_challenge_method",

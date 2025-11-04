@@ -26,22 +26,62 @@ type AuthorizationCodeGrantHandler struct {
 	tokenStorage  storage.TokenStorage
 }
 
+func NewAuthorizationCodeGrantHandler(
+	config AuthorizationCodeGrantConfigurator,
+	tokenStrategy strategy.TokenStrategy,
+	tokenStorage storage.TokenStorage,
+) *AuthorizationCodeGrantHandler {
+	return &AuthorizationCodeGrantHandler{
+		config:        config,
+		tokenStrategy: tokenStrategy,
+		tokenStorage:  tokenStorage,
+	}
+}
+
+func validateResponseMode(req *core.AuthorizeRequest, registered []core.ResponseMode) bool {
+	for _, mode := range registered {
+		if req.ResponseMode == mode {
+			return true
+		}
+	}
+
+	return false
+}
+
+func validateResponseType(req *core.AuthorizeRequest, registered []string) bool {
+	for _, t := range registered {
+		if req.ResponseTypes.ExactAll(x.SplitSpace(t)...) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func validateRedirectURI(redirectURI *url.URL) bool {
+	if len(redirectURI.Scheme) == 0 {
+		return false
+	}
+
+	if redirectURI.Fragment != "" {
+		return false
+	}
+
+	return true
+}
+
 func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(ctx context.Context, req *core.AuthorizeRequest) (err error) {
 	if !req.ResponseTypes.ExactOne("code") {
 		return core.ErrUnsupportedResponseType.WithHint("The server only supports the response_type 'code'.")
 	}
 
+	if len(req.State) < h.config.GetMinParameterEntropy() {
+		return core.ErrInvalidState.WithHint("Request parameter 'state' must be at least be %d characters long to ensure sufficient entropy.", h.config.GetMinParameterEntropy())
+	}
+
 	client := req.Client
 	if client == nil {
 		return core.ErrInvalidClient.WithHint("The requested OAuth 2.0 Client does not exist.")
-	}
-
-	if err = validateResponseType(req, client.GetResponseTypes()); err != nil {
-		return err
-	}
-
-	if err = validateResponseMode(req, client.GetResponseModes()); err != nil {
-		return err
 	}
 
 	scopeStrategy := h.config.GetScopeStrategy()
@@ -56,66 +96,31 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(ctx context.Conte
 		return err
 	}
 
-	registered := client.GetRedirectURIs()
-	if req.RedirectURI.String() == "" && len(registered) == 1 {
-		req.RedirectURI, err = url.Parse(registered[0]) // use the client only valid registered redirect_uri
-		if err != nil {
-			return core.ErrInvalidRequest.WithHint("Invalid redirect_uri \"%s\".", registered[0]).WithWrap(err)
-		}
+	if !validateResponseType(req, client.GetResponseTypes()) {
+		return core.ErrUnsupportedResponseType.WithHint("The client is not allowed to request response_type '%s'.", req.ResponseTypes)
 	}
 
-	if ok := x.IsMatchingURI(req.RedirectURI, registered); !ok {
-		return core.ErrInvalidRequest.WithHint("The 'redirect_uri' parameter does not match any of the OAuth 2.0 Client's pre-registered redirect urls.")
-	}
-	
-	if len(req.State) < h.config.GetMinParameterEntropy() {
-		return core.ErrInvalidState.WithHint("Request parameter 'state' must be at least be %d characters long to ensure sufficient entropy.", h.config.GetMinParameterEntropy())
-	}
-
-	return nil
-}
-
-func validateResponseMode(req *core.AuthorizeRequest, registered []core.ResponseMode) error {
-	found := false
-	for _, mode := range registered {
-		if mode == req.ResponseMode {
-			found = true
-			break
-		}
-	}
-
-	if !found {
+	if !validateResponseMode(req, client.GetResponseModes()) {
 		return core.ErrUnsupportedResponseMode.WithHint("The client is not allowed to request response_mode '%s'.", req.ResponseMode)
 	}
 
-	return nil
-}
+	if !validateRedirectURI(req.RedirectURI) {
+		return core.ErrInvalidRequest.WithHint("The redirect URI '%s' contains an illegal character (for example #) or is otherwise invalid.", req.RedirectURI.String())
+	}
 
-func validateResponseType(req *core.AuthorizeRequest, registered []string) error {
-	var found bool
-	for _, t := range registered {
-		if req.ResponseTypes.ExactAll(x.SplitSpace(t)...) {
-			found = true
-			break
+	registeredURIs := client.GetRedirectURIs()
+	if req.RedirectURI.String() == "" && len(registeredURIs) == 1 {
+		req.RedirectURI, err = url.Parse(registeredURIs[0]) // use the client only valid registered redirect_uri
+		if err != nil {
+			return core.ErrInvalidRequest.WithHint("Invalid redirect_uri \"%s\".", registeredURIs[0]).WithWrap(err)
 		}
 	}
 
-	if !found {
-		return core.ErrUnsupportedResponseType.WithHint("The client is not allowed to request response_type '%s'.", req.ResponseTypes)
+	if ok := x.IsMatchingURI(req.RedirectURI, registeredURIs); !ok {
+		return core.ErrInvalidRequest.WithHint("The 'redirect_uri' parameter does not match any of the OAuth 2.0 Client's pre-registered redirect urls.")
 	}
-	return nil
-}
 
-func NewAuthorizationCodeGrantHandler(
-	config AuthorizationCodeGrantConfigurator,
-	tokenStrategy strategy.TokenStrategy,
-	tokenStorage storage.TokenStorage,
-) *AuthorizationCodeGrantHandler {
-	return &AuthorizationCodeGrantHandler{
-		config:        config,
-		tokenStrategy: tokenStrategy,
-		tokenStorage:  tokenStorage,
-	}
+	return nil
 }
 
 func (h *AuthorizationCodeGrantHandler) HandleAuthorizeResponse(
@@ -133,10 +138,8 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeResponse(
 		return core.ErrInvalidRequest.WithHint("Redirect URL is using an insecure protocol, http is only allowed for hosts with suffix 'localhost', for example: http://app.localhost/.")
 	}
 
-	// duplicate check as in HandleAuthorizeRequest, just to be sure after the login flow
 	client := req.Client
 	if client == nil {
-		// should never happen because NewAuthorizeRequest already checks this
 		return core.ErrInvalidClient.WithHint("The requested OAuth 2.0 Client does not exist.")
 	}
 

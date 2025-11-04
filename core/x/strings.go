@@ -1,6 +1,14 @@
 package x
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/google/uuid"
+)
+
+func RandomUUID() string {
+	return strings.Replace(uuid.NewString(), "-", "", -1)
+}
 
 func SplitSpace(s string) []string {
 	return RemoveEmpty(strings.Split(s, " "))

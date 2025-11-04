@@ -3,10 +3,8 @@ package client
 import (
 	"context"
 	"errors"
-	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/x"
@@ -64,7 +62,7 @@ func (u *UseCase) CreateClient(ctx context.Context, client *domain.Client) error
 	client.Secret = string(hashedSecret)
 
 	if client.ID == "" {
-		client.ID = strings.Replace(uuid.NewString(), "-", "", -1)
+		client.ID = x.RandomUUID()
 	}
 
 	if client.TokenEndpointAuthMethod == "" {

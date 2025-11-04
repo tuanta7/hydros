@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-jose/go-jose/v4"
 	gojwt "github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/x"
 )
@@ -46,7 +45,7 @@ func (s DefaultSigner) Generate(ctx context.Context, request *core.Request, toke
 	privateKey, algorithm, err := s.getSignKey(ctx)
 	claims := &Claims{
 		RegisteredClaims: gojwt.RegisteredClaims{
-			ID:        strings.Replace(uuid.NewString(), "-", "", -1),
+			ID:        x.RandomUUID(),
 			Issuer:    s.config.GetAccessTokenIssuer(),
 			Subject:   request.Session.GetSubject(),
 			Audience:  gojwt.ClaimStrings(request.GrantedAudience),

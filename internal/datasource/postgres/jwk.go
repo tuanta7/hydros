@@ -38,7 +38,7 @@ func (r *JWKRepository) List(ctx context.Context, limit uint64) ([]*domain.KeyDa
 	}
 	defer rows.Close()
 
-	keys, err := pgx.CollectRows(rows, toJWK)
+	keys, err := pgx.CollectRows(rows, toObject[domain.KeyData])
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (r *JWKRepository) GetActiveKey(ctx context.Context, set domain.Set) (*doma
 		return nil, err
 	}
 
-	key, err := pgx.CollectOneRow(rows, toJWK)
+	key, err := pgx.CollectOneRow(rows, toObject[domain.KeyData])
 	if err != nil {
 		return nil, err
 	}
@@ -103,13 +103,4 @@ func (r *JWKRepository) GetActiveKey(ctx context.Context, set domain.Set) (*doma
 
 func (r *JWKRepository) GetInactiveVerificationKey(ctx context.Context, set domain.Set, kid string) (*domain.KeyData, error) {
 	return nil, errors.New("using inactive key to verify token is not supported yet")
-}
-
-func toJWK(row pgx.CollectableRow) (*domain.KeyData, error) {
-	c, err := pgx.RowToStructByName[domain.KeyData](row)
-	if err != nil {
-		return nil, err
-	}
-
-	return &c, nil
 }

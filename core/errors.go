@@ -156,6 +156,11 @@ var (
 		HintField:        "Check that you provided valid credentials in the right format.",
 		CodeField:        http.StatusUnauthorized,
 	}
+	ErrMisconfiguration = &RFC6749Error{
+		ErrorField:       "misconfiguration",
+		DescriptionField: "The request failed because of an internal error that is probably caused by misconfiguration.",
+		CodeField:        http.StatusInternalServerError,
+	}
 )
 
 func ErrorToRFC6749Error(err error) *RFC6749Error {

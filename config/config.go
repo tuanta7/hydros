@@ -14,8 +14,8 @@ import (
 
 type Config struct {
 	Version        string `koanf:"version"`
-	ReleaseMode    string `koanf:"release_mode"`
 	LogLevel       string `koanf:"log_level"`
+	ReleaseMode    string `koanf:"release_mode"`
 	RestServerHost string `koanf:"rest_server_host"`
 	RestServerPort string `koanf:"rest_server_port"`
 	GRPCServerHost string `koanf:"grpc_server_host"`

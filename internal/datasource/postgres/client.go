@@ -45,7 +45,7 @@ func (r *clientRepository) List(ctx context.Context, page, pageSize uint64) ([]*
 	}
 	defer rows.Close()
 
-	clients, err := pgx.CollectRows(rows, toClient)
+	clients, err := pgx.CollectRows(rows, toObject[domain.Client])
 	if err != nil {
 		return nil, err
 	}
@@ -95,19 +95,10 @@ func (r *clientRepository) Get(ctx context.Context, id string) (*domain.Client, 
 		return nil, err
 	}
 
-	client, err := pgx.CollectOneRow(rows, toClient)
+	client, err := pgx.CollectOneRow(rows, toObject[domain.Client])
 	if err != nil {
 		return nil, err
 	}
 
 	return client, nil
-}
-
-func toClient(row pgx.CollectableRow) (*domain.Client, error) {
-	c, err := pgx.RowToStructByName[domain.Client](row)
-	if err != nil {
-		return nil, err
-	}
-
-	return &c, nil
 }
