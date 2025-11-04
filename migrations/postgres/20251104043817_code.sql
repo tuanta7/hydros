@@ -1,5 +1,5 @@
 -- +goose Up
-CREATE TABLE IF NOT EXISTS access_token
+CREATE TABLE IF NOT EXISTS code
 (
     signature        VARCHAR(255)                               NOT NULL,
     request_id       VARCHAR(40)                                NOT NULL,
@@ -17,21 +17,21 @@ CREATE TABLE IF NOT EXISTS access_token
     PRIMARY KEY (signature)
 );
 
-CREATE INDEX IF NOT EXISTS access_requested_at_idx ON access_token (requested_at);
-CREATE INDEX IF NOT EXISTS access_client_id_idx ON access_token (client_id);
-CREATE INDEX IF NOT EXISTS access_client_id_subject_idx ON access_token (client_id, subject);
-CREATE INDEX IF NOT EXISTS access_request_id_idx ON access_token (request_id);
+CREATE INDEX IF NOT EXISTS code_requested_at_idx ON code (requested_at);
+CREATE INDEX IF NOT EXISTS code_client_id_idx ON code (client_id);
+CREATE INDEX IF NOT EXISTS code_client_id_subject_idx ON code (client_id, subject);
+CREATE INDEX IF NOT EXISTS code_request_id_idx ON code (request_id);
 
 -- +goose StatementBegin
 SELECT 'up SQL query';
 -- +goose StatementEnd
 
 -- +goose Down
-DROP INDEX IF EXISTS access_requested_at_idx;
-DROP INDEX IF EXISTS access_client_id_idx;
-DROP INDEX IF EXISTS access_client_id_subject_idx;
-DROP INDEX IF EXISTS access_request_id_idx;
-DROP TABLE IF EXISTS access_token;
+DROP INDEX IF EXISTS code_requested_at_idx;
+DROP INDEX IF EXISTS code_client_id_idx;
+DROP INDEX IF EXISTS code_client_id_subject_idx;
+DROP INDEX IF EXISTS code_request_id_idx;
+DROP TABLE IF EXISTS code;
 -- +goose StatementBegin
 SELECT 'down SQL query';
 -- +goose StatementEnd

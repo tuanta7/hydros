@@ -25,7 +25,7 @@ SELECT 'up SQL query';
 -- +goose StatementEnd
 
 -- +goose Down
-DROP TABLE client;
+DROP TABLE IF EXISTS client;
 -- +goose StatementBegin
 SELECT 'down SQL query';
 -- +goose StatementEnd

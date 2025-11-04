@@ -85,11 +85,12 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 	}
 	authorizeRequest.RedirectURI = redirectURI
 
-	if err = parseAudience(authorizeRequest); err != nil {
-		return authorizeRequest, err
+	if len(form.Get("registration")) > 0 {
+		return authorizeRequest, ErrRegistrationNotSupported
 	}
 
-	if err = parseResponseMode(authorizeRequest); err != nil {
+	authorizeRequest.ResponseMode, err = parseResponseMode(form.Get("response_mode"))
+	if err != nil {
 		return authorizeRequest, err
 	}
 
@@ -99,12 +100,9 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 		authorizeRequest.DefaultResponseMode = ResponseModeQuery
 	}
 
-	if len(form.Get("registration")) > 0 {
-		return authorizeRequest, ErrRegistrationNotSupported
-	}
-
-	authorizeRequest.State = form.Get("state")
+	authorizeRequest.Audience = parseAudience(authorizeRequest)
 	authorizeRequest.Scope = x.SplitSpace(form.Get("scope"))
+	authorizeRequest.State = form.Get("state")
 	authorizeRequest.ResponseTypes = x.SplitSpace(form.Get("response_type"))
 	authorizeRequest.CodeChallenge = form.Get("code_challenge")
 	authorizeRequest.CodeChallengeMethod = form.Get("code_challenge_method")
@@ -139,33 +137,32 @@ func (o *OAuth2) parseRedirectURI(authorizeRequest *AuthorizeRequest, registered
 	return redirectURI, nil
 }
 
-func parseResponseMode(request *AuthorizeRequest) error {
-	switch responseMode := request.Form.Get("response_mode"); responseMode {
-	case string(ResponseModeDefault):
-		request.ResponseMode = ResponseModeDefault
-	case string(ResponseModeFragment):
-		request.ResponseMode = ResponseModeFragment
-	case string(ResponseModeQuery):
-		request.ResponseMode = ResponseModeQuery
-	case string(ResponseModeFormPost):
-		request.ResponseMode = ResponseModeFormPost
+func parseResponseMode(raw string) (ResponseMode, error) {
+	switch r := ResponseMode(raw); r {
+	case ResponseModeDefault:
+		return ResponseModeDefault, nil
+	case ResponseModeFragment:
+		return ResponseModeFragment, nil
+	case ResponseModeQuery:
+		return ResponseModeQuery, nil
+	case ResponseModeFormPost:
+		return ResponseModeFormPost, nil
 	default:
-		return ErrUnsupportedResponseMode.WithHint("Request with unsupported response_mode \"%s\".", responseMode)
+		return "", ErrUnsupportedResponseMode.WithHint("Request with unsupported response_mode \"%s\".", raw)
 	}
-
-	return nil
 }
 
-func parseAudience(request *AuthorizeRequest) error {
+func parseAudience(request *AuthorizeRequest) []string {
 	audiences := request.Form["audience"]
 	if len(audiences) > 1 {
-		request.Audience = x.RemoveEmpty(audiences)
-	} else if len(audiences) == 1 {
-		request.Audience = x.SplitSpace(audiences[0])
-	} else {
-		request.Audience = []string{}
+		return x.RemoveEmpty(audiences)
 	}
-	return nil
+
+	if len(audiences) == 1 {
+		return x.SplitSpace(audiences[0])
+	}
+
+	return []string{}
 }
 
 func (o *OAuth2) NewAuthorizeResponse(ctx context.Context, req *AuthorizeRequest, session Session) (*AuthorizeResponse, error) {

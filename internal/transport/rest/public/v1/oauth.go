@@ -37,7 +37,7 @@ func (h *OAuthHandler) writeAuthorizeError(c *gin.Context, req *core.AuthorizeRe
 	}
 
 	rfcErr := core.ErrorToRFC6749Error(err)
-	c.HTML(http.StatusOK, "errors.html", gin.H{
+	c.HTML(http.StatusBadRequest, "errors.html", gin.H{
 		"Error":       rfcErr.ErrorField,
 		"Description": rfcErr.DescriptionField,
 		"Debug":       rfcErr.DebugField,

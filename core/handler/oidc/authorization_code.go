@@ -55,7 +55,7 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeResponse(
 	req *core.AuthorizeRequest,
 	res *core.AuthorizeResponse,
 ) error {
-	if req.ResponseTypes.ExactOne("code") {
+	if !req.ResponseTypes.ExactOne("code") {
 		return core.ErrUnsupportedResponseType
 	}
 
