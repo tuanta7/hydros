@@ -17,6 +17,7 @@ type Server struct {
 	server        *http.Server
 	clientHandler *v1admin.ClientHandler
 	oauthHandler  *v1public.OAuthHandler
+	viewHandler   *v1public.ViewHandler
 }
 
 func NewServer(cfg *config.Config, clientHandler *v1admin.ClientHandler, oauthHandler *v1public.OAuthHandler) *Server {
@@ -24,15 +25,22 @@ func NewServer(cfg *config.Config, clientHandler *v1admin.ClientHandler, oauthHa
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	engine := gin.New()
+	engine.Use(gin.Recovery())
+
+	engine.Static("/static", "./static")
+	engine.LoadHTMLGlob("./static/html/*")
+
 	return &Server{
 		cfg:    cfg,
-		router: gin.New(),
+		router: engine,
 		server: &http.Server{
 			Addr:    fmt.Sprintf("%s:%s", cfg.RestServerHost, cfg.RestServerPort),
 			Handler: nil,
 		},
 		clientHandler: clientHandler,
 		oauthHandler:  oauthHandler,
+		viewHandler:   v1public.NewViewHandler(),
 	}
 }
 
@@ -50,6 +58,8 @@ func (s *Server) Shutdown(ctx context.Context) error {
 }
 
 func (s *Server) RegisterRoutes() {
+	s.router.GET("/error", s.viewHandler.ErrorPage)
+
 	// Authorization Service - OAuth APIs
 	s.router.GET("/oauth/authorize", s.oauthHandler.HandleAuthorizeRequest)
 	s.router.POST("/oauth/token", s.oauthHandler.HandleTokenRequest)

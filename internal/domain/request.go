@@ -13,7 +13,7 @@ import (
 	"github.com/tuanta7/hydros/pkg/aead"
 )
 
-// RequestSessionData is used to store request in the database.
+// RequestSessionData is used to store request session in the database.
 // It is the direct replacement of OAuth2RequestSQL in ory/hydra.
 type RequestSessionData struct {
 	Signature       string         `db:"signature"`

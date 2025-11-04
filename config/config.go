@@ -87,7 +87,7 @@ func LoadConfig(envFiles ...string) *Config {
 	}
 
 	// JSON config will override env config
-	f := file.Provider("static/config.json")
+	f := file.Provider("static/config/config.json")
 	err = k.Load(f, json.Parser())
 	if err != nil {
 		log.Fatalf("error loading json config: %v", err)

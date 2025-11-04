@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"strings"
 
 	"github.com/tuanta7/hydros/core"
@@ -58,18 +57,6 @@ func validateResponseType(req *core.AuthorizeRequest, registered []string) bool 
 	return false
 }
 
-func validateRedirectURI(redirectURI *url.URL) bool {
-	if len(redirectURI.Scheme) == 0 {
-		return false
-	}
-
-	if redirectURI.Fragment != "" {
-		return false
-	}
-
-	return true
-}
-
 func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(ctx context.Context, req *core.AuthorizeRequest) (err error) {
 	if !req.ResponseTypes.ExactOne("code") {
 		return core.ErrUnsupportedResponseType.WithHint("The server only supports the response_type 'code'.")
@@ -102,22 +89,6 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(ctx context.Conte
 
 	if !validateResponseMode(req, client.GetResponseModes()) {
 		return core.ErrUnsupportedResponseMode.WithHint("The client is not allowed to request response_mode '%s'.", req.ResponseMode)
-	}
-
-	if !validateRedirectURI(req.RedirectURI) {
-		return core.ErrInvalidRequest.WithHint("The redirect URI '%s' contains an illegal character (for example #) or is otherwise invalid.", req.RedirectURI.String())
-	}
-
-	registeredURIs := client.GetRedirectURIs()
-	if req.RedirectURI.String() == "" && len(registeredURIs) == 1 {
-		req.RedirectURI, err = url.Parse(registeredURIs[0]) // use the client only valid registered redirect_uri
-		if err != nil {
-			return core.ErrInvalidRequest.WithHint("Invalid redirect_uri \"%s\".", registeredURIs[0]).WithWrap(err)
-		}
-	}
-
-	if ok := x.IsMatchingURI(req.RedirectURI, registeredURIs); !ok {
-		return core.ErrInvalidRequest.WithHint("The 'redirect_uri' parameter does not match any of the OAuth 2.0 Client's pre-registered redirect urls.")
 	}
 
 	return nil

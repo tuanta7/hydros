@@ -28,6 +28,23 @@ type AuthorizeRequest struct {
 	Request
 }
 
+func (r *AuthorizeRequest) IsRedirectURIValid() bool {
+	if r.RedirectURI == nil {
+		return false
+	}
+
+	if r.Client == nil {
+		return false
+	}
+
+	redirectURI, err := x.MatchRedirectURI(r.RedirectURI.String(), r.Client.GetRedirectURIs())
+	if err != nil {
+		return false
+	}
+
+	return x.IsValidRedirectURI(redirectURI.String())
+}
+
 func NewAuthorizeRequest() *AuthorizeRequest {
 	return &AuthorizeRequest{
 		ResponseTypes: Arguments{},
@@ -52,34 +69,28 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 
 	form, err := x.BindForm(req)
 	if err != nil {
-		return nil, ErrInvalidRequest.WithHint("Unable to parse HTTP body, make sure to send a properly formatted form request body.").WithWrap(err)
+		return authorizeRequest, ErrInvalidRequest.WithHint("Unable to parse HTTP body, make sure to send a properly formatted form request body.").WithWrap(err)
 	}
 	authorizeRequest.Form = form
 
 	client, err := o.store.GetClient(ctx, form.Get("client_id"))
 	if err != nil {
-		return nil, ErrInvalidClient.WithHint("The requested OAuth 2.0 Client does not exist.").WithWrap(err).WithDebug(err.Error())
+		return authorizeRequest, ErrInvalidClient.WithHint("The requested OAuth 2.0 Client does not exist.").WithWrap(err).WithDebug(err.Error())
 	}
 	authorizeRequest.Client = client
 
-	redirectURI, err := url.Parse(authorizeRequest.Form.Get("redirect_uri"))
+	redirectURI, err := o.parseRedirectURI(authorizeRequest, client.GetRedirectURIs())
 	if err != nil {
-		return nil, ErrInvalidRequest.WithHint("Invalid redirect_uri \"%s\".", authorizeRequest.Form.Get("redirect_uri")).WithWrap(err)
+		return authorizeRequest, err
 	}
 	authorizeRequest.RedirectURI = redirectURI
 
-	authorizeRequest.State = form.Get("state")
-	authorizeRequest.Scope = x.SplitSpace(form.Get("scope"))
-	authorizeRequest.ResponseTypes = x.SplitSpace(form.Get("response_type"))
-	authorizeRequest.CodeChallenge = form.Get("code_challenge")
-	authorizeRequest.CodeChallengeMethod = form.Get("code_challenge_method")
-
 	if err = parseAudience(authorizeRequest); err != nil {
-		return nil, err
+		return authorizeRequest, err
 	}
 
 	if err = parseResponseMode(authorizeRequest); err != nil {
-		return nil, err
+		return authorizeRequest, err
 	}
 
 	if authorizeRequest.ResponseMode == ResponseModeDefault {
@@ -89,19 +100,43 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 	}
 
 	if len(form.Get("registration")) > 0 {
-		return nil, ErrRegistrationNotSupported
+		return authorizeRequest, ErrRegistrationNotSupported
 	}
+
+	authorizeRequest.State = form.Get("state")
+	authorizeRequest.Scope = x.SplitSpace(form.Get("scope"))
+	authorizeRequest.ResponseTypes = x.SplitSpace(form.Get("response_type"))
+	authorizeRequest.CodeChallenge = form.Get("code_challenge")
+	authorizeRequest.CodeChallengeMethod = form.Get("code_challenge_method")
 
 	for _, th := range o.authorizeHandlers {
 		// HandleAuthorizeRequest verifies the minimum requirements for the request to avoid overhead check before the
 		// login step, the rest of the checks are done after the login step.
 		he := th.HandleAuthorizeRequest(ctx, authorizeRequest)
 		if he != nil {
-			return nil, he
+			return authorizeRequest, he
 		}
 	}
 
 	return authorizeRequest, nil
+}
+
+func (o *OAuth2) parseRedirectURI(authorizeRequest *AuthorizeRequest, registeredURIs []string) (*url.URL, error) {
+	ru := authorizeRequest.Form.Get("redirect_uri")
+	if ru == "" && authorizeRequest.Scope.IncludeAll("openid") {
+		return nil, ErrInvalidRequest.WithHint("The 'redirect_uri' parameter is required when using OpenID Connect 1.0.")
+	}
+
+	redirectURI, err := x.MatchRedirectURI(ru, registeredURIs)
+	if err != nil {
+		return nil, ErrInvalidRequest.WithHint("The 'redirect_uri' parameter does not match any of the OAuth 2.0 Client's pre-registered redirect urls.")
+	}
+
+	if !x.IsValidRedirectURI(redirectURI.String()) {
+		return nil, ErrInvalidRequest.WithHint("The redirect URI '%s' contains an illegal character (for example #) or is otherwise invalid.", redirectURI.String())
+	}
+
+	return redirectURI, nil
 }
 
 func parseResponseMode(request *AuthorizeRequest) error {
@@ -155,8 +190,17 @@ func (o *OAuth2) WriteAuthorizeError(ctx context.Context, rw http.ResponseWriter
 	rw.Header().Set("Pragma", "no-cache")
 
 	rfcErr := ErrorToRFC6749Error(err)
-	errors := rfcErr.ToValues()
+	errors := rfcErr.ToValues(o.config.IsDebugging())
 	errors.Set("state", req.State)
+
+	if !req.IsRedirectURIValid() {
+		u, _ := url.Parse("/error")
+		u.RawQuery = errors.Encode()
+
+		rw.Header().Set("Location", u.String())
+		rw.WriteHeader(http.StatusFound)
+		return
+	}
 
 	req.RedirectURI.Fragment = ""
 
@@ -173,9 +217,7 @@ func (o *OAuth2) WriteAuthorizeError(ctx context.Context, rw http.ResponseWriter
 	case ResponseModeFragment:
 		redirectURIString = req.RedirectURI.String() + "#" + errors.Encode()
 	default: // ResponseModeQuery
-		for k, v := range errors {
-			req.RedirectURI.Query()[k] = v
-		}
+		req.RedirectURI.RawQuery = errors.Encode()
 		redirectURIString = req.RedirectURI.String()
 	}
 

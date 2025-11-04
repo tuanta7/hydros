@@ -36,5 +36,6 @@ func NewSession(subject string) *Session {
 			Headers: &jwt.Headers{},
 			Subject: subject,
 		},
+		Challenge: "",
 	}
 }

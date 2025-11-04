@@ -24,10 +24,6 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeRequest(ctx c
 		return nil // not an openid request
 	}
 
-	if req.RedirectURI.String() == "" {
-		return core.ErrInvalidRequest.WithHint("The 'redirect_uri' parameter is required when using OpenID Connect 1.0.")
-	}
-
 	requestURI := req.Form.Get("request_uri")
 	request := req.Form.Get("request")
 	if request == "" && requestURI == "" {

@@ -41,10 +41,19 @@ func (e *RFC6749Error) WithDebug(debug string) *RFC6749Error {
 	return &err
 }
 
-func (e *RFC6749Error) ToValues() url.Values {
+func (e *RFC6749Error) ToValues(debug ...bool) url.Values {
 	values := url.Values{}
 	values.Set("error", e.ErrorField)
 	values.Set("error_description", e.DescriptionField)
+
+	if len(debug) > 0 && debug[0] {
+		values.Set("debug", e.DebugField)
+		values.Set("hint", e.HintField)
+		if e.cause != nil {
+			values.Set("cause", e.cause.Error())
+		}
+	}
+
 	return values
 }
 
