@@ -2,12 +2,15 @@ package v1
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
@@ -16,13 +19,19 @@ import (
 	"github.com/tuanta7/hydros/internal/domain"
 	"github.com/tuanta7/hydros/internal/usecase/jwk"
 	"github.com/tuanta7/hydros/internal/usecase/session"
+	"github.com/tuanta7/hydros/pkg/aead"
 	"github.com/tuanta7/hydros/pkg/mapx"
 	"github.com/tuanta7/hydros/pkg/zapx"
 	"go.uber.org/zap"
 )
 
+const (
+	CookieAuthenticationSIDName = "sid"
+)
+
 type OAuthHandler struct {
 	cfg       *config.Config
+	aead      aead.Cipher
 	store     *sessions.CookieStore
 	oauth2    core.OAuth2Provider
 	jwkUC     *jwk.UseCase
@@ -32,6 +41,7 @@ type OAuthHandler struct {
 
 func NewOAuthHandler(
 	cfg *config.Config,
+	aead aead.Cipher,
 	store *sessions.CookieStore,
 	oauth2 core.OAuth2Provider,
 	jwkUC *jwk.UseCase,
@@ -40,6 +50,7 @@ func NewOAuthHandler(
 ) *OAuthHandler {
 	return &OAuthHandler{
 		cfg:       cfg,
+		aead:      aead,
 		store:     store,
 		oauth2:    oauth2,
 		jwkUC:     jwkUC,
@@ -57,13 +68,17 @@ func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 	}
 
 	flow, err := h.handleLogin(ctx, c.Writer, c.Request, authorizeRequest)
-	if err != nil {
+	if errors.Is(err, domain.ErrAbortOAuth2Request) {
+		return
+	} else if err != nil {
 		h.writeAuthorizeError(c, authorizeRequest, err)
 		return
 	}
 
 	_, err = h.handleConsent(ctx, c.Writer, c.Request, authorizeRequest, flow)
-	if err != nil {
+	if errors.Is(err, domain.ErrAbortOAuth2Request) {
+		return
+	} else if err != nil {
 		return
 	}
 
@@ -109,15 +124,6 @@ func (h *OAuthHandler) handleLogin(
 	return h.verifyLogin()
 }
 
-func (h *OAuthHandler) initLoginRequest(
-	ctx context.Context,
-	w http.ResponseWriter,
-	r *http.Request,
-	ar *core.AuthorizeRequest,
-) error {
-	return nil
-}
-
 func (h *OAuthHandler) checkSession(ctx context.Context, r *http.Request) (*domain.LoginSession, error) {
 	cookie, err := h.store.Get(r, h.cfg.SessionCookieName())
 	if err != nil {
@@ -128,9 +134,9 @@ func (h *OAuthHandler) checkSession(ctx context.Context, r *http.Request) (*doma
 		return nil, domain.ErrNoAuthenticationSessionFound
 	}
 
-	sid := mapx.GetStringDefault(cookie.Values, domain.CookieAuthenticationSIDName, "")
+	sid := mapx.GetStringDefault(cookie.Values, CookieAuthenticationSIDName, "")
 	if sid == "" {
-		h.logger.Error("cookie exists but session value is empty.", zap.String("method", "cookie.Values"))
+		h.logger.Debug("cookie exists but session value is empty.", zap.String("method", "cookie.Values"))
 		return nil, domain.ErrNoAuthenticationSessionFound
 	}
 
@@ -146,33 +152,113 @@ func (h *OAuthHandler) checkSession(ctx context.Context, r *http.Request) (*doma
 	return loginSession, nil
 }
 
+func (h *OAuthHandler) forwardLoginRequest(
+	ctx context.Context,
+	w http.ResponseWriter,
+	r *http.Request,
+	ar *core.AuthorizeRequest,
+	session *domain.LoginSession,
+) error {
+	skip := false
+	subject := ""
+	authenticatedAt := sql.NullTime{}
+
+	if session != nil {
+		subject = session.Subject
+		authenticatedAt = session.AuthenticatedAt
+
+		if subject == "" && !authenticatedAt.Time.IsZero() ||
+			subject != "" && authenticatedAt.Time.IsZero() {
+			return core.ErrServerError.WithHint("subject and authenticated_at must be set together.")
+		}
+
+		if subject != "" {
+			// both subject and authenticated_at are set, so we can skip the login request
+			skip = true
+		}
+	}
+
+	if ar.Prompt.IncludeAll("none") && !skip {
+		return core.ErrLoginRequired.WithHint("Prompt 'none' was requested, but no existing login session was found.")
+	}
+
+	loginVerifier := x.RandomUUID()
+	loginChallenge := x.RandomUUID()
+	loginCSRF := x.RandomUUID()
+
+	sessionID := uuid.NewString()
+	if session != nil {
+		sessionID = session.ID
+	}
+
+	client := sanitizedClient(ar)
+	flow := &domain.Flow{
+		LoginChallenge:       loginChallenge,
+		LoginVerifier:        loginVerifier,
+		LoginCSRF:            loginCSRF,
+		LoginSkip:            skip,
+		LoginWasHandled:      false,
+		LoginAuthenticatedAt: authenticatedAt,
+		RequestedAt:          x.NowUTC().Truncate(time.Second),
+		RequestURL:           r.URL.String(),
+		RequestedScope:       []string(ar.Scope),
+		RequestedAudience:    []string(ar.Audience),
+		Client:               client,
+		ClientID:             client.GetID(),
+		Subject:              subject,
+		SessionID: sql.NullString{
+			Valid:  len(sessionID) > 0,
+			String: sessionID,
+		},
+		State:                  domain.FlowStateLoginInitialized,
+		ForceSubjectIdentifier: "",
+	}
+
+	encodedFlow, err := flow.ToLoginChallenge(ctx, h.aead)
+	if err != nil {
+		return err
+	}
+
+	redirectTo := h.cfg.GetLoginPageURL()
+	if ar.Prompt.IncludeAll("registration") {
+		redirectTo = h.cfg.GetRegistrationURL()
+	}
+
+	params := url.Values{}
+	params.Set("login_challenge", encodedFlow)
+	redirectTo.RawQuery = params.Encode()
+
+	http.Redirect(w, r, redirectTo.String(), http.StatusFound)
+	return domain.ErrAbortOAuth2Request
+}
+
 func (h *OAuthHandler) requestLogin(
 	ctx context.Context,
 	w http.ResponseWriter,
 	r *http.Request,
 	ar *core.AuthorizeRequest,
 ) error {
-	if ar.Prompt == "login" {
-		return h.initLoginRequest(ctx, w, r, ar)
+	if ar.Prompt.IncludeAll("login") {
+		return h.forwardLoginRequest(ctx, w, r, ar, nil)
 	}
 
 	loginSession, err := h.checkSession(ctx, r)
 	if errors.Is(err, domain.ErrNoAuthenticationSessionFound) {
-		return h.initLoginRequest(ctx, w, r, ar)
+		return h.forwardLoginRequest(ctx, w, r, ar, nil)
 	} else if err != nil {
 		return err
 	}
 
 	if ar.MaxAge > -1 && loginSession.AuthenticatedAt.Time.UTC().Add(time.Duration(ar.MaxAge)*time.Second).Before(x.NowUTC()) {
-		if ar.Prompt == "none" {
+		if ar.Prompt.IncludeAll("none") {
 			return core.ErrLoginRequired.WithHint("Request failed because prompt is set to 'none' and authentication time reached 'max_age'.")
 		}
-		return h.initLoginRequest(ctx, w, r, ar)
+		return h.forwardLoginRequest(ctx, w, r, ar, nil)
 	}
 
 	// TODO: support token hint
 
-	return h.initLoginRequest(ctx, w, r, ar)
+	return h.forwardLoginRequest(ctx, w, r, ar, loginSession)
 }
 
 func (h *OAuthHandler) verifyLogin() (*domain.Flow, error) {
@@ -206,4 +292,13 @@ func (h *OAuthHandler) requestConsent(
 
 func (h *OAuthHandler) verifyConsent() (*domain.Flow, error) {
 	return nil, nil
+}
+
+func sanitizedClient(ar *core.AuthorizeRequest) *domain.Client {
+	cl := ar.Client.(*domain.Client)
+	cc := &domain.Client{}
+	*cc = *cl // copy
+	cc.Secret = ""
+
+	return cc
 }

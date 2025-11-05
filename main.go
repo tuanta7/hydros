@@ -106,7 +106,7 @@ func main() {
 
 			cookieStore := newCookieStore(cfg)
 			clientHandler := restadminv1.NewClientHandler(clientUC)
-			oauthHandler := restpublicv1.NewOAuthHandler(cfg, cookieStore, oauthCore, jwkUC, loginSessionUC, logger)
+			oauthHandler := restpublicv1.NewOAuthHandler(cfg, aeadAES, cookieStore, oauthCore, jwkUC, loginSessionUC, logger)
 			flowHandler := restpublicv1.NewFlowHandler(flowUC)
 
 			restServer := rest.NewServer(cfg, cookieStore, clientHandler, oauthHandler, flowHandler)

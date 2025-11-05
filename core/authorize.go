@@ -26,7 +26,7 @@ type AuthorizeRequest struct {
 	DefaultResponseMode ResponseMode `json:"default_response_mode" form:"-"`
 	CodeChallenge       string       `json:"code_challenge" form:"code_challenge"`
 	CodeChallengeMethod string       `json:"code_challenge_method" form:"code_challenge_method"`
-	Prompt              string       `json:"prompt" form:"prompt"`
+	Prompt              Arguments    `json:"prompt" form:"prompt"`
 	Nonce               string       `json:"nonce" form:"nonce"`
 	MaxAge              int64        `json:"max_age" form:"max_age"`
 	Request

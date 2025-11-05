@@ -11,7 +11,6 @@ type ObfuscationConfig struct {
 
 func (c *Config) GetSecretsHasher() core.Hasher {
 	if c.Obfuscation.SecretHasher == nil {
-		// default to bcrypt
 		return core.NewBCryptHasher(c.Obfuscation.BCryptCost)
 	}
 

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/tuanta7/hydros/core"
+	"github.com/tuanta7/hydros/core/x"
 )
 
 var oidcParameters = []string{"grant_type", "max_age", "prompt", "acr_values", "id_token_hint", "nonce"}
@@ -25,8 +26,8 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeRequest(ctx c
 		return nil // not an openid request
 	}
 
+	req.Prompt = x.SplitSpace(req.Form.Get("prompt"))
 	req.Nonce = req.Form.Get("nonce")
-	req.Prompt = req.Form.Get("prompt")
 	req.MaxAge = -1
 	if m := req.Form.Get("max_age"); len(m) > 0 {
 		maxAge, err := strconv.ParseInt(m, 10, 64)
