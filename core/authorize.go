@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 
@@ -25,6 +26,9 @@ type AuthorizeRequest struct {
 	DefaultResponseMode ResponseMode `json:"default_response_mode" form:"-"`
 	CodeChallenge       string       `json:"code_challenge" form:"code_challenge"`
 	CodeChallengeMethod string       `json:"code_challenge_method" form:"code_challenge_method"`
+	Prompt              string       `json:"prompt" form:"prompt"`
+	Nonce               string       `json:"nonce" form:"nonce"`
+	MaxAge              int64        `json:"max_age" form:"max_age"`
 	Request
 }
 
@@ -55,9 +59,10 @@ func NewAuthorizeRequest() *AuthorizeRequest {
 }
 
 type AuthorizeResponse struct {
-	Code  string `json:"code" form:"code"`
-	State string `json:"state" form:"state"`
-	Scope string `json:"scope" form:"scope"`
+	Code   string `json:"code" form:"code"`
+	State  string `json:"state" form:"state"`
+	Scope  string `json:"scope" form:"scope"`
+	Issuer string `json:"issuer" form:"iss"`
 }
 
 func NewAuthorizeResponse() *AuthorizeResponse {
@@ -72,6 +77,17 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 		return authorizeRequest, ErrInvalidRequest.WithHint("Unable to parse HTTP body, make sure to send a properly formatted form request body.").WithWrap(err)
 	}
 	authorizeRequest.Form = form
+
+	authorizeRequest.ResponseMode, err = parseResponseMode(authorizeRequest)
+	if err != nil {
+		return authorizeRequest, ErrUnsupportedResponseMode.WithHint("Request with unsupported response_mode \"%s\".", form.Get("response_mode")).WithWrap(err)
+	}
+
+	if authorizeRequest.ResponseMode == ResponseModeDefault {
+		// Since the /authorize endpoint is now only used for the authorization code grant type, we can safely assume
+		// that the response type is always "query". For other grant types, the default response mode is "fragment".
+		authorizeRequest.DefaultResponseMode = ResponseModeQuery
+	}
 
 	client, err := o.store.GetClient(ctx, form.Get("client_id"))
 	if err != nil {
@@ -89,27 +105,21 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 		return authorizeRequest, ErrRegistrationNotSupported
 	}
 
-	authorizeRequest.ResponseMode, err = parseResponseMode(form.Get("response_mode"))
-	if err != nil {
-		return authorizeRequest, err
-	}
-
-	if authorizeRequest.ResponseMode == ResponseModeDefault {
-		// Since the /authorize endpoint is now only used for the authorization code grant type, we can safely assume
-		// that the response type is always "query". For other grant types, the default response mode is "fragment".
-		authorizeRequest.DefaultResponseMode = ResponseModeQuery
-	}
-
-	authorizeRequest.Audience = parseAudience(authorizeRequest)
-	authorizeRequest.Scope = x.SplitSpace(form.Get("scope"))
 	authorizeRequest.State = form.Get("state")
+	if len(authorizeRequest.State) < o.config.GetMinParameterEntropy() {
+		return authorizeRequest, ErrInvalidState.WithHint("Request parameter 'state' must be at least be %d characters long to ensure sufficient entropy.", o.config.GetMinParameterEntropy())
+	}
+
 	authorizeRequest.ResponseTypes = x.SplitSpace(form.Get("response_type"))
+	authorizeRequest.Scope = x.SplitSpace(form.Get("scope"))
+	authorizeRequest.Audience = getAudience(authorizeRequest)
+
 	authorizeRequest.CodeChallenge = form.Get("code_challenge")
 	authorizeRequest.CodeChallengeMethod = form.Get("code_challenge_method")
 
 	for _, th := range o.authorizeHandlers {
-		// HandleAuthorizeRequest verifies the minimum requirements for the request to avoid overhead check before the
-		// login step, the rest of the checks are done after the login step.
+		// HandleAuthorizeRequest only verifies the minimum requirements for the request to avoid overhead check before
+		// the login step, the rest of the checks are done after logging in.
 		he := th.HandleAuthorizeRequest(ctx, authorizeRequest)
 		if he != nil {
 			return authorizeRequest, he
@@ -120,16 +130,18 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 }
 
 func (o *OAuth2) parseRedirectURI(authorizeRequest *AuthorizeRequest, registeredURIs []string) (*url.URL, error) {
-	ru := authorizeRequest.Form.Get("redirect_uri")
-	if ru == "" && authorizeRequest.Scope.IncludeAll("openid") {
+	raw := authorizeRequest.Form.Get("redirect_uri")
+	if raw == "" && authorizeRequest.Scope.IncludeAll("openid") {
 		return nil, ErrInvalidRequest.WithHint("The 'redirect_uri' parameter is required when using OpenID Connect 1.0.")
 	}
 
-	redirectURI, err := x.MatchRedirectURI(ru, registeredURIs)
+	// get redirect uri if exists
+	redirectURI, err := x.MatchRedirectURI(raw, registeredURIs)
 	if err != nil {
 		return nil, ErrInvalidRequest.WithHint("The 'redirect_uri' parameter does not match any of the OAuth 2.0 Client's pre-registered redirect urls.")
 	}
 
+	// check if redirect uri is valid
 	if !x.IsValidRedirectURI(redirectURI.String()) {
 		return nil, ErrInvalidRequest.WithHint("The redirect URI '%s' contains an illegal character (for example #) or is otherwise invalid.", redirectURI.String())
 	}
@@ -137,7 +149,8 @@ func (o *OAuth2) parseRedirectURI(authorizeRequest *AuthorizeRequest, registered
 	return redirectURI, nil
 }
 
-func parseResponseMode(raw string) (ResponseMode, error) {
+func parseResponseMode(authorizeRequest *AuthorizeRequest) (ResponseMode, error) {
+	raw := authorizeRequest.Form.Get("response_mode")
 	switch r := ResponseMode(raw); r {
 	case ResponseModeDefault:
 		return ResponseModeDefault, nil
@@ -148,17 +161,18 @@ func parseResponseMode(raw string) (ResponseMode, error) {
 	case ResponseModeFormPost:
 		return ResponseModeFormPost, nil
 	default:
-		return "", ErrUnsupportedResponseMode.WithHint("Request with unsupported response_mode \"%s\".", raw)
+		return "", errors.New("invalid response mode")
 	}
 }
 
-func parseAudience(request *AuthorizeRequest) []string {
+func getAudience(request *AuthorizeRequest) []string {
 	audiences := request.Form["audience"]
 	if len(audiences) > 1 {
 		return x.RemoveEmpty(audiences)
 	}
 
 	if len(audiences) == 1 {
+		// GET requests format the audience as a space-separated list
 		return x.SplitSpace(audiences[0])
 	}
 
@@ -187,8 +201,8 @@ func (o *OAuth2) WriteAuthorizeError(ctx context.Context, rw http.ResponseWriter
 	rw.Header().Set("Pragma", "no-cache")
 
 	rfcErr := ErrorToRFC6749Error(err)
-	errors := rfcErr.ToValues(o.config.IsDebugging())
-	errors.Set("state", req.State)
+	errorsForm := rfcErr.ToValues(o.config.IsDebugging())
+	errorsForm.Set("state", req.State)
 
 	if !req.IsRedirectURIValid() {
 		return
@@ -207,9 +221,9 @@ func (o *OAuth2) WriteAuthorizeError(ctx context.Context, rw http.ResponseWriter
 
 		return
 	case ResponseModeFragment:
-		redirectURIString = req.RedirectURI.String() + "#" + errors.Encode()
+		redirectURIString = req.RedirectURI.String() + "#" + errorsForm.Encode()
 	default: // ResponseModeQuery
-		req.RedirectURI.RawQuery = errors.Encode()
+		req.RedirectURI.RawQuery = errorsForm.Encode()
 		redirectURIString = req.RedirectURI.String()
 	}
 
@@ -238,8 +252,10 @@ func (o *OAuth2) WriteAuthorizeResponse(ctx context.Context, rw http.ResponseWri
 		params.Set("state", resp.State)
 		redirectURIString = req.RedirectURI.String() + "#" + params.Encode()
 	default:
-		req.RedirectURI.Query().Set("code", resp.Code)
-		req.RedirectURI.Query().Set("state", resp.State)
+		params := url.Values{}
+		params.Set("code", resp.Code)
+		params.Set("state", resp.State)
+		req.RedirectURI.RawQuery = params.Encode()
 		redirectURIString = req.RedirectURI.String()
 	}
 

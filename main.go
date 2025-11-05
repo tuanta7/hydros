@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gorilla/sessions"
 	"github.com/tuanta7/hydros/cmd"
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
@@ -20,15 +21,15 @@ import (
 	"github.com/tuanta7/hydros/core/signer/jwt"
 	"github.com/tuanta7/hydros/core/strategy"
 	pgsource "github.com/tuanta7/hydros/internal/datasource/postgres"
-	redissource "github.com/tuanta7/hydros/internal/datasource/redis"
 	"github.com/tuanta7/hydros/internal/domain"
 	restadminv1 "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
 	restpublicv1 "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
 	clientuc "github.com/tuanta7/hydros/internal/usecase/client"
+	flowuc "github.com/tuanta7/hydros/internal/usecase/flow"
 	"github.com/tuanta7/hydros/internal/usecase/jwk"
-	"github.com/tuanta7/hydros/internal/usecase/storage"
+	"github.com/tuanta7/hydros/internal/usecase/session"
+	storageuc "github.com/tuanta7/hydros/internal/usecase/storage"
 	"github.com/tuanta7/hydros/pkg/adapter/postgres"
-	"github.com/tuanta7/hydros/pkg/adapter/redis"
 	"github.com/tuanta7/hydros/pkg/aead"
 	"github.com/tuanta7/hydros/pkg/zapx"
 
@@ -56,43 +57,15 @@ func main() {
 	clientRepo := pgsource.NewClientRepository(pgClient)
 	clientUC := clientuc.NewUseCase(cfg, clientRepo, logger)
 
-	redisClient, err := redis.NewClient(
-		context.Background(),
-		fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
-		redis.WithCredential(cfg.Redis.Username, cfg.Redis.Password),
-		redis.WithDB(cfg.Redis.DB),
-	)
-	panicErr(err)
-	defer redisClient.Close()
-
-	tokenCache := redissource.NewRequestSessionCache(cfg, aeadAES, redisClient)
 	tokenRepo := pgsource.NewRequestSessionRepo(pgClient)
-	tokenStorage := storage.NewRequestSessionStorage(cfg, aeadAES, tokenRepo, tokenCache)
+	tokenStorageUC := storageuc.NewRequestSessionStorage(cfg, aeadAES, tokenRepo)
+	flowUC := flowuc.NewUseCase()
+
+	loginSessionRepo := pgsource.NewSessionRepository(pgClient)
+	loginSessionUC := session.NewUseCase(loginSessionRepo)
 
 	tokenStrategy, err := getTokenStrategy(context.Background(), cfg, jwkUC)
 	panicErr(err)
-
-	oauthAuthorizationCodeGrantHandler := oauth.NewAuthorizationCodeGrantHandler(cfg, tokenStrategy, tokenStorage)
-	oidcAuthorizationCodeFlowHandler := oidc.NewOpenIDConnectAuthorizationCodeFlowHandler()
-	pkceHandler := pkce.NewProofKeyForCodeExchangeHandler(cfg, tokenStrategy, tokenStorage)
-
-	oauthCore := core.NewOAuth2(cfg, clientUC,
-		[]core.AuthorizeHandler{
-			oauthAuthorizationCodeGrantHandler,
-			oidcAuthorizationCodeFlowHandler,
-			pkceHandler,
-		},
-		[]core.TokenHandler{
-			oauthAuthorizationCodeGrantHandler,
-			oidcAuthorizationCodeFlowHandler,
-			pkceHandler,
-			oauth.NewClientCredentialsGrantHandler(cfg, tokenStrategy, tokenStorage),
-		},
-		[]core.IntrospectionHandler{
-			oauth.NewJWTIntrospectionHandler(tokenStrategy),
-			oauth.NewTokenIntrospectionHandler(cfg, tokenStrategy, tokenStorage),
-		},
-	)
 
 	c := &cli.Command{
 		Name:  "hydros",
@@ -101,7 +74,7 @@ func main() {
 			&cli.BoolFlag{
 				Name:     "with-identity",
 				Aliases:  []string{"idp"},
-				Usage:    "enable identity provider endpoints ",
+				Usage:    "enable identity provider endpoints",
 				Required: false,
 			},
 		},
@@ -109,10 +82,34 @@ func main() {
 			cmd.NewCreateClientsCommand(clientUC),
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
-			clientHandler := restadminv1.NewClientHandler(clientUC)
-			oauthHandler := restpublicv1.NewOAuthHandler(cfg, oauthCore, jwkUC, logger)
+			oauthAuthorizationCodeGrantHandler := oauth.NewAuthorizationCodeGrantHandler(cfg, tokenStrategy, tokenStorageUC)
+			oidcAuthorizationCodeFlowHandler := oidc.NewOpenIDConnectAuthorizationCodeFlowHandler()
+			pkceHandler := pkce.NewProofKeyForCodeExchangeHandler(cfg, tokenStrategy, tokenStorageUC)
 
-			restServer := rest.NewServer(cfg, clientHandler, oauthHandler)
+			oauthCore := core.NewOAuth2(cfg, clientUC,
+				[]core.AuthorizeHandler{
+					oauthAuthorizationCodeGrantHandler,
+					oidcAuthorizationCodeFlowHandler,
+					pkceHandler,
+				},
+				[]core.TokenHandler{
+					oauthAuthorizationCodeGrantHandler,
+					oidcAuthorizationCodeFlowHandler,
+					pkceHandler,
+					oauth.NewClientCredentialsGrantHandler(cfg, tokenStrategy, tokenStorageUC),
+				},
+				[]core.IntrospectionHandler{
+					oauth.NewJWTIntrospectionHandler(tokenStrategy),
+					oauth.NewTokenIntrospectionHandler(cfg, tokenStrategy, tokenStorageUC),
+				},
+			)
+
+			cookieStore := newCookieStore(cfg)
+			clientHandler := restadminv1.NewClientHandler(clientUC)
+			oauthHandler := restpublicv1.NewOAuthHandler(cfg, cookieStore, oauthCore, jwkUC, loginSessionUC, logger)
+			flowHandler := restpublicv1.NewFlowHandler(flowUC)
+
+			restServer := rest.NewServer(cfg, cookieStore, clientHandler, oauthHandler, flowHandler)
 			errCh := make(chan error)
 			go func() {
 				if err := restServer.Run(); err != nil {
@@ -139,6 +136,23 @@ func main() {
 	if err := c.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func newCookieStore(cfg *config.Config) *sessions.CookieStore {
+	// TODO: use better key strategy
+	cookieStore := sessions.NewCookieStore(cfg.GetGlobalSecret())
+	cookieStore.MaxAge(0)
+	cookieStore.Options.HttpOnly = true
+	cookieStore.Options.Secure = cfg.Cookie.Secure
+
+	if d := cfg.Cookie.Domain; d != "" {
+		cookieStore.Options.Domain = d
+	}
+
+	if p := cfg.Cookie.Path; p != "" {
+		cookieStore.Options.Path = p
+	}
+	return cookieStore
 }
 
 func shutdownServer(servers ...transport.Server) (err error) {

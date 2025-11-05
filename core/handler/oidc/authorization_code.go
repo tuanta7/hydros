@@ -2,6 +2,7 @@ package oidc
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/tuanta7/hydros/core"
 )
@@ -22,6 +23,18 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeRequest(ctx c
 
 	if req.Scope.IncludeAll("openid") {
 		return nil // not an openid request
+	}
+
+	req.Nonce = req.Form.Get("nonce")
+	req.Prompt = req.Form.Get("prompt")
+	req.MaxAge = -1
+	if m := req.Form.Get("max_age"); len(m) > 0 {
+		maxAge, err := strconv.ParseInt(m, 10, 64)
+		if err != nil {
+			return core.ErrInvalidRequest.WithHint("Invalid value for 'max_age' parameter").WithWrap(err)
+		}
+
+		req.MaxAge = maxAge
 	}
 
 	requestURI := req.Form.Get("request_uri")
@@ -71,6 +84,10 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeResponse(
 }
 
 func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleTokenRequest(ctx context.Context, req *core.TokenRequest) error {
+	if !req.GrantType.ExactOne("authorization_code") {
+		return core.ErrUnknownRequest
+	}
+
 	return nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/sessions"
 	"github.com/tuanta7/hydros/config"
 	v1admin "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
 	v1public "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
@@ -15,12 +16,18 @@ type Server struct {
 	cfg           *config.Config
 	router        *gin.Engine
 	server        *http.Server
+	cookieStore   *sessions.CookieStore
 	clientHandler *v1admin.ClientHandler
 	oauthHandler  *v1public.OAuthHandler
-	viewHandler   *v1public.ViewHandler
+	flowHandler   *v1public.FlowHandler
 }
 
-func NewServer(cfg *config.Config, clientHandler *v1admin.ClientHandler, oauthHandler *v1public.OAuthHandler) *Server {
+func NewServer(cfg *config.Config,
+	cookieStore *sessions.CookieStore,
+	clientHandler *v1admin.ClientHandler,
+	oauthHandler *v1public.OAuthHandler,
+	flowHandler *v1public.FlowHandler,
+) *Server {
 	if !cfg.IsDebugging() {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -38,9 +45,10 @@ func NewServer(cfg *config.Config, clientHandler *v1admin.ClientHandler, oauthHa
 			Addr:    fmt.Sprintf("%s:%s", cfg.RestServerHost, cfg.RestServerPort),
 			Handler: nil,
 		},
+		cookieStore:   cookieStore,
 		clientHandler: clientHandler,
 		oauthHandler:  oauthHandler,
-		viewHandler:   v1public.NewViewHandler(),
+		flowHandler:   flowHandler,
 	}
 }
 
@@ -72,10 +80,12 @@ func (s *Server) RegisterRoutes() {
 	adminRouter.POST("/clients", s.clientHandler.Create)
 
 	// Identity Service
-	s.router.GET("/self-service/login", s.viewHandler.LoginPage)
+	s.router.GET("/self-service/login", s.flowHandler.LoginPage)
 	s.router.POST("/self-service/login", nil)
-	s.router.GET("/self-service/consent", nil)
+	s.router.PUT("/self-service/login", s.flowHandler.UpdateAuthenticationStatus)
+	s.router.GET("/self-service/consent", s.flowHandler.ConsentPage)
 	s.router.POST("/self-service/consent", nil)
+	s.router.PUT("/self-service/consent", s.flowHandler.UpdateConsentStatus)
 
 	s.server.Handler = s.router
 }

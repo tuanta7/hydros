@@ -92,6 +92,7 @@ func (r *JWKRepository) GetActiveKey(ctx context.Context, set domain.Set) (*doma
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	key, err := pgx.CollectOneRow(rows, toObject[domain.KeyData])
 	if err != nil {

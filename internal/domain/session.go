@@ -1,6 +1,8 @@
 package domain
 
 import (
+	"database/sql"
+
 	"github.com/mohae/deepcopy"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/handler/oidc"
@@ -21,14 +23,6 @@ type Session struct {
 	//MirrorTopLevelClaims bool `json:"mirror_top_level_claims"`
 }
 
-func (s *Session) Clone() core.Session {
-	if s == nil {
-		return nil
-	}
-
-	return deepcopy.Copy(s).(core.Session)
-}
-
 func NewSession(subject string) *Session {
 	return &Session{
 		IDTokenSession: &oidc.IDTokenSession{
@@ -37,5 +31,31 @@ func NewSession(subject string) *Session {
 			Subject: subject,
 		},
 		Challenge: "",
+	}
+}
+
+func (s *Session) Clone() core.Session {
+	if s == nil {
+		return nil
+	}
+
+	return deepcopy.Copy(s).(core.Session)
+}
+
+type LoginSession struct {
+	ID                        string         `db:"id"`
+	AuthenticatedAt           sql.NullTime   `db:"authenticated_at"`
+	Subject                   string         `db:"subject"`
+	IdentityProviderSessionID sql.NullString `db:"identity_provider_session_id"`
+	Remember                  bool           `db:"remember"`
+}
+
+func (s *LoginSession) ColumnMap() map[string]any {
+	return map[string]any{
+		"id":                           s.ID,
+		"authenticated_at":             s.AuthenticatedAt,
+		"subject":                      s.Subject,
+		"identity_provider_session_id": s.IdentityProviderSessionID,
+		"remember":                     s.Remember,
 	}
 }

@@ -170,6 +170,11 @@ var (
 		DescriptionField: "The request failed because of an internal error that is probably caused by misconfiguration.",
 		CodeField:        http.StatusInternalServerError,
 	}
+	ErrLoginRequired = &RFC6749Error{
+		ErrorField:       "login_required",
+		DescriptionField: "The Authorization Server requires End-User authentication.",
+		CodeField:        http.StatusBadRequest,
+	}
 )
 
 func ErrorToRFC6749Error(err error) *RFC6749Error {

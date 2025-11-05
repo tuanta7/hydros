@@ -94,6 +94,7 @@ func (r *clientRepository) Get(ctx context.Context, id string) (*domain.Client, 
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	client, err := pgx.CollectOneRow(rows, toObject[domain.Client])
 	if err != nil {

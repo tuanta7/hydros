@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v7"
-	"github.com/go-playground/assert/v2"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/internal/domain"

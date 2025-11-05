@@ -10,7 +10,6 @@ import (
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/internal/datasource/postgres"
-	"github.com/tuanta7/hydros/internal/datasource/redis"
 	"github.com/tuanta7/hydros/internal/domain"
 	"github.com/tuanta7/hydros/pkg/aead"
 )
@@ -19,20 +18,18 @@ type RequestSessionStorage struct {
 	cfg  *config.Config
 	aead aead.Cipher
 	pg   *postgres.RequestSessionRepo
-	rd   *redis.RequestSessionCache
 }
 
 func NewRequestSessionStorage(
 	cfg *config.Config,
 	aead aead.Cipher,
 	pg *postgres.RequestSessionRepo,
-	rd *redis.RequestSessionCache,
+
 ) *RequestSessionStorage {
 	return &RequestSessionStorage{
 		cfg:  cfg,
 		aead: aead,
 		pg:   pg,
-		rd:   rd,
 	}
 }
 

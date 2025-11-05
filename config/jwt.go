@@ -3,8 +3,8 @@ package config
 import "fmt"
 
 type JWTConfig struct {
-	Algorithm         string
-	KeySize           int
+	Algorithm         string `koanf:"algorithm"`
+	KeySize           int    `koanf:"key_size"`
 	AccessTokenIssuer string `koanf:"access_token_issuer"`
 }
 

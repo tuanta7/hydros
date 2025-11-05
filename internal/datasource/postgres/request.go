@@ -69,6 +69,7 @@ func (r *RequestSessionRepo) GetBySignature(ctx context.Context, tokenType core.
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	session, err := pgx.CollectOneRow(rows, toObject[domain.RequestSessionData])
 	if err != nil {

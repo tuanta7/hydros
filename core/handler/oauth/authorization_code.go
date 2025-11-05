@@ -62,13 +62,17 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(ctx context.Conte
 		return core.ErrUnsupportedResponseType.WithHint("The server only supports the response_type 'code'.")
 	}
 
-	if len(req.State) < h.config.GetMinParameterEntropy() {
-		return core.ErrInvalidState.WithHint("Request parameter 'state' must be at least be %d characters long to ensure sufficient entropy.", h.config.GetMinParameterEntropy())
-	}
-
 	client := req.Client
 	if client == nil {
 		return core.ErrInvalidClient.WithHint("The requested OAuth 2.0 Client does not exist.")
+	}
+
+	if !validateResponseType(req, client.GetResponseTypes()) {
+		return core.ErrUnsupportedResponseType.WithHint("The client is not allowed to request response_type '%s'.", req.ResponseTypes)
+	}
+
+	if !validateResponseMode(req, client.GetResponseModes()) {
+		return core.ErrUnsupportedResponseMode.WithHint("The client is not allowed to request response_mode '%s'.", req.ResponseMode)
 	}
 
 	scopeStrategy := h.config.GetScopeStrategy()
@@ -81,14 +85,6 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(ctx context.Conte
 	audienceStrategy := h.config.GetAudienceStrategy()
 	if err = audienceStrategy(client.GetAudience(), req.Audience); err != nil {
 		return err
-	}
-
-	if !validateResponseType(req, client.GetResponseTypes()) {
-		return core.ErrUnsupportedResponseType.WithHint("The client is not allowed to request response_type '%s'.", req.ResponseTypes)
-	}
-
-	if !validateResponseMode(req, client.GetResponseModes()) {
-		return core.ErrUnsupportedResponseMode.WithHint("The client is not allowed to request response_mode '%s'.", req.ResponseMode)
 	}
 
 	return nil
