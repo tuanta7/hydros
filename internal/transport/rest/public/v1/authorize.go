@@ -206,7 +206,7 @@ func (h *OAuthHandler) forwardLoginRequest(
 		Client:               client,
 		ClientID:             client.GetID(),
 		Subject:              subject,
-		SessionID: sql.NullString{
+		LoginSessionID: sql.NullString{
 			Valid:  len(sessionID) > 0,
 			String: sessionID,
 		},
