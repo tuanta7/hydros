@@ -5,15 +5,14 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tuanta7/hydros/internal/domain"
-	clientuc "github.com/tuanta7/hydros/internal/usecase/client"
+	client3 "github.com/tuanta7/hydros/internal/client"
 )
 
 type ClientHandler struct {
-	clientUC *clientuc.UseCase
+	clientUC *client3.UseCase
 }
 
-func NewClientHandler(clientUC *clientuc.UseCase) *ClientHandler {
+func NewClientHandler(clientUC *client3.UseCase) *ClientHandler {
 	return &ClientHandler{
 		clientUC: clientUC,
 	}
@@ -40,7 +39,7 @@ func (h *ClientHandler) List(c *gin.Context) {
 }
 
 func (h *ClientHandler) Create(c *gin.Context) {
-	var client domain.Client
+	var client client3.Client
 	if err := c.ShouldBindJSON(&c); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),

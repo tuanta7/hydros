@@ -1,4 +1,4 @@
-package postgres
+package token
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/tuanta7/hydros/core"
-	"github.com/tuanta7/hydros/internal/domain"
 	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 )
 
@@ -28,7 +27,7 @@ func NewRequestSessionRepo(pgClient postgres.Client) *RequestSessionRepo {
 	}
 }
 
-func (r *RequestSessionRepo) Create(ctx context.Context, tokenType core.TokenType, session *domain.RequestSessionData) error {
+func (r *RequestSessionRepo) Create(ctx context.Context, tokenType core.TokenType, session *RequestSessionData) error {
 	data := session.ColumnMap()
 	var columns []string
 	var values []any
@@ -55,7 +54,7 @@ func (r *RequestSessionRepo) Create(ctx context.Context, tokenType core.TokenTyp
 	return nil
 }
 
-func (r *RequestSessionRepo) GetBySignature(ctx context.Context, tokenType core.TokenType, signature string) (*domain.RequestSessionData, error) {
+func (r *RequestSessionRepo) GetBySignature(ctx context.Context, tokenType core.TokenType, signature string) (*RequestSessionData, error) {
 	query, args, err := r.pgClient.SQLBuilder().
 		Select("*").
 		From(tableName[tokenType]).
@@ -71,7 +70,7 @@ func (r *RequestSessionRepo) GetBySignature(ctx context.Context, tokenType core.
 	}
 	defer rows.Close()
 
-	session, err := pgx.CollectOneRow(rows, toObject[domain.RequestSessionData])
+	session, err := pgx.CollectOneRow(rows, postgres.ToObject[RequestSessionData])
 	if err != nil {
 		return nil, err
 	}

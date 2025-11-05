@@ -1,27 +1,26 @@
-package postgres
+package session
 
 import (
 	"context"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
-	"github.com/tuanta7/hydros/internal/domain"
 	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 )
 
-type SessionRepository struct {
+type Repository struct {
 	table    string
 	pgClient postgres.Client
 }
 
-func NewSessionRepository(pgc postgres.Client) *SessionRepository {
-	return &SessionRepository{
+func NewSessionRepository(pgc postgres.Client) *Repository {
+	return &Repository{
 		table:    "login_session",
 		pgClient: pgc,
 	}
 }
 
-func (r *SessionRepository) GetRememberedLoginSession(ctx context.Context, id string) (*domain.LoginSession, error) {
+func (r *Repository) GetRememberedLoginSession(ctx context.Context, id string) (*LoginSession, error) {
 	query, args, err := r.pgClient.SQLBuilder().
 		Select("*").
 		From(r.table).
@@ -37,7 +36,7 @@ func (r *SessionRepository) GetRememberedLoginSession(ctx context.Context, id st
 	}
 	defer rows.Close()
 
-	session, err := pgx.CollectOneRow(rows, toObject[domain.LoginSession])
+	session, err := pgx.CollectOneRow(rows, postgres.ToObject[LoginSession])
 	if err != nil {
 		return nil, err
 	}

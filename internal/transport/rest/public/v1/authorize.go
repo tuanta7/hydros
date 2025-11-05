@@ -3,7 +3,7 @@ package v1
 import (
 	"context"
 	"database/sql"
-	"errors"
+	stderr "errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -16,10 +16,13 @@ import (
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/handler/oidc"
 	"github.com/tuanta7/hydros/core/x"
-	"github.com/tuanta7/hydros/internal/domain"
-	flowuc "github.com/tuanta7/hydros/internal/usecase/flow"
-	"github.com/tuanta7/hydros/internal/usecase/jwk"
-	"github.com/tuanta7/hydros/internal/usecase/session"
+	"github.com/tuanta7/hydros/internal/client"
+	"github.com/tuanta7/hydros/internal/errors"
+
+	"github.com/tuanta7/hydros/internal/flow"
+	"github.com/tuanta7/hydros/internal/jwk"
+	"github.com/tuanta7/hydros/internal/session"
+
 	"github.com/tuanta7/hydros/pkg/aead"
 	"github.com/tuanta7/hydros/pkg/mapx"
 	"github.com/tuanta7/hydros/pkg/zapx"
@@ -37,7 +40,7 @@ type OAuthHandler struct {
 	oauth2    core.OAuth2Provider
 	jwkUC     *jwk.UseCase
 	sessionUC session.UseCase
-	flowUC    *flowuc.UseCase
+	flowUC    *flow.UseCase
 	logger    *zapx.Logger
 }
 
@@ -48,6 +51,7 @@ func NewOAuthHandler(
 	oauth2 core.OAuth2Provider,
 	jwkUC *jwk.UseCase,
 	sessionUC session.UseCase,
+	flowUC *flow.UseCase,
 	logger *zapx.Logger,
 ) *OAuthHandler {
 	return &OAuthHandler{
@@ -57,6 +61,7 @@ func NewOAuthHandler(
 		oauth2:    oauth2,
 		jwkUC:     jwkUC,
 		sessionUC: sessionUC,
+		flowUC:    flowUC,
 		logger:    logger,
 	}
 }
@@ -70,7 +75,7 @@ func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 	}
 
 	flow, err := h.handleLogin(ctx, c.Writer, c.Request, authorizeRequest)
-	if errors.Is(err, domain.ErrAbortOAuth2Request) {
+	if stderr.Is(err, errors.ErrAbortOAuth2Request) {
 		return
 	} else if err != nil {
 		h.writeAuthorizeError(c, authorizeRequest, err)
@@ -84,7 +89,7 @@ func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 	//	return
 	//}
 
-	authorizeResponse, err := h.oauth2.NewAuthorizeResponse(ctx, authorizeRequest, &domain.Session{
+	authorizeResponse, err := h.oauth2.NewAuthorizeResponse(ctx, authorizeRequest, &session.Session{
 		IDTokenSession: &oidc.IDTokenSession{
 			Subject: flow.Subject, // id of authenticated user
 		},
@@ -117,7 +122,7 @@ func (h *OAuthHandler) handleLogin(
 	w http.ResponseWriter,
 	r *http.Request,
 	req *core.AuthorizeRequest,
-) (*domain.Flow, error) {
+) (*flow.Flow, error) {
 	loginVerifier := strings.TrimSpace(req.Form.Get("login_verifier"))
 	if loginVerifier == "" {
 		return nil, h.requestLogin(ctx, w, r, req)
@@ -126,20 +131,20 @@ func (h *OAuthHandler) handleLogin(
 	return h.verifyLogin(ctx, w, r, req, loginVerifier)
 }
 
-func (h *OAuthHandler) checkSession(ctx context.Context, r *http.Request) (*domain.LoginSession, error) {
+func (h *OAuthHandler) checkSession(ctx context.Context, r *http.Request) (*session.LoginSession, error) {
 	cookie, err := h.store.Get(r, h.cfg.SessionCookieName())
 	if err != nil {
 		h.logger.Error("cookie store returned an error.",
 			zap.Error(err),
 			zap.String("method", "store.Get"),
 		)
-		return nil, domain.ErrNoAuthenticationSessionFound
+		return nil, errors.ErrNoAuthenticationSessionFound
 	}
 
 	sid := mapx.GetStringDefault(cookie.Values, CookieAuthenticationSIDName, "")
 	if sid == "" {
 		h.logger.Debug("cookie exists but session value is empty.", zap.String("method", "cookie.Values"))
-		return nil, domain.ErrNoAuthenticationSessionFound
+		return nil, errors.ErrNoAuthenticationSessionFound
 	}
 
 	loginSession, err := h.sessionUC.GetRememberedLoginSession(ctx, nil, sid)
@@ -159,42 +164,37 @@ func (h *OAuthHandler) forwardLoginRequest(
 	w http.ResponseWriter,
 	r *http.Request,
 	ar *core.AuthorizeRequest,
-	session *domain.LoginSession,
+	loginSession *session.LoginSession,
 ) error {
-	skip := false
+	sessionID := uuid.NewString()
 	subject := ""
 	authenticatedAt := sql.NullTime{}
 
-	if session != nil {
-		subject = session.Subject
-		authenticatedAt = session.AuthenticatedAt
+	if loginSession != nil {
+		sessionID = loginSession.ID
+		subject = loginSession.Subject
+		authenticatedAt = loginSession.AuthenticatedAt
 
-		if subject == "" && !authenticatedAt.Time.IsZero() ||
-			subject != "" && authenticatedAt.Time.IsZero() {
+		if subject == "" || authenticatedAt.Time.IsZero() {
 			return core.ErrServerError.WithHint("subject and authenticated_at must be set together.")
-		}
-
-		if subject != "" {
-			// both subject and authenticated_at are set, so we can skip the login request
-			skip = true
 		}
 	}
 
+	skip := false
+	if subject != "" {
+		skip = true
+	}
+
 	if ar.Prompt.IncludeAll("none") && !skip {
-		return core.ErrLoginRequired.WithHint("Prompt 'none' was requested, but no existing login session was found.")
+		return core.ErrLoginRequired.WithHint("Prompt 'none' was requested, but no existing login loginSession was found.")
 	}
 
 	loginVerifier := x.RandomUUID()
 	loginChallenge := x.RandomUUID()
 	loginCSRF := x.RandomUUID()
 
-	sessionID := uuid.NewString()
-	if session != nil {
-		sessionID = session.ID
-	}
-
 	client := sanitizedClient(ar)
-	flow := &domain.Flow{
+	f := &flow.Flow{
 		LoginChallenge:       loginChallenge,
 		LoginVerifier:        loginVerifier,
 		LoginCSRF:            loginCSRF,
@@ -212,18 +212,15 @@ func (h *OAuthHandler) forwardLoginRequest(
 			Valid:  len(sessionID) > 0,
 			String: sessionID,
 		},
-		State:                  domain.FlowStateLoginInitialized,
-		ForceSubjectIdentifier: "",
-	}
-
-	err := h.flowUC.CreateLoginRequest(ctx, flow)
-	if err != nil {
-		return err
+		State:                   flow.FlowStateLoginInitialized,
+		ForcedSubjectIdentifier: "",
+		Context:                 []byte("{}"),
+		OIDCContext:             []byte("{}"),
 	}
 
 	// TODO: prevent csrf
 
-	encodedFlow, err := flow.ToLoginChallenge(ctx, h.aead)
+	encodedFlow, err := f.EncodeToLoginChallenge(ctx, h.aead)
 	if err != nil {
 		return err
 	}
@@ -238,7 +235,7 @@ func (h *OAuthHandler) forwardLoginRequest(
 	redirectTo.RawQuery = params.Encode()
 
 	http.Redirect(w, r, redirectTo.String(), http.StatusFound)
-	return domain.ErrAbortOAuth2Request
+	return errors.ErrAbortOAuth2Request
 }
 
 func (h *OAuthHandler) requestLogin(
@@ -252,7 +249,7 @@ func (h *OAuthHandler) requestLogin(
 	}
 
 	loginSession, err := h.checkSession(ctx, r)
-	if errors.Is(err, domain.ErrNoAuthenticationSessionFound) {
+	if stderr.Is(err, errors.ErrNoAuthenticationSessionFound) {
 		return h.forwardLoginRequest(ctx, w, r, ar, nil)
 	} else if err != nil {
 		return err
@@ -262,7 +259,7 @@ func (h *OAuthHandler) requestLogin(
 		if ar.Prompt.IncludeAll("none") {
 			return core.ErrLoginRequired.WithHint("Request failed because prompt is set to 'none' and authentication time reached 'max_age'.")
 		}
-		return h.forwardLoginRequest(ctx, w, r, ar, nil)
+		return h.forwardLoginRequest(ctx, w, r, ar, loginSession)
 	}
 
 	// TODO: support token hint
@@ -276,7 +273,7 @@ func (h *OAuthHandler) verifyLogin(
 	r *http.Request,
 	ar *core.AuthorizeRequest,
 	verifier string,
-) (*domain.Flow, error) {
+) (*flow.Flow, error) {
 	return nil, nil
 }
 
@@ -285,8 +282,8 @@ func (h *OAuthHandler) handleConsent(
 	w http.ResponseWriter,
 	r *http.Request,
 	req *core.AuthorizeRequest,
-	flow *domain.Flow,
-) (*domain.Flow, error) {
+	flow *flow.Flow,
+) (*flow.Flow, error) {
 	consentVerifier := strings.TrimSpace(req.Form.Get("consent_verifier"))
 	if consentVerifier == "" {
 		return nil, h.requestConsent(ctx, w, r, req, flow)
@@ -300,18 +297,18 @@ func (h *OAuthHandler) requestConsent(
 	w http.ResponseWriter,
 	r *http.Request,
 	ar *core.AuthorizeRequest,
-	flow *domain.Flow,
+	flow *flow.Flow,
 ) error {
 	return nil
 }
 
-func (h *OAuthHandler) verifyConsent() (*domain.Flow, error) {
+func (h *OAuthHandler) verifyConsent() (*flow.Flow, error) {
 	return nil, nil
 }
 
-func sanitizedClient(ar *core.AuthorizeRequest) *domain.Client {
-	cl := ar.Client.(*domain.Client)
-	cc := &domain.Client{}
+func sanitizedClient(ar *core.AuthorizeRequest) *client.Client {
+	cl := ar.Client.(*client.Client)
+	cc := &client.Client{}
 	*cc = *cl // copy
 	cc.Secret = ""
 

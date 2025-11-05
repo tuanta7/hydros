@@ -1,17 +1,11 @@
-package domain
+package flow
 
 import (
-	"bytes"
-	"compress/gzip"
-	"context"
 	"database/sql"
-	"database/sql/driver"
 	"encoding/json"
-	"fmt"
 	"time"
 
-	"github.com/tuanta7/hydros/core"
-	"github.com/tuanta7/hydros/pkg/aead"
+	"github.com/tuanta7/hydros/internal/client"
 	"github.com/tuanta7/hydros/pkg/dbtype"
 )
 
@@ -59,56 +53,18 @@ type Flow struct {
 	GrantedScope      dbtype.StringArray `db:"granted_scope" json:"gs,omitempty"`
 	RequestedAudience dbtype.StringArray `db:"requested_audience" json:"ra,omitempty" `
 	GrantedAudience   dbtype.StringArray `db:"granted_at_audience" json:"ga,omitempty"`
-	Client            *Client            `db:"-" json:"c,omitempty"`
+	Client            *client.Client     `db:"-" json:"c,omitempty"`
 	ClientID          string             `db:"client_id" json:"ci,omitempty"`
 
 	ACR                       string              `db:"acr" json:"a,omitempty"`
 	AMR                       sql.NullString      `db:"amr" json:"am,omitempty"`
 	Context                   json.RawMessage     `db:"context" json:"ct"`
 	OIDCContext               json.RawMessage     `db:"oidc_context" json:"oc"` // is it used tho?
-	ForceSubjectIdentifier    string              `db:"forced_subject_identifier" json:"fs,omitempty"`
+	ForcedSubjectIdentifier   string              `db:"forced_subject_identifier" json:"fs,omitempty"`
 	IdentityProviderSessionID sql.NullString      `db:"identity_provider_session_id" json:"is,omitempty"`
 	SessionIDToken            dbtype.MapStringAny `db:"session_id_token" json:"st"`
 	SessionAccessToken        dbtype.MapStringAny `db:"session_access_token" json:"sa"`
 	State                     int16               `db:"state" json:"q,omitempty"`
-}
-
-func (f *Flow) ToLoginChallenge(ctx context.Context, cipher aead.Cipher) (string, error) {
-	return f.encode(ctx, cipher, []byte("login_challenge"))
-}
-
-func (f *Flow) ToLoginVerifier(ctx context.Context, cipher aead.Cipher) (string, error) {
-	return f.encode(ctx, cipher, []byte("login_verifier"))
-}
-
-func (f *Flow) ToConsentChallenge(ctx context.Context, cipher aead.Cipher) (string, error) {
-	return f.encode(ctx, cipher, []byte("consent_challenge"))
-}
-
-func (f *Flow) ToConsentVerifier(ctx context.Context, cipher aead.Cipher) (string, error) {
-	return f.encode(ctx, cipher, []byte("consent_verifier"))
-}
-
-func (f *Flow) encode(ctx context.Context, cipher aead.Cipher, data []byte) (string, error) {
-	if f.Client != nil {
-		f.ClientID = f.Client.ID
-	}
-
-	var bb bytes.Buffer
-	gz, err := gzip.NewWriterLevel(&bb, gzip.BestCompression)
-	if err != nil {
-		return "", err
-	}
-
-	if err = json.NewEncoder(gz).Encode(f); err != nil {
-		return "", err
-	}
-
-	if err = gz.Close(); err != nil {
-		return "", err
-	}
-
-	return cipher.Encrypt(ctx, bb.Bytes(), data)
 }
 
 func (f *Flow) ColumnMap() map[string]any {
@@ -149,68 +105,10 @@ func (f *Flow) ColumnMap() map[string]any {
 		"amr":                          f.AMR,
 		"context":                      f.Context,
 		"oidc_context":                 f.OIDCContext,
-		"force_subject_identifier":     f.ForceSubjectIdentifier,
+		"forced_subject_identifier":    f.ForcedSubjectIdentifier,
 		"identity_provider_session_id": f.IdentityProviderSessionID,
 		"session_id_token":             f.SessionIDToken,
 		"session_access_token":         f.SessionAccessToken,
 		"state":                        f.State,
 	}
-}
-
-type RequestDeniedError struct {
-	Error            string `json:"error"`
-	ErrorDescription string `json:"error_description"`
-	Hint             string `json:"error_hint"`
-	Code             int    `json:"status_code"`
-	Debug            string `json:"error_debug"`
-	Valid            bool   `json:"valid"`
-}
-
-func (e *RequestDeniedError) IsError() bool {
-	return e != nil && e.Valid
-}
-
-func (e *RequestDeniedError) ToRFCError() *core.RFC6749Error {
-	if e.Error == "" {
-		e.Error = "request_denied"
-	}
-
-	if e.Code == 0 {
-		e.Code = core.ErrInvalidRequest.CodeField
-	}
-
-	return &core.RFC6749Error{
-		ErrorField:       e.Error,
-		DescriptionField: e.ErrorDescription,
-		HintField:        e.Hint,
-		CodeField:        e.Code,
-		DebugField:       e.Debug,
-	}
-}
-
-func (e *RequestDeniedError) Scan(value any) error {
-	v := fmt.Sprintf("%s", value)
-	if len(v) == 0 || v == "{}" {
-		return nil
-	}
-
-	if err := json.Unmarshal([]byte(v), e); err != nil {
-		return err
-	}
-
-	e.Valid = true
-	return nil
-}
-
-func (e *RequestDeniedError) Value() (driver.Value, error) {
-	if !e.IsError() {
-		return "{}", nil
-	}
-
-	value, err := json.Marshal(e)
-	if err != nil {
-		return nil, err
-	}
-
-	return string(value), nil
 }

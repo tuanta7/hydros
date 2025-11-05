@@ -1,4 +1,4 @@
-package domain
+package token
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/tidwall/gjson"
 	"github.com/tuanta7/hydros/core"
+	"github.com/tuanta7/hydros/internal/client"
 	"github.com/tuanta7/hydros/pkg/aead"
 )
 
@@ -92,7 +93,7 @@ func (s *RequestSessionData) ToRequest(
 		Audience:        strings.Split(s.Audience, "|"),
 		GrantedAudience: strings.Split(s.GrantedAudience, "|"),
 		Form:            form,
-		Client: &Client{
+		Client: &client.Client{
 			// I have not figured out how to get the full client object from the database like hydra,
 			// so just use the ID for now.
 			ID: s.ClientID,

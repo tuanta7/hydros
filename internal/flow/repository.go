@@ -1,28 +1,28 @@
-package postgres
+package flow
 
 import (
 	"context"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
-	"github.com/tuanta7/hydros/internal/domain"
+
 	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 )
 
-type FlowRepository struct {
+type Repository struct {
 	table    string
 	pgClient postgres.Client
 }
 
-func NewFlowRepository(pgc postgres.Client) *FlowRepository {
-	return &FlowRepository{
+func NewFlowRepository(pgc postgres.Client) *Repository {
+	return &Repository{
 		table:    "flow",
 		pgClient: pgc,
 	}
 }
 
 // Create is used to create a new login request flow
-func (r *FlowRepository) Create(ctx context.Context, flow *domain.Flow) error {
+func (r *Repository) Create(ctx context.Context, flow *Flow) error {
 	data := flow.ColumnMap()
 	var columns []string
 	var values []any
@@ -49,7 +49,7 @@ func (r *FlowRepository) Create(ctx context.Context, flow *domain.Flow) error {
 	return nil
 }
 
-func (r *FlowRepository) Get(ctx context.Context, challenge string) (*domain.Flow, error) {
+func (r *Repository) Get(ctx context.Context, challenge string) (*Flow, error) {
 	query, args, err := r.pgClient.SQLBuilder().
 		Select("*").
 		From(r.table).
@@ -65,7 +65,7 @@ func (r *FlowRepository) Get(ctx context.Context, challenge string) (*domain.Flo
 	}
 	defer rows.Close()
 
-	flow, err := pgx.CollectOneRow(rows, toObject[domain.Flow])
+	flow, err := pgx.CollectOneRow(rows, postgres.ToObject[Flow])
 	if err != nil {
 		return nil, err
 	}

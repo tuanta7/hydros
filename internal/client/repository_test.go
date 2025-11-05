@@ -1,4 +1,4 @@
-package postgres_test
+package client_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/tuanta7/hydros/core"
-	"github.com/tuanta7/hydros/internal/domain"
+	"github.com/tuanta7/hydros/internal/client"
 )
 
 type ClientRepositoryTestSuite struct {
@@ -19,7 +19,7 @@ func (s *ClientRepositoryTestSuite) SetupSuite() {}
 func (s *ClientRepositoryTestSuite) TearDownSuite() {}
 
 func (s *ClientRepositoryTestSuite) TestClientCreate() {
-	client := &domain.Client{
+	c := &client.Client{
 		ID:          gofakeit.UUID(),
 		Name:        gofakeit.Username(),
 		Description: gofakeit.Comment(),
@@ -28,7 +28,7 @@ func (s *ClientRepositoryTestSuite) TestClientCreate() {
 		TokenEndpointAuthSigningAlg: "none",
 	}
 
-	assert.Equal(s.T(), client.TokenEndpointAuthMethod, "none")
+	assert.Equal(s.T(), c.TokenEndpointAuthMethod, "none")
 }
 
 func TestClientRepositoryTestSuite(t *testing.T) {

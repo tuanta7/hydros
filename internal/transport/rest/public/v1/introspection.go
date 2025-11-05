@@ -2,13 +2,13 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/tuanta7/hydros/internal/domain"
+	"github.com/tuanta7/hydros/internal/session"
 	"go.uber.org/zap"
 )
 
 func (h *OAuthHandler) HandleIntrospectionRequest(c *gin.Context) {
 	ctx := c.Request.Context()
-	session := domain.NewSession("")
+	session := session.NewSession("")
 
 	resp, err := h.oauth2.IntrospectToken(ctx, c.Request, session)
 	if err != nil {

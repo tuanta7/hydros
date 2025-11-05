@@ -20,15 +20,14 @@ import (
 	"github.com/tuanta7/hydros/core/signer/hmac"
 	"github.com/tuanta7/hydros/core/signer/jwt"
 	"github.com/tuanta7/hydros/core/strategy"
-	pgsource "github.com/tuanta7/hydros/internal/datasource/postgres"
-	"github.com/tuanta7/hydros/internal/domain"
+	"github.com/tuanta7/hydros/internal/client"
+	"github.com/tuanta7/hydros/internal/flow"
+	"github.com/tuanta7/hydros/internal/jwk"
+	"github.com/tuanta7/hydros/internal/session"
+	"github.com/tuanta7/hydros/internal/token"
 	restadminv1 "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
 	restpublicv1 "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
-	clientuc "github.com/tuanta7/hydros/internal/usecase/client"
-	flowuc "github.com/tuanta7/hydros/internal/usecase/flow"
-	"github.com/tuanta7/hydros/internal/usecase/jwk"
-	"github.com/tuanta7/hydros/internal/usecase/session"
-	storageuc "github.com/tuanta7/hydros/internal/usecase/storage"
+
 	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 	"github.com/tuanta7/hydros/pkg/aead"
 	"github.com/tuanta7/hydros/pkg/zapx"
@@ -51,17 +50,19 @@ func main() {
 	panicErr(err)
 	defer pgClient.Close()
 
-	jwkRepo := pgsource.NewKeyRepository(pgClient)
+	jwkRepo := jwk.NewKeyRepository(pgClient)
 	jwkUC := jwk.NewUseCase(cfg, aeadAES, jwkRepo, logger)
 
-	clientRepo := pgsource.NewClientRepository(pgClient)
-	clientUC := clientuc.NewUseCase(cfg, clientRepo, logger)
+	clientRepo := client.NewClientRepository(pgClient)
+	clientUC := client.NewUseCase(cfg, clientRepo, logger)
 
-	tokenRepo := pgsource.NewRequestSessionRepo(pgClient)
-	tokenStorageUC := storageuc.NewRequestSessionStorage(cfg, aeadAES, tokenRepo)
-	flowUC := flowuc.NewUseCase()
+	tokenRepo := token.NewRequestSessionRepo(pgClient)
+	tokenStorageUC := token.NewRequestSessionStorage(cfg, aeadAES, tokenRepo)
 
-	loginSessionRepo := pgsource.NewSessionRepository(pgClient)
+	flowRepo := flow.NewFlowRepository(pgClient)
+	flowUC := flow.NewUseCase(flowRepo, logger)
+
+	loginSessionRepo := session.NewSessionRepository(pgClient)
 	loginSessionUC := session.NewUseCase(loginSessionRepo)
 
 	tokenStrategy, err := getTokenStrategy(context.Background(), cfg, jwkUC)
@@ -106,8 +107,8 @@ func main() {
 
 			cookieStore := newCookieStore(cfg)
 			clientHandler := restadminv1.NewClientHandler(clientUC)
-			oauthHandler := restpublicv1.NewOAuthHandler(cfg, aeadAES, cookieStore, oauthCore, jwkUC, loginSessionUC, logger)
 			flowHandler := restpublicv1.NewFlowHandler(flowUC)
+			oauthHandler := restpublicv1.NewOAuthHandler(cfg, aeadAES, cookieStore, oauthCore, jwkUC, loginSessionUC, flowUC, logger)
 
 			restServer := rest.NewServer(cfg, cookieStore, clientHandler, oauthHandler, flowHandler)
 			errCh := make(chan error)
@@ -180,7 +181,7 @@ func getTokenStrategy(ctx context.Context, cfg *config.Config, jwkUC *jwk.UseCas
 	}
 
 	if cfg.GetAccessTokenFormat() == "jwt" {
-		getPrivateKeyFn := jwkUC.GetOrCreateJWKFn(domain.AccessTokenSet)
+		getPrivateKeyFn := jwkUC.GetOrCreateJWKFn(jwk.AccessTokenSet)
 		jwtSigner, err := jwt.NewSigner(cfg, getPrivateKeyFn)
 		if err != nil {
 			return nil, err

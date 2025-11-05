@@ -1,4 +1,4 @@
-package storage
+package token
 
 import (
 	"context"
@@ -9,21 +9,20 @@ import (
 
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
-	"github.com/tuanta7/hydros/internal/datasource/postgres"
-	"github.com/tuanta7/hydros/internal/domain"
+	"github.com/tuanta7/hydros/internal/session"
 	"github.com/tuanta7/hydros/pkg/aead"
 )
 
 type RequestSessionStorage struct {
 	cfg  *config.Config
 	aead aead.Cipher
-	pg   *postgres.RequestSessionRepo
+	pg   *RequestSessionRepo
 }
 
 func NewRequestSessionStorage(
 	cfg *config.Config,
 	aead aead.Cipher,
-	pg *postgres.RequestSessionRepo,
+	pg *RequestSessionRepo,
 
 ) *RequestSessionStorage {
 	return &RequestSessionStorage{
@@ -34,12 +33,12 @@ func NewRequestSessionStorage(
 }
 
 func (r *RequestSessionStorage) CreateAccessTokenSession(ctx context.Context, signature string, req *core.Request) error {
-	session, err := r.sessionFromRequest(ctx, signature, req, core.AccessToken)
+	s, err := r.sessionFromRequest(ctx, signature, req, core.AccessToken)
 	if err != nil {
 		return err
 	}
 
-	return r.pg.Create(ctx, core.AccessToken, session)
+	return r.pg.Create(ctx, core.AccessToken, s)
 }
 
 func (r *RequestSessionStorage) GetAccessTokenSession(ctx context.Context, signature string, session core.Session) (*core.Request, error) {
@@ -64,12 +63,12 @@ func (r *RequestSessionStorage) RotateRefreshToken(ctx context.Context, requestI
 }
 
 func (r *RequestSessionStorage) CreateAuthorizeCodeSession(ctx context.Context, signature string, req *core.Request) (err error) {
-	session, err := r.sessionFromRequest(ctx, signature, req, core.AccessToken)
+	s, err := r.sessionFromRequest(ctx, signature, req, core.AccessToken)
 	if err != nil {
 		return err
 	}
 
-	return r.pg.Create(ctx, core.AuthorizationCode, session)
+	return r.pg.Create(ctx, core.AuthorizationCode, s)
 }
 
 func (r *RequestSessionStorage) GetAuthorizationCodeSession(ctx context.Context, signature string, session core.Session) (*core.Request, error) {
@@ -102,22 +101,22 @@ func (r *RequestSessionStorage) sessionFromRequest(
 	signature string,
 	req *core.Request,
 	tokenType core.TokenType,
-) (*domain.RequestSessionData, error) {
-	session, err := json.Marshal(req.Session)
+) (*RequestSessionData, error) {
+	s, err := json.Marshal(req.Session)
 	if err != nil {
 		return nil, err
 	}
 
 	if r.cfg.Obfuscation.EncryptSessionData {
-		ciphertext, err := r.aead.Encrypt(ctx, session, nil)
+		ciphertext, err := r.aead.Encrypt(ctx, s, nil)
 		if err != nil {
 			return nil, err
 		}
-		session = []byte(ciphertext)
+		s = []byte(ciphertext)
 	}
 
 	var challenge sql.NullString
-	ss, ok := req.Session.(*domain.Session)
+	ss, ok := req.Session.(*session.Session)
 	if !ok && req.Session != nil {
 		return nil, fmt.Errorf("expected request to be of type *Session, but got: %T", req.Session)
 	} else if ok {
@@ -126,7 +125,7 @@ func (r *RequestSessionStorage) sessionFromRequest(
 		}
 	}
 
-	return &domain.RequestSessionData{
+	return &RequestSessionData{
 		Signature:         signature,
 		RequestID:         req.ID,
 		RequestedAt:       req.RequestedAt,
@@ -136,7 +135,7 @@ func (r *RequestSessionStorage) sessionFromRequest(
 		Audience:          strings.Join(req.Audience, "|"),
 		GrantedAudience:   strings.Join(req.GrantedAudience, "|"),
 		Form:              req.Form.Encode(),
-		Session:           session,
+		Session:           s,
 		Subject:           req.Session.GetSubject(),
 		Active:            true,
 		Challenge:         challenge,

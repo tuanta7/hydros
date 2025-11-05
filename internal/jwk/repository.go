@@ -1,39 +1,31 @@
-package postgres
+package jwk
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
-
-	"github.com/tuanta7/hydros/internal/domain"
 	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 )
 
-type ClientRepository interface {
-	List(ctx context.Context, page, pageSize uint64) ([]*domain.Client, error)
-	Create(ctx context.Context, client *domain.Client) error
-	Get(ctx context.Context, id string) (*domain.Client, error)
-}
-
-type clientRepository struct {
+type Repository struct {
 	table    string
 	pgClient postgres.Client
 }
 
-func NewClientRepository(pgc postgres.Client) ClientRepository {
-	return &clientRepository{
-		table:    "client",
+func NewKeyRepository(pgc postgres.Client) *Repository {
+	return &Repository{
+		table:    "jwk",
 		pgClient: pgc,
 	}
 }
 
-func (r *clientRepository) List(ctx context.Context, page, pageSize uint64) ([]*domain.Client, error) {
+func (r *Repository) List(ctx context.Context, limit uint64) ([]*KeyData, error) {
 	query, args, err := r.pgClient.SQLBuilder().
 		Select("*").
 		From(r.table).
-		Offset(pageSize * (page - 1)).
-		Limit(pageSize).
+		Limit(limit).
 		ToSql()
 	if err != nil {
 		return nil, err
@@ -45,16 +37,16 @@ func (r *clientRepository) List(ctx context.Context, page, pageSize uint64) ([]*
 	}
 	defer rows.Close()
 
-	clients, err := pgx.CollectRows(rows, toObject[domain.Client])
+	keys, err := pgx.CollectRows(rows, postgres.ToObject[KeyData])
 	if err != nil {
 		return nil, err
 	}
 
-	return clients, nil
+	return keys, nil
 }
 
-func (r *clientRepository) Create(ctx context.Context, client *domain.Client) error {
-	m := client.ColumnMap()
+func (r *Repository) Create(ctx context.Context, key *KeyData) error {
+	m := key.ColumnMap()
 	var columns []string
 	var values []any
 
@@ -80,11 +72,16 @@ func (r *clientRepository) Create(ctx context.Context, client *domain.Client) er
 	return nil
 }
 
-func (r *clientRepository) Get(ctx context.Context, id string) (*domain.Client, error) {
+func (r *Repository) GetActiveKey(ctx context.Context, set Set) (*KeyData, error) {
 	query, args, err := r.pgClient.SQLBuilder().
 		Select("*").
 		From(r.table).
-		Where(squirrel.Eq{"id": id}).
+		Where(
+			squirrel.And{
+				squirrel.Eq{"active": true},
+				squirrel.Eq{"sid": set},
+			},
+		).
 		ToSql()
 	if err != nil {
 		return nil, err
@@ -96,10 +93,14 @@ func (r *clientRepository) Get(ctx context.Context, id string) (*domain.Client, 
 	}
 	defer rows.Close()
 
-	client, err := pgx.CollectOneRow(rows, toObject[domain.Client])
+	key, err := pgx.CollectOneRow(rows, postgres.ToObject[KeyData])
 	if err != nil {
 		return nil, err
 	}
 
-	return client, nil
+	return key, nil
+}
+
+func (r *Repository) GetInactiveVerificationKey(ctx context.Context, set Set, kid string) (*KeyData, error) {
+	return nil, errors.New("using inactive key to verify token is not supported yet")
 }

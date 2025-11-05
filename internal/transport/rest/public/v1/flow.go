@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tuanta7/hydros/internal/usecase/flow"
+	"github.com/tuanta7/hydros/internal/flow"
 )
 
 type FlowHandler struct {

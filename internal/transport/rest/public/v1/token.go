@@ -5,13 +5,14 @@ import (
 	"github.com/go-jose/go-jose/v4"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/x"
-	"github.com/tuanta7/hydros/internal/domain"
+	"github.com/tuanta7/hydros/internal/jwk"
+	"github.com/tuanta7/hydros/internal/session"
 	"go.uber.org/zap"
 )
 
 func (h *OAuthHandler) HandleTokenRequest(c *gin.Context) {
 	ctx := c.Request.Context()
-	session := domain.NewSession("")
+	session := session.NewSession("")
 	tokenRequest, err := h.oauth2.NewTokenRequest(ctx, c.Request, session)
 	if err != nil {
 		h.logger.Error("error validating token request",
@@ -27,7 +28,7 @@ func (h *OAuthHandler) HandleTokenRequest(c *gin.Context) {
 
 		// TODO: Do we need to let client to set which type of token it wants?
 		if h.cfg.GetAccessTokenFormat() == "jwt" {
-			key, err := h.jwkUC.GetOrCreateJWKFn(domain.AccessTokenSet)(ctx)
+			key, err := h.jwkUC.GetOrCreateJWKFn(jwk.AccessTokenSet)(ctx)
 			if err != nil {
 				h.logger.Error("error getting jwk",
 					zap.Error(err),

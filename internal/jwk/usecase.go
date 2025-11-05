@@ -13,8 +13,6 @@ import (
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core/signer/jwt"
 	"github.com/tuanta7/hydros/core/x"
-	"github.com/tuanta7/hydros/internal/datasource/postgres"
-	"github.com/tuanta7/hydros/internal/domain"
 	"github.com/tuanta7/hydros/pkg/aead"
 	"github.com/tuanta7/hydros/pkg/zapx"
 )
@@ -22,14 +20,14 @@ import (
 type UseCase struct {
 	cfg     *config.Config
 	aead    aead.Cipher
-	jwkRepo *postgres.JWKRepository
+	jwkRepo *Repository
 	logger  *zapx.Logger
 }
 
 func NewUseCase(
 	cfg *config.Config,
 	aead aead.Cipher,
-	jwkRepo *postgres.JWKRepository,
+	jwkRepo *Repository,
 	logger *zapx.Logger,
 ) *UseCase {
 	return &UseCase{
@@ -78,7 +76,7 @@ func (u *UseCase) GenerateJWK(alg jose.SignatureAlgorithm, use string, kid ...st
 	return jwk, nil
 }
 
-func (u *UseCase) CreateJWK(ctx context.Context, set domain.Set, jwk *jose.JSONWebKey) error {
+func (u *UseCase) CreateJWK(ctx context.Context, set Set, jwk *jose.JSONWebKey) error {
 	active := false
 	_, err := u.jwkRepo.GetActiveKey(ctx, set)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -97,7 +95,7 @@ func (u *UseCase) CreateJWK(ctx context.Context, set domain.Set, jwk *jose.JSONW
 		return err
 	}
 
-	err = u.jwkRepo.Create(ctx, &domain.KeyData{
+	err = u.jwkRepo.Create(ctx, &KeyData{
 		KeyID:     jwk.KeyID,
 		SetID:     set,
 		Key:       encrypted,
@@ -111,8 +109,8 @@ func (u *UseCase) CreateJWK(ctx context.Context, set domain.Set, jwk *jose.JSONW
 	return nil
 }
 
-func (u *UseCase) GetKey(ctx context.Context, set domain.Set, kid ...string) (*jose.JSONWebKey, error) {
-	var key *domain.KeyData
+func (u *UseCase) GetKey(ctx context.Context, set Set, kid ...string) (*jose.JSONWebKey, error) {
+	var key *KeyData
 	var err error
 
 	if len(kid) > 0 {
@@ -138,7 +136,7 @@ func (u *UseCase) GetKey(ctx context.Context, set domain.Set, kid ...string) (*j
 	return jwk, nil
 }
 
-func (u *UseCase) GetOrCreateJWKFn(set domain.Set) jwt.GetPrivateKeyFn {
+func (u *UseCase) GetOrCreateJWKFn(set Set) jwt.GetPrivateKeyFn {
 	// this function always return *jose.JSONWebKey key type
 	// the any-type is used for extensibility of the core
 	return func(ctx context.Context, kid ...string) (any, error) {
@@ -163,6 +161,6 @@ func (u *UseCase) GetOrCreateJWKFn(set domain.Set) jwt.GetPrivateKeyFn {
 	}
 }
 
-func (u *UseCase) ActiveKey(ctx context.Context, set domain.Set, kid string) (*jose.JSONWebKey, error) {
+func (u *UseCase) ActiveKey(ctx context.Context, set Set, kid string) (*jose.JSONWebKey, error) {
 	return nil, nil
 }

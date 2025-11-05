@@ -1,4 +1,4 @@
-package domain
+package session
 
 import (
 	"database/sql"
@@ -7,6 +7,7 @@ import (
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/handler/oidc"
 	"github.com/tuanta7/hydros/core/signer/jwt"
+	"github.com/tuanta7/hydros/internal/flow"
 )
 
 // Session is used for methods that handle business logic related to sessions.
@@ -16,7 +17,7 @@ type Session struct {
 	KeyID                string         `json:"kid"`
 	ClientID             string         `json:"client_id"`
 	Challenge            string         `json:"challenge"`
-	Flow                 *Flow          `json:"-"`
+	Flow                 *flow.Flow     `json:"-"`
 
 	//ExcludeNotBeforeClaim bool `json:"exclude_not_before_claim"`
 	//AllowedTopLevelClaims []string `json:"allowed_top_level_claims"`
