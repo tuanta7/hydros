@@ -70,68 +70,68 @@ func NewAuthorizeResponse() *AuthorizeResponse {
 }
 
 func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*AuthorizeRequest, error) {
-	authorizeRequest := NewAuthorizeRequest()
+	ar := NewAuthorizeRequest()
 
 	form, err := x.BindForm(req)
 	if err != nil {
-		return authorizeRequest, ErrInvalidRequest.WithHint("Unable to parse HTTP body, make sure to send a properly formatted form request body.").WithWrap(err)
+		return ar, ErrInvalidRequest.WithHint("Unable to parse HTTP body, make sure to send a properly formatted form request body.").WithWrap(err)
 	}
-	authorizeRequest.Form = form
+	ar.Form = form
 
-	authorizeRequest.ResponseMode, err = parseResponseMode(authorizeRequest)
+	ar.ResponseMode, err = parseResponseMode(ar)
 	if err != nil {
-		return authorizeRequest, ErrUnsupportedResponseMode.WithHint("Request with unsupported response_mode \"%s\".", form.Get("response_mode")).WithWrap(err)
+		return ar, ErrUnsupportedResponseMode.WithHint("Request with unsupported response_mode \"%s\".", form.Get("response_mode")).WithWrap(err)
 	}
 
-	if authorizeRequest.ResponseMode == ResponseModeDefault {
+	if ar.ResponseMode == ResponseModeDefault {
 		// Since the /authorize endpoint is now only used for the authorization code grant type, we can safely assume
 		// that the response type is always "query". For other grant types, the default response mode is "fragment".
-		authorizeRequest.DefaultResponseMode = ResponseModeQuery
+		ar.DefaultResponseMode = ResponseModeQuery
 	}
 
 	client, err := o.store.GetClient(ctx, form.Get("client_id"))
 	if err != nil {
-		return authorizeRequest, ErrInvalidClient.WithHint("The requested OAuth 2.0 Client does not exist.").WithWrap(err).WithDebug(err.Error())
+		return ar, ErrInvalidClient.WithHint("The requested OAuth 2.0 Client does not exist.").WithWrap(err).WithDebug(err.Error())
 	}
-	authorizeRequest.Client = client
+	ar.Client = client
 
-	redirectURI, err := o.parseRedirectURI(authorizeRequest, client.GetRedirectURIs())
+	redirectURI, err := o.parseRedirectURI(ar, client.GetRedirectURIs())
 	if err != nil {
-		return authorizeRequest, err
+		return ar, err
 	}
-	authorizeRequest.RedirectURI = redirectURI
+	ar.RedirectURI = redirectURI
 
 	if len(form.Get("registration")) > 0 {
-		return authorizeRequest, ErrRegistrationNotSupported
+		return ar, ErrRegistrationNotSupported
 	}
 
-	authorizeRequest.State = form.Get("state")
-	if len(authorizeRequest.State) < o.config.GetMinParameterEntropy() {
-		return authorizeRequest, ErrInvalidState.WithHint("Request parameter 'state' must be at least be %d characters long to ensure sufficient entropy.", o.config.GetMinParameterEntropy())
+	ar.State = form.Get("state")
+	if len(ar.State) < o.config.GetMinParameterEntropy() {
+		return ar, ErrInvalidState.WithHint("Request parameter 'state' must be at least be %d characters long to ensure sufficient entropy.", o.config.GetMinParameterEntropy())
 	}
 
-	authorizeRequest.ResponseTypes = x.SplitSpace(form.Get("response_type"))
-	authorizeRequest.Scope = x.SplitSpace(form.Get("scope"))
-	authorizeRequest.Audience = getAudience(authorizeRequest)
+	ar.ResponseTypes = x.SplitSpace(form.Get("response_type"))
+	ar.Scope = x.SplitSpace(form.Get("scope"))
+	ar.Audience = getAudience(ar)
 
-	authorizeRequest.CodeChallenge = form.Get("code_challenge")
-	authorizeRequest.CodeChallengeMethod = form.Get("code_challenge_method")
+	ar.CodeChallenge = form.Get("code_challenge")
+	ar.CodeChallengeMethod = form.Get("code_challenge_method")
 
 	for _, th := range o.authorizeHandlers {
 		// HandleAuthorizeRequest only verifies the minimum requirements for the request to avoid overhead check before
 		// the login step, the rest of the checks are done after logging in.
-		he := th.HandleAuthorizeRequest(ctx, authorizeRequest)
+		he := th.HandleAuthorizeRequest(ctx, ar)
 		if he != nil {
-			return authorizeRequest, he
+			return ar, he
 		}
 	}
 
-	return authorizeRequest, nil
+	return ar, nil
 }
 
-func (o *OAuth2) parseRedirectURI(authorizeRequest *AuthorizeRequest, registeredURIs []string) (*url.URL, error) {
-	raw := authorizeRequest.Form.Get("redirect_uri")
-	if raw == "" && authorizeRequest.Scope.IncludeAll("openid") {
+func (o *OAuth2) parseRedirectURI(ar *AuthorizeRequest, registeredURIs []string) (*url.URL, error) {
+	raw := ar.Form.Get("redirect_uri")
+	if raw == "" && ar.Scope.IncludeAll("openid") {
 		return nil, ErrInvalidRequest.WithHint("The 'redirect_uri' parameter is required when using OpenID Connect 1.0.")
 	}
 
@@ -149,8 +149,8 @@ func (o *OAuth2) parseRedirectURI(authorizeRequest *AuthorizeRequest, registered
 	return redirectURI, nil
 }
 
-func parseResponseMode(authorizeRequest *AuthorizeRequest) (ResponseMode, error) {
-	raw := authorizeRequest.Form.Get("response_mode")
+func parseResponseMode(ar *AuthorizeRequest) (ResponseMode, error) {
+	raw := ar.Form.Get("response_mode")
 	switch r := ResponseMode(raw); r {
 	case ResponseModeDefault:
 		return ResponseModeDefault, nil

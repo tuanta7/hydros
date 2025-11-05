@@ -8,9 +8,9 @@ import (
 
 func (h *OAuthHandler) HandleIntrospectionRequest(c *gin.Context) {
 	ctx := c.Request.Context()
-	session := session.NewSession("")
+	s := session.NewSession("")
 
-	resp, err := h.oauth2.IntrospectToken(ctx, c.Request, session)
+	resp, err := h.oauth2.IntrospectToken(ctx, c.Request, s)
 	if err != nil {
 		h.logger.Error("error while introspecting token",
 			zap.Error(err),

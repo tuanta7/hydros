@@ -80,8 +80,9 @@ func (s *Server) RegisterRoutes() {
 	adminRouter.POST("/clients", s.clientHandler.Create)
 
 	// Identity Service
+	s.router.GET("/flows/:challenge", s.flowHandler.GetFlow)
 	s.router.GET("/self-service/login", s.flowHandler.LoginPage)
-	s.router.POST("/self-service/login", nil)
+	s.router.POST("/self-service/login", s.flowHandler.Login)
 	s.router.PUT("/self-service/login", s.flowHandler.UpdateAuthenticationStatus)
 	s.router.GET("/self-service/consent", s.flowHandler.ConsentPage)
 	s.router.POST("/self-service/consent", nil)

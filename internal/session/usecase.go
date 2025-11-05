@@ -33,8 +33,7 @@ func (u *useCase) GetRememberedLoginSession(ctx context.Context, loginSessionFro
 
 	s, err := u.sessionRepo.GetRememberedLoginSession(ctx, id)
 	if stderr.Is(err, sql.ErrNoRows) {
-		// TODO: read hydra errors implementation
-		return nil, errors.ErrNoAuthenticationSessionFound
+		return nil, errors.ErrNotFound
 	} else if err != nil {
 		return nil, err
 	}

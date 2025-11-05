@@ -68,38 +68,38 @@ func NewOAuthHandler(
 
 func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 	ctx := c.Request.Context()
-	authorizeRequest, err := h.oauth2.NewAuthorizeRequest(ctx, c.Request)
+	ar, err := h.oauth2.NewAuthorizeRequest(ctx, c.Request)
 	if err != nil {
-		h.writeAuthorizeError(c, authorizeRequest, err)
+		h.writeAuthorizeError(c, ar, err)
 		return
 	}
 
-	flow, err := h.handleLogin(ctx, c.Writer, c.Request, authorizeRequest)
+	f, err := h.handleLogin(ctx, c.Writer, c.Request, ar)
 	if stderr.Is(err, errors.ErrAbortOAuth2Request) {
 		return
 	} else if err != nil {
-		h.writeAuthorizeError(c, authorizeRequest, err)
+		h.writeAuthorizeError(c, ar, err)
 		return
 	}
 
-	//_, err = h.handleConsent(ctx, c.Writer, c.Request, authorizeRequest, flow)
+	//_, err = h.handleConsent(ctx, c.Writer, c.Request, ar, flow)
 	//if errors.Is(err, domain.ErrAbortOAuth2Request) {
 	//	return
 	//} else if err != nil {
 	//	return
 	//}
 
-	authorizeResponse, err := h.oauth2.NewAuthorizeResponse(ctx, authorizeRequest, &session.Session{
+	authorizeResponse, err := h.oauth2.NewAuthorizeResponse(ctx, ar, &session.Session{
 		IDTokenSession: &oidc.IDTokenSession{
-			Subject: flow.Subject, // id of authenticated user
+			Subject: f.Subject, // id of authenticated user
 		},
 	})
 	if err != nil {
-		h.writeAuthorizeError(c, authorizeRequest, err)
+		h.writeAuthorizeError(c, ar, err)
 		return
 	}
 
-	h.oauth2.WriteAuthorizeResponse(ctx, c.Writer, authorizeRequest, authorizeResponse)
+	h.oauth2.WriteAuthorizeResponse(ctx, c.Writer, ar, authorizeResponse)
 }
 
 func (h *OAuthHandler) writeAuthorizeError(c *gin.Context, req *core.AuthorizeRequest, err error) {
@@ -148,11 +148,13 @@ func (h *OAuthHandler) checkSession(ctx context.Context, r *http.Request) (*sess
 	}
 
 	loginSession, err := h.sessionUC.GetRememberedLoginSession(ctx, nil, sid)
-	if err != nil {
-		h.logger.Error("cookie exists and session value exist but are not remembered any more.",
+	if stderr.Is(err, errors.ErrNotFound) {
+		h.logger.Debug("cookie exists and session value exist but are not remembered any more.",
 			zap.Error(err),
 			zap.String("method", "sessionUC.GetRememberedLoginSession"),
 		)
+		return nil, errors.ErrNoAuthenticationSessionFound
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -193,7 +195,7 @@ func (h *OAuthHandler) forwardLoginRequest(
 	loginChallenge := x.RandomUUID()
 	loginCSRF := x.RandomUUID()
 
-	client := sanitizedClient(ar)
+	cl := client.SanitizedClientFromRequest(ar)
 	f := &flow.Flow{
 		LoginChallenge:       loginChallenge,
 		LoginVerifier:        loginVerifier,
@@ -202,11 +204,11 @@ func (h *OAuthHandler) forwardLoginRequest(
 		LoginWasHandled:      false,
 		LoginAuthenticatedAt: authenticatedAt,
 		RequestedAt:          x.NowUTC().Truncate(time.Second),
-		RequestURL:           r.URL.String(),
+		RequestURL:           r.URL.String(), // TODO: get proper authorize request url
 		RequestedScope:       []string(ar.Scope),
 		RequestedAudience:    []string(ar.Audience),
-		Client:               client,
-		ClientID:             client.GetID(),
+		Client:               cl,
+		ClientID:             cl.GetID(),
 		Subject:              subject,
 		LoginSessionID: sql.NullString{
 			Valid:  len(sessionID) > 0,
@@ -304,13 +306,4 @@ func (h *OAuthHandler) requestConsent(
 
 func (h *OAuthHandler) verifyConsent() (*flow.Flow, error) {
 	return nil, nil
-}
-
-func sanitizedClient(ar *core.AuthorizeRequest) *client.Client {
-	cl := ar.Client.(*client.Client)
-	cc := &client.Client{}
-	*cc = *cl // copy
-	cc.Secret = ""
-
-	return cc
 }

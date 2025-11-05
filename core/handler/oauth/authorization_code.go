@@ -37,53 +37,51 @@ func NewAuthorizationCodeGrantHandler(
 	}
 }
 
-func validateResponseMode(req *core.AuthorizeRequest, registered []core.ResponseMode) bool {
+func validateResponseMode(ar *core.AuthorizeRequest, registered []core.ResponseMode) bool {
 	for _, mode := range registered {
-		if req.ResponseMode == mode {
+		if ar.ResponseMode == mode {
 			return true
 		}
 	}
-
 	return false
 }
 
-func validateResponseType(req *core.AuthorizeRequest, registered []string) bool {
+func validateResponseType(ar *core.AuthorizeRequest, registered []string) bool {
 	for _, t := range registered {
-		if req.ResponseTypes.ExactAll(x.SplitSpace(t)...) {
+		if ar.ResponseTypes.ExactAll(x.SplitSpace(t)...) {
 			return true
 		}
 	}
-
 	return false
 }
 
-func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(ctx context.Context, req *core.AuthorizeRequest) (err error) {
-	if !req.ResponseTypes.ExactOne("code") {
+func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(ctx context.Context, ar *core.AuthorizeRequest) (err error) {
+	if !ar.ResponseTypes.ExactOne("code") {
 		return core.ErrUnsupportedResponseType.WithHint("The server only supports the response_type 'code'.")
 	}
 
-	client := req.Client
+	client := ar.Client
 	if client == nil {
 		return core.ErrInvalidClient.WithHint("The requested OAuth 2.0 Client does not exist.")
 	}
 
-	if !validateResponseType(req, client.GetResponseTypes()) {
-		return core.ErrUnsupportedResponseType.WithHint("The client is not allowed to request response_type '%s'.", req.ResponseTypes)
+	if !validateResponseType(ar, client.GetResponseTypes()) {
+		return core.ErrUnsupportedResponseType.WithHint("The client is not allowed to request response_type '%s'.", ar.ResponseTypes)
 	}
 
-	if !validateResponseMode(req, client.GetResponseModes()) {
-		return core.ErrUnsupportedResponseMode.WithHint("The client is not allowed to request response_mode '%s'.", req.ResponseMode)
+	if !validateResponseMode(ar, client.GetResponseModes()) {
+		return core.ErrUnsupportedResponseMode.WithHint("The client is not allowed to request response_mode '%s'.", ar.ResponseMode)
 	}
 
 	scopeStrategy := h.config.GetScopeStrategy()
-	for _, scope := range req.Scope {
+	for _, scope := range ar.Scope {
 		if !scopeStrategy(client.GetScopes(), scope) {
 			return core.ErrInvalidScope.WithHint("The OAuth 2.0 Client is not allowed to request scope '%s'.", scope)
 		}
 	}
 
 	audienceStrategy := h.config.GetAudienceStrategy()
-	if err = audienceStrategy(client.GetAudience(), req.Audience); err != nil {
+	if err = audienceStrategy(client.GetAudience(), ar.Audience); err != nil {
 		return err
 	}
 

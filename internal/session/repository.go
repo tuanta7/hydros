@@ -24,7 +24,10 @@ func (r *Repository) GetRememberedLoginSession(ctx context.Context, id string) (
 	query, args, err := r.pgClient.SQLBuilder().
 		Select("*").
 		From(r.table).
-		Where(squirrel.Eq{"id": id}).
+		Where(squirrel.And{
+			squirrel.Eq{"id": id},
+			squirrel.Eq{"remember": true},
+		}).
 		ToSql()
 	if err != nil {
 		return nil, err

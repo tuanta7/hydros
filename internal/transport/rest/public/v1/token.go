@@ -12,8 +12,8 @@ import (
 
 func (h *OAuthHandler) HandleTokenRequest(c *gin.Context) {
 	ctx := c.Request.Context()
-	session := session.NewSession("")
-	tokenRequest, err := h.oauth2.NewTokenRequest(ctx, c.Request, session)
+	s := session.NewSession("")
+	tokenRequest, err := h.oauth2.NewTokenRequest(ctx, c.Request, s)
 	if err != nil {
 		h.logger.Error("error validating token request",
 			zap.Error(err),
@@ -24,7 +24,7 @@ func (h *OAuthHandler) HandleTokenRequest(c *gin.Context) {
 	}
 
 	if tokenRequest.GrantType.ExactOne(string(core.GrantTypeClientCredentials)) {
-		session.Subject = tokenRequest.Client.GetID()
+		s.Subject = tokenRequest.Client.GetID()
 
 		// TODO: Do we need to let client to set which type of token it wants?
 		if h.cfg.GetAccessTokenFormat() == "jwt" {
@@ -38,16 +38,16 @@ func (h *OAuthHandler) HandleTokenRequest(c *gin.Context) {
 				return
 			}
 
-			session.KeyID = key.(*jose.JSONWebKey).KeyID
+			s.KeyID = key.(*jose.JSONWebKey).KeyID
 		}
 	}
 
 	tokenRequest.GrantedScope = tokenRequest.GrantedScope.Append(tokenRequest.Scope...)
 	tokenRequest.GrantedAudience = tokenRequest.GrantedAudience.Append(tokenRequest.Audience...)
 
-	session.ClientID = tokenRequest.Client.GetID()
-	session.IDTokenSession.Claims.Issuer = h.cfg.GetAccessTokenIssuer()
-	session.IDTokenSession.Claims.IssuedAt = x.NowUTC()
+	s.ClientID = tokenRequest.Client.GetID()
+	s.IDTokenSession.Claims.Issuer = h.cfg.GetAccessTokenIssuer()
+	s.IDTokenSession.Claims.IssuedAt = x.NowUTC()
 
 	// TODO: Implement rfc8693 token exchange
 

@@ -85,11 +85,21 @@ func (r *RequestSessionStorage) InvalidateAuthorizeCodeSession(ctx context.Conte
 }
 
 func (r *RequestSessionStorage) GetPKCERequestSession(ctx context.Context, signature string, session core.Session) (*core.Request, error) {
-	return nil, nil
+	s, err := r.pg.GetBySignature(ctx, core.PKCECode, signature)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.ToRequest(ctx, signature, session, core.PKCECode, r.aead)
 }
 
-func (r *RequestSessionStorage) CreatePKCERequestSession(ctx context.Context, signature string, request *core.Request) error {
-	return nil
+func (r *RequestSessionStorage) CreatePKCERequestSession(ctx context.Context, signature string, req *core.Request) error {
+	s, err := r.sessionFromRequest(ctx, signature, req, core.PKCECode)
+	if err != nil {
+		return err
+	}
+
+	return r.pg.Create(ctx, core.PKCECode, s)
 }
 
 func (r *RequestSessionStorage) DeletePKCERequestSession(ctx context.Context, signature string) error {

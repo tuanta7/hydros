@@ -2,13 +2,8 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/gorilla/sessions"
 	"github.com/tuanta7/hydros/cmd"
@@ -65,7 +60,7 @@ func main() {
 	loginSessionRepo := session.NewSessionRepository(pgClient)
 	loginSessionUC := session.NewUseCase(loginSessionRepo)
 
-	tokenStrategy, err := getTokenStrategy(context.Background(), cfg, jwkUC)
+	tokenStrategy, err := getTokenStrategy(cfg, jwkUC)
 	panicErr(err)
 
 	c := &cli.Command{
@@ -111,30 +106,11 @@ func main() {
 			oauthHandler := restpublicv1.NewOAuthHandler(cfg, aeadAES, cookieStore, oauthCore, jwkUC, loginSessionUC, flowUC, logger)
 
 			restServer := rest.NewServer(cfg, cookieStore, clientHandler, oauthHandler, flowHandler)
-			errCh := make(chan error)
-			go func() {
-				if err := restServer.Run(); err != nil {
-					err = fmt.Errorf("error starting REST server: %w", err)
-					errCh <- err
-				}
-			}()
-
-			notifyCh := make(chan os.Signal, 1)
-			signal.Notify(notifyCh, syscall.SIGINT, syscall.SIGTERM)
-
-			select {
-			case err := <-errCh:
-				log.Println("Shutting down due to server error:", err)
-				return shutdownServer(restServer)
-			case <-notifyCh:
-				log.Println("Shutting down gracefully...")
-				_ = shutdownServer(restServer)
-				return nil
-			}
+			return transport.StartServers(restServer)
 		},
 	}
 
-	if err := c.Run(context.Background(), os.Args); err != nil {
+	if err = c.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -156,25 +132,7 @@ func newCookieStore(cfg *config.Config) *sessions.CookieStore {
 	return cookieStore
 }
 
-func shutdownServer(servers ...transport.Server) (err error) {
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	for _, server := range servers {
-		if se := server.Shutdown(shutdownCtx); se != nil {
-			log.Println("Error during server shutdown:", se)
-			err = errors.Join(err, se)
-		}
-	}
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func getTokenStrategy(ctx context.Context, cfg *config.Config, jwkUC *jwk.UseCase) (strategy.TokenStrategy, error) {
+func getTokenStrategy(cfg *config.Config, jwkUC *jwk.UseCase) (strategy.TokenStrategy, error) {
 	hmacSigner, err := hmac.NewSigner(cfg)
 	if err != nil {
 		return nil, err
