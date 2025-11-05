@@ -148,6 +148,7 @@ func (f *Flow) ColumnMap() map[string]any {
 		"acr":                          f.ACR,
 		"amr":                          f.AMR,
 		"context":                      f.Context,
+		"oidc_context":                 f.OIDCContext,
 		"force_subject_identifier":     f.ForceSubjectIdentifier,
 		"identity_provider_session_id": f.IdentityProviderSessionID,
 		"session_id_token":             f.SessionIDToken,

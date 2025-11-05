@@ -17,6 +17,7 @@ import (
 	"github.com/tuanta7/hydros/core/handler/oidc"
 	"github.com/tuanta7/hydros/core/x"
 	"github.com/tuanta7/hydros/internal/domain"
+	flowuc "github.com/tuanta7/hydros/internal/usecase/flow"
 	"github.com/tuanta7/hydros/internal/usecase/jwk"
 	"github.com/tuanta7/hydros/internal/usecase/session"
 	"github.com/tuanta7/hydros/pkg/aead"
@@ -36,6 +37,7 @@ type OAuthHandler struct {
 	oauth2    core.OAuth2Provider
 	jwkUC     *jwk.UseCase
 	sessionUC session.UseCase
+	flowUC    *flowuc.UseCase
 	logger    *zapx.Logger
 }
 
@@ -75,12 +77,12 @@ func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 		return
 	}
 
-	_, err = h.handleConsent(ctx, c.Writer, c.Request, authorizeRequest, flow)
-	if errors.Is(err, domain.ErrAbortOAuth2Request) {
-		return
-	} else if err != nil {
-		return
-	}
+	//_, err = h.handleConsent(ctx, c.Writer, c.Request, authorizeRequest, flow)
+	//if errors.Is(err, domain.ErrAbortOAuth2Request) {
+	//	return
+	//} else if err != nil {
+	//	return
+	//}
 
 	authorizeResponse, err := h.oauth2.NewAuthorizeResponse(ctx, authorizeRequest, &domain.Session{
 		IDTokenSession: &oidc.IDTokenSession{
@@ -121,7 +123,7 @@ func (h *OAuthHandler) handleLogin(
 		return nil, h.requestLogin(ctx, w, r, req)
 	}
 
-	return h.verifyLogin()
+	return h.verifyLogin(ctx, w, r, req, loginVerifier)
 }
 
 func (h *OAuthHandler) checkSession(ctx context.Context, r *http.Request) (*domain.LoginSession, error) {
@@ -214,6 +216,13 @@ func (h *OAuthHandler) forwardLoginRequest(
 		ForceSubjectIdentifier: "",
 	}
 
+	err := h.flowUC.CreateLoginRequest(ctx, flow)
+	if err != nil {
+		return err
+	}
+
+	// TODO: prevent csrf
+
 	encodedFlow, err := flow.ToLoginChallenge(ctx, h.aead)
 	if err != nil {
 		return err
@@ -261,7 +270,13 @@ func (h *OAuthHandler) requestLogin(
 	return h.forwardLoginRequest(ctx, w, r, ar, loginSession)
 }
 
-func (h *OAuthHandler) verifyLogin() (*domain.Flow, error) {
+func (h *OAuthHandler) verifyLogin(
+	ctx context.Context,
+	w http.ResponseWriter,
+	r *http.Request,
+	ar *core.AuthorizeRequest,
+	verifier string,
+) (*domain.Flow, error) {
 	return nil, nil
 }
 
