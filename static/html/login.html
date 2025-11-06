@@ -96,6 +96,8 @@
             <input id="email" name="email" type="email" autocomplete="email" required>
             <label for="password">Password</label>
             <input id="password" name="password" type="password" autocomplete="current-password" required>
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <input type="hidden" name="login_challenge" value="{{.LoginChallenge}}">
             <div class="actions">
                 <button type="submit">Sign in</button>
                 <button type="button" class="btn-ghost" onclick="history.back()">Back</button>

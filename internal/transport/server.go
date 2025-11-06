@@ -16,7 +16,7 @@ type Server interface {
 	Shutdown(context.Context) error
 }
 
-func StartServers(servers ...Server) error {
+func RunServers(servers ...Server) error {
 	errCh := make(chan error)
 
 	for _, server := range servers {

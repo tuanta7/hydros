@@ -8,6 +8,7 @@ import (
 	"github.com/tuanta7/hydros/core/handler/oidc"
 	"github.com/tuanta7/hydros/core/signer/jwt"
 	"github.com/tuanta7/hydros/internal/flow"
+	"github.com/tuanta7/hydros/pkg/dbtype"
 )
 
 // Session is used for methods that handle business logic related to sessions.
@@ -44,11 +45,11 @@ func (s *Session) Clone() core.Session {
 }
 
 type LoginSession struct {
-	ID                        string         `db:"id"`
-	AuthenticatedAt           sql.NullTime   `db:"authenticated_at"`
-	Subject                   string         `db:"subject"`
-	IdentityProviderSessionID sql.NullString `db:"identity_provider_session_id"`
-	Remember                  bool           `db:"remember"`
+	ID                        string          `db:"id"`
+	AuthenticatedAt           dbtype.NullTime `db:"authenticated_at"`
+	Subject                   string          `db:"subject"`
+	IdentityProviderSessionID sql.NullString  `db:"identity_provider_session_id"`
+	Remember                  bool            `db:"remember"`
 }
 
 func (s *LoginSession) ColumnMap() map[string]any {

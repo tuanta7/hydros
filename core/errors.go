@@ -175,6 +175,12 @@ var (
 		DescriptionField: "The Authorization Server requires End-User authentication.",
 		CodeField:        http.StatusBadRequest,
 	}
+	ErrAccessDenied = &RFC6749Error{
+		ErrorField:       "access_denied",
+		DescriptionField: "The resource owner or authorization server denied the request.",
+		HintField:        "Make sure that the request you are making is valid. Maybe the credential or request parameters you are using are limited in scope or otherwise restricted.",
+		CodeField:        http.StatusForbidden,
+	}
 )
 
 func ErrorToRFC6749Error(err error) *RFC6749Error {

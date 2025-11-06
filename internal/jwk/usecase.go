@@ -138,7 +138,7 @@ func (u *UseCase) GetKey(ctx context.Context, set Set, kid ...string) (*jose.JSO
 
 func (u *UseCase) GetOrCreateJWKFn(set Set) jwt.GetPrivateKeyFn {
 	// this function always return *jose.JSONWebKey key type
-	// the any-type is used for extensibility of the core
+	// the any-type is used for extensibility of the core signer
 	return func(ctx context.Context, kid ...string) (any, error) {
 		jwk, err := u.GetKey(ctx, set, kid...)
 		if err == nil {

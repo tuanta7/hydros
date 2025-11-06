@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/gorilla/sessions"
 	"github.com/tuanta7/hydros/cmd"
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
@@ -55,7 +54,7 @@ func main() {
 	tokenStorageUC := token.NewRequestSessionStorage(cfg, aeadAES, tokenRepo)
 
 	flowRepo := flow.NewFlowRepository(pgClient)
-	flowUC := flow.NewUseCase(flowRepo, logger)
+	flowUC := flow.NewUseCase(flowRepo, aeadAES, logger)
 
 	loginSessionRepo := session.NewSessionRepository(pgClient)
 	loginSessionUC := session.NewUseCase(loginSessionRepo)
@@ -100,36 +99,21 @@ func main() {
 				},
 			)
 
-			cookieStore := newCookieStore(cfg)
+			cookieStore := session.NewCookieStore(cfg)
 			clientHandler := restadminv1.NewClientHandler(clientUC)
-			flowHandler := restpublicv1.NewFlowHandler(flowUC)
-			oauthHandler := restpublicv1.NewOAuthHandler(cfg, aeadAES, cookieStore, oauthCore, jwkUC, loginSessionUC, flowUC, logger)
+			flowHandler := restadminv1.NewFlowHandler(flowUC)
 
-			restServer := rest.NewServer(cfg, cookieStore, clientHandler, oauthHandler, flowHandler)
-			return transport.StartServers(restServer)
+			formHandler := restpublicv1.NewFormHandler(cfg, flowUC)
+			oauthHandler := restpublicv1.NewOAuthHandler(cfg, cookieStore, oauthCore, jwkUC, loginSessionUC, flowUC, logger)
+
+			restServer := rest.NewServer(cfg, clientHandler, flowHandler, oauthHandler, formHandler)
+			return transport.RunServers(restServer)
 		},
 	}
 
 	if err = c.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func newCookieStore(cfg *config.Config) *sessions.CookieStore {
-	// TODO: use better key strategy
-	cookieStore := sessions.NewCookieStore(cfg.GetGlobalSecret())
-	cookieStore.MaxAge(0)
-	cookieStore.Options.HttpOnly = true
-	cookieStore.Options.Secure = cfg.Cookie.Secure
-
-	if d := cfg.Cookie.Domain; d != "" {
-		cookieStore.Options.Domain = d
-	}
-
-	if p := cfg.Cookie.Path; p != "" {
-		cookieStore.Options.Path = p
-	}
-	return cookieStore
 }
 
 func getTokenStrategy(cfg *config.Config, jwkUC *jwk.UseCase) (strategy.TokenStrategy, error) {

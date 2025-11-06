@@ -9,23 +9,16 @@ import (
 	"github.com/tuanta7/hydros/pkg/aead"
 )
 
-func (f *Flow) EncodeToLoginChallenge(ctx context.Context, cipher aead.Cipher) (string, error) {
-	return EncodeFlow(ctx, cipher, f, []byte("login_challenge"))
-}
+type AdditionalData []byte
 
-func (f *Flow) EncodeToLoginVerifier(ctx context.Context, cipher aead.Cipher) (string, error) {
-	return EncodeFlow(ctx, cipher, f, []byte("login_verifier"))
-}
+var (
+	AsLoginChallenge   AdditionalData = []byte("login_challenge")
+	AsLoginVerifier    AdditionalData = []byte("login_verifier")
+	AsConsentChallenge AdditionalData = []byte("consent_challenge")
+	AsConsentVerifier  AdditionalData = []byte("consent_verifier")
+)
 
-func (f *Flow) EncodeToConsentChallenge(ctx context.Context, cipher aead.Cipher) (string, error) {
-	return EncodeFlow(ctx, cipher, f, []byte("consent_challenge"))
-}
-
-func (f *Flow) EncodeToConsentVerifier(ctx context.Context, cipher aead.Cipher) (string, error) {
-	return EncodeFlow(ctx, cipher, f, []byte("consent_verifier"))
-}
-
-func EncodeFlow(ctx context.Context, cipher aead.Cipher, f *Flow, data []byte) (string, error) {
+func EncodeFlow(ctx context.Context, cipher aead.Cipher, f *Flow, data AdditionalData) (string, error) {
 	if f.Client != nil {
 		f.ClientID = f.Client.ID
 	}
@@ -47,7 +40,7 @@ func EncodeFlow(ctx context.Context, cipher aead.Cipher, f *Flow, data []byte) (
 	return cipher.Encrypt(ctx, bb.Bytes(), data)
 }
 
-func DecodeFlow(ctx context.Context, cipher aead.Cipher, encoded string, data []byte) (*Flow, error) {
+func DecodeFlow(ctx context.Context, cipher aead.Cipher, encoded string, data AdditionalData) (*Flow, error) {
 	plain, err := cipher.Decrypt(ctx, encoded, data)
 	if err != nil {
 		return nil, err

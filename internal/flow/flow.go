@@ -1,7 +1,6 @@
 package flow
 
 import (
-	"database/sql"
 	"encoding/json"
 	"time"
 
@@ -27,25 +26,25 @@ type Flow struct {
 	LoginSkip                  bool                `db:"login_skip" json:"ls,omitempty"`
 	LoginVerifier              string              `db:"login_verifier" json:"lv,omitempty" `
 	LoginCSRF                  string              `db:"login_csrf" json:"lc,omitempty"`
-	LoginInitializedAt         sql.NullTime        `db:"login_initialized_at" json:"li,omitempty"`
+	LoginInitializedAt         dbtype.NullTime     `db:"login_initialized_at" json:"li,omitempty"`
 	LoginRemember              bool                `db:"login_remember" json:"lr,omitempty"`
 	LoginRememberFor           int                 `db:"login_remember_for" json:"lf,omitempty"`
 	LoginExtendSessionLifetime bool                `db:"login_extend_session_lifetime" json:"ll,omitempty"`
 	LoginWasHandled            bool                `db:"login_was_handled" json:"lw,omitempty"`
 	LoginError                 *RequestDeniedError `db:"login_error" json:"le,omitempty"`
-	LoginAuthenticatedAt       sql.NullTime        `db:"login_authenticated_at" json:"la,omitempty"`
-	LoginSessionID             sql.NullString      `db:"login_session_id" json:"si,omitempty"`
+	LoginAuthenticatedAt       dbtype.NullTime     `db:"login_authenticated_at" json:"la,omitempty"`
+	LoginSessionID             dbtype.NullString   `db:"login_session_id" json:"si,omitempty"`
 	Subject                    string              `db:"subject" json:"s,omitempty"`
 
-	ConsentChallenge   sql.NullString      `db:"consent_challenge" json:"cc,omitempty"`
+	ConsentChallenge   dbtype.NullString   `db:"consent_challenge" json:"cc,omitempty"`
 	ConsentSkip        bool                `db:"consent_skip" json:"cs,omitempty"`
-	ConsentVerifier    sql.NullString      `db:"consent_verifier" json:"cv,omitempty"`
-	ConsentCSRF        sql.NullString      `db:"consent_csrf" json:"cr,omitempty"`
+	ConsentVerifier    dbtype.NullString   `db:"consent_verifier" json:"cv,omitempty"`
+	ConsentCSRF        dbtype.NullString   `db:"consent_csrf" json:"cr,omitempty"`
 	ConsentRemember    bool                `db:"consent_remember" json:"ce,omitempty"`
 	ConsentRememberFor *int                `db:"consent_remember_for" json:"cf"`
 	ConsentWasHandled  bool                `db:"consent_was_handled" json:"cw,omitempty"`
 	ConsentError       *RequestDeniedError `db:"consent_error" json:"cx"`
-	ConsentHandledAt   sql.NullTime        `db:"consent_handled_at" json:"ch,omitempty"`
+	ConsentHandledAt   dbtype.NullTime     `db:"consent_handled_at" json:"ch,omitempty"`
 
 	RequestedAt       time.Time          `db:"requested_at" json:"ia,omitempty"`
 	RequestURL        string             `db:"request_url" json:"r,omitempty"`
@@ -57,11 +56,11 @@ type Flow struct {
 	ClientID          string             `db:"client_id" json:"ci,omitempty"`
 
 	ACR                       string              `db:"acr" json:"a,omitempty"`
-	AMR                       sql.NullString      `db:"amr" json:"am,omitempty"`
-	Context                   json.RawMessage     `db:"context" json:"ct"`
+	AMR                       dbtype.StringArray  `db:"amr" json:"am,omitempty"`
+	Context                   json.RawMessage     `db:"context" json:"ct"`      // is it used tho?
 	OIDCContext               json.RawMessage     `db:"oidc_context" json:"oc"` // is it used tho?
 	ForcedSubjectIdentifier   string              `db:"forced_subject_identifier" json:"fs,omitempty"`
-	IdentityProviderSessionID sql.NullString      `db:"identity_provider_session_id" json:"is,omitempty"`
+	IdentityProviderSessionID dbtype.NullString   `db:"identity_provider_session_id" json:"is,omitempty"`
 	SessionIDToken            dbtype.MapStringAny `db:"session_id_token" json:"st"`
 	SessionAccessToken        dbtype.MapStringAny `db:"session_access_token" json:"sa"`
 	State                     int16               `db:"state" json:"q,omitempty"`

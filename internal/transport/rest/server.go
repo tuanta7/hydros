@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/sessions"
 	"github.com/tuanta7/hydros/config"
 	v1admin "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
 	v1public "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
@@ -16,17 +15,17 @@ type Server struct {
 	cfg           *config.Config
 	router        *gin.Engine
 	server        *http.Server
-	cookieStore   *sessions.CookieStore
 	clientHandler *v1admin.ClientHandler
+	flowHandler   *v1admin.FlowHandler
 	oauthHandler  *v1public.OAuthHandler
-	flowHandler   *v1public.FlowHandler
+	formHandler   *v1public.FormHandler
 }
 
 func NewServer(cfg *config.Config,
-	cookieStore *sessions.CookieStore,
 	clientHandler *v1admin.ClientHandler,
+	flowHandler *v1admin.FlowHandler,
 	oauthHandler *v1public.OAuthHandler,
-	flowHandler *v1public.FlowHandler,
+	formHandler *v1public.FormHandler,
 ) *Server {
 	if !cfg.IsDebugging() {
 		gin.SetMode(gin.ReleaseMode)
@@ -45,9 +44,10 @@ func NewServer(cfg *config.Config,
 			Addr:    fmt.Sprintf("%s:%s", cfg.RestServerHost, cfg.RestServerPort),
 			Handler: nil,
 		},
-		cookieStore:   cookieStore,
+
 		clientHandler: clientHandler,
 		oauthHandler:  oauthHandler,
+		formHandler:   formHandler,
 		flowHandler:   flowHandler,
 	}
 }
@@ -74,19 +74,24 @@ func (s *Server) RegisterRoutes() {
 	s.router.GET("/oauth/logout", nil)
 	s.router.POST("/oauth/logout", nil)
 
+	// Default forms and submit endpoints
+	s.router.GET("/self-service/login", s.formHandler.LoginPage)
+	s.router.POST("/self-service/login", s.formHandler.Login)
+	s.router.GET("/self-service/consent", s.formHandler.ConsentPage)
+	s.router.POST("/self-service/consent", nil)
+
 	// Authorization Service - Admin APIs
 	adminRouter := s.router.Group("/admin/api/v1")
 	adminRouter.GET("/clients", s.clientHandler.List)
 	adminRouter.POST("/clients", s.clientHandler.Create)
 
 	// Identity Service
-	s.router.GET("/flows/:challenge", s.flowHandler.GetFlow)
-	s.router.GET("/self-service/login", s.flowHandler.LoginPage)
-	s.router.POST("/self-service/login", s.flowHandler.Login)
-	s.router.PUT("/self-service/login", s.flowHandler.UpdateAuthenticationStatus)
-	s.router.GET("/self-service/consent", s.flowHandler.ConsentPage)
-	s.router.POST("/self-service/consent", nil)
-	s.router.PUT("/self-service/consent", s.flowHandler.UpdateConsentStatus)
+	adminRouter.GET("/login/flows", s.flowHandler.GetLoginFlow)
+	adminRouter.PUT("/login/accept", s.flowHandler.AcceptLogin)
+	adminRouter.PUT("/login/reject", s.flowHandler.RejectLogin)
+	adminRouter.GET("/consent/flows", nil)
+	adminRouter.PUT("/consent/accept", nil)
+	adminRouter.PUT("/consent/reject", nil)
 
 	s.server.Handler = s.router
 }

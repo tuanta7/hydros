@@ -2,7 +2,6 @@ package v1
 
 import (
 	"context"
-	"database/sql"
 	stderr "errors"
 	"net/http"
 	"net/url"
@@ -18,12 +17,12 @@ import (
 	"github.com/tuanta7/hydros/core/x"
 	"github.com/tuanta7/hydros/internal/client"
 	"github.com/tuanta7/hydros/internal/errors"
+	"github.com/tuanta7/hydros/pkg/dbtype"
 
 	"github.com/tuanta7/hydros/internal/flow"
 	"github.com/tuanta7/hydros/internal/jwk"
 	"github.com/tuanta7/hydros/internal/session"
 
-	"github.com/tuanta7/hydros/pkg/aead"
 	"github.com/tuanta7/hydros/pkg/mapx"
 	"github.com/tuanta7/hydros/pkg/zapx"
 	"go.uber.org/zap"
@@ -34,8 +33,8 @@ const (
 )
 
 type OAuthHandler struct {
-	cfg       *config.Config
-	aead      aead.Cipher
+	cfg *config.Config
+
 	store     *sessions.CookieStore
 	oauth2    core.OAuth2Provider
 	jwkUC     *jwk.UseCase
@@ -46,7 +45,6 @@ type OAuthHandler struct {
 
 func NewOAuthHandler(
 	cfg *config.Config,
-	aead aead.Cipher,
 	store *sessions.CookieStore,
 	oauth2 core.OAuth2Provider,
 	jwkUC *jwk.UseCase,
@@ -56,7 +54,6 @@ func NewOAuthHandler(
 ) *OAuthHandler {
 	return &OAuthHandler{
 		cfg:       cfg,
-		aead:      aead,
 		store:     store,
 		oauth2:    oauth2,
 		jwkUC:     jwkUC,
@@ -132,7 +129,7 @@ func (h *OAuthHandler) handleLogin(
 }
 
 func (h *OAuthHandler) checkSession(ctx context.Context, r *http.Request) (*session.LoginSession, error) {
-	cookie, err := h.store.Get(r, h.cfg.SessionCookieName())
+	cookie, err := h.store.Get(r, h.cfg.CookieSessionName())
 	if err != nil {
 		h.logger.Error("cookie store returned an error.",
 			zap.Error(err),
@@ -170,50 +167,46 @@ func (h *OAuthHandler) forwardLoginRequest(
 ) error {
 	sessionID := uuid.NewString()
 	subject := ""
-	authenticatedAt := sql.NullTime{}
+	authenticatedAt := time.Time{}
 
 	if loginSession != nil {
 		sessionID = loginSession.ID
 		subject = loginSession.Subject
-		authenticatedAt = loginSession.AuthenticatedAt
+		authenticatedAt = time.Time(loginSession.AuthenticatedAt)
 
-		if subject == "" || authenticatedAt.Time.IsZero() {
-			return core.ErrServerError.WithHint("subject and authenticated_at must be set together.")
+		if (subject == "" && authenticatedAt.IsZero()) || (subject != "" && authenticatedAt.IsZero()) {
+			return core.ErrServerError.WithHint("Subject and authenticated_at must be set together.")
 		}
 	}
 
 	skip := false
+
+	// if both subject and authenticated_at are set, we can skip the login
 	if subject != "" {
 		skip = true
 	}
 
-	if ar.Prompt.IncludeAll("none") && !skip {
+	// if both are empty, we have to enforce the login
+	if !skip && ar.Prompt.IncludeAll("none") {
 		return core.ErrLoginRequired.WithHint("Prompt 'none' was requested, but no existing login loginSession was found.")
 	}
 
-	loginVerifier := x.RandomUUID()
-	loginChallenge := x.RandomUUID()
-	loginCSRF := x.RandomUUID()
-
 	cl := client.SanitizedClientFromRequest(ar)
 	f := &flow.Flow{
-		LoginChallenge:       loginChallenge,
-		LoginVerifier:        loginVerifier,
-		LoginCSRF:            loginCSRF,
-		LoginSkip:            skip,
-		LoginWasHandled:      false,
-		LoginAuthenticatedAt: authenticatedAt,
-		RequestedAt:          x.NowUTC().Truncate(time.Second),
-		RequestURL:           r.URL.String(), // TODO: get proper authorize request url
-		RequestedScope:       []string(ar.Scope),
-		RequestedAudience:    []string(ar.Audience),
-		Client:               cl,
-		ClientID:             cl.GetID(),
-		Subject:              subject,
-		LoginSessionID: sql.NullString{
-			Valid:  len(sessionID) > 0,
-			String: sessionID,
-		},
+		LoginChallenge:          x.RandomUUID(),
+		LoginVerifier:           x.RandomUUID(),
+		LoginCSRF:               x.RandomUUID(),
+		LoginSkip:               skip,
+		LoginWasHandled:         false,
+		LoginAuthenticatedAt:    dbtype.NullTime(authenticatedAt),
+		RequestedAt:             x.NowUTC().Truncate(time.Second),
+		RequestURL:              r.URL.String(), // TODO: get proper authorize request url when behind a reverse proxy
+		RequestedScope:          []string(ar.Scope),
+		RequestedAudience:       []string(ar.Audience),
+		Client:                  cl,
+		ClientID:                cl.GetID(),
+		Subject:                 subject,
+		LoginSessionID:          dbtype.NullString(sessionID),
 		State:                   flow.FlowStateLoginInitialized,
 		ForcedSubjectIdentifier: "",
 		Context:                 []byte("{}"),
@@ -222,7 +215,7 @@ func (h *OAuthHandler) forwardLoginRequest(
 
 	// TODO: prevent csrf
 
-	encodedFlow, err := f.EncodeToLoginChallenge(ctx, h.aead)
+	encodedFlow, err := h.flowUC.EncodeFlow(ctx, f, flow.AsLoginChallenge)
 	if err != nil {
 		return err
 	}
@@ -257,7 +250,7 @@ func (h *OAuthHandler) requestLogin(
 		return err
 	}
 
-	if ar.MaxAge > -1 && loginSession.AuthenticatedAt.Time.UTC().Add(time.Duration(ar.MaxAge)*time.Second).Before(x.NowUTC()) {
+	if ar.MaxAge > -1 && time.Time(loginSession.AuthenticatedAt).UTC().Add(time.Duration(ar.MaxAge)*time.Second).Before(x.NowUTC()) {
 		if ar.Prompt.IncludeAll("none") {
 			return core.ErrLoginRequired.WithHint("Request failed because prompt is set to 'none' and authentication time reached 'max_age'.")
 		}
@@ -276,7 +269,12 @@ func (h *OAuthHandler) verifyLogin(
 	ar *core.AuthorizeRequest,
 	verifier string,
 ) (*flow.Flow, error) {
-	return nil, nil
+	f, err := h.flowUC.DecodeFlow(ctx, verifier, flow.AsLoginVerifier)
+	if err != nil {
+		return nil, core.ErrAccessDenied.WithHint("The login verifier is invalid.")
+	}
+
+	return f, nil
 }
 
 func (h *OAuthHandler) handleConsent(
