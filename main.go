@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/tuanta7/hydros/internal/token"
 	restadminv1 "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
 	restpublicv1 "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
+	"github.com/tuanta7/hydros/pkg/adapter/redis"
 
 	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 	"github.com/tuanta7/hydros/pkg/aead"
@@ -50,8 +52,18 @@ func main() {
 	clientRepo := client.NewClientRepository(pgClient)
 	clientUC := client.NewUseCase(cfg, clientRepo, logger)
 
+	redisClient, err := redis.NewClient(
+		context.Background(),
+		fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		redis.WithCredential(cfg.Redis.Username, cfg.Redis.Password),
+		redis.WithDB(cfg.Redis.DB),
+	)
+	panicErr(err)
+	defer redisClient.Close()
+
+	tokenCache := token.NewRequestSessionCache(cfg, redisClient)
 	tokenRepo := token.NewRequestSessionRepo(pgClient)
-	tokenStorageUC := token.NewRequestSessionStorage(cfg, aeadAES, tokenRepo)
+	tokenStorage := token.NewRequestSessionStorage(cfg, aeadAES, tokenRepo, tokenCache)
 
 	flowRepo := flow.NewFlowRepository(pgClient)
 	flowUC := flow.NewUseCase(cfg, flowRepo, aeadAES, logger)
@@ -61,6 +73,9 @@ func main() {
 
 	tokenStrategy, err := getTokenStrategy(cfg, jwkUC)
 	panicErr(err)
+
+	//idTokenSigner, err := jwt.NewSigner(cfg, jwkUC.GetOrCreateJWKFn(jwk.IDTokenSet))
+	//panicErr(err)
 
 	c := &cli.Command{
 		Name:  "hydros",
@@ -77,9 +92,9 @@ func main() {
 			cmd.NewCreateClientsCommand(clientUC),
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
-			oauthAuthorizationCodeGrantHandler := oauth.NewAuthorizationCodeGrantHandler(cfg, tokenStrategy, tokenStorageUC)
-			oidcAuthorizationCodeFlowHandler := oidc.NewOpenIDConnectAuthorizationCodeFlowHandler()
-			pkceHandler := pkce.NewProofKeyForCodeExchangeHandler(cfg, tokenStrategy, tokenStorageUC)
+			oauthAuthorizationCodeGrantHandler := oauth.NewAuthorizationCodeGrantHandler(cfg, tokenStrategy, tokenStorage)
+			oidcAuthorizationCodeFlowHandler := oidc.NewOpenIDConnectAuthorizationCodeFlowHandler(tokenStorage)
+			pkceHandler := pkce.NewProofKeyForCodeExchangeHandler(cfg, tokenStrategy, tokenStorage)
 
 			oauthCore := core.NewOAuth2(cfg, clientUC,
 				[]core.AuthorizeHandler{
@@ -91,11 +106,11 @@ func main() {
 					oauthAuthorizationCodeGrantHandler,
 					oidcAuthorizationCodeFlowHandler,
 					pkceHandler,
-					oauth.NewClientCredentialsGrantHandler(cfg, tokenStrategy, tokenStorageUC),
+					oauth.NewClientCredentialsGrantHandler(cfg, tokenStrategy, tokenStorage),
 				},
 				[]core.IntrospectionHandler{
 					oauth.NewJWTIntrospectionHandler(tokenStrategy),
-					oauth.NewTokenIntrospectionHandler(cfg, tokenStrategy, tokenStorageUC),
+					oauth.NewTokenIntrospectionHandler(cfg, tokenStrategy, tokenStorage),
 				},
 			)
 

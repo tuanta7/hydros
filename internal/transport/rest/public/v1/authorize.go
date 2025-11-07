@@ -78,6 +78,9 @@ func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 	//	return
 	//}
 
+	ar.GrantedAudience = ar.GrantedAudience.Append(f.GrantedAudience...)
+	ar.GrantedScope = ar.GrantedScope.Append(f.GrantedScope...)
+
 	authorizeResponse, err := h.oauth2.NewAuthorizeResponse(ctx, ar, &session.Session{
 		IDTokenSession: &oidc.IDTokenSession{
 			Subject: f.Subject, // id of authenticated user

@@ -12,7 +12,7 @@ type TokenIntrospectionConfigurator interface {
 	core.DisableRefreshTokenValidationProvider
 }
 
-type TokenStorage interface {
+type TokenIntrospectionStorage interface {
 	storage.AccessTokenStorage
 	storage.RefreshTokenStorage
 }
@@ -23,13 +23,13 @@ type TokenIntrospectionHandler struct {
 	config        TokenIntrospectionConfigurator
 	scopeStrategy strategy.ScopeStrategy
 	tokenStrategy strategy.TokenStrategy
-	tokenStorage  TokenStorage
+	tokenStorage  TokenIntrospectionStorage
 }
 
 func NewTokenIntrospectionHandler(
 	config TokenIntrospectionConfigurator,
 	tokenStrategy strategy.TokenStrategy,
-	tokenStorage TokenStorage,
+	tokenStorage TokenIntrospectionStorage,
 
 ) *TokenIntrospectionHandler {
 	return &TokenIntrospectionHandler{

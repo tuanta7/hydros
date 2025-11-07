@@ -5,13 +5,15 @@ import "strings"
 type Arguments []string
 
 func (r Arguments) Append(args ...string) Arguments {
+	a := Arguments{}
 	for _, arg := range args {
 		if r.Include(arg) {
 			continue
 		}
+		a = append(a, arg)
 	}
 
-	return append(r, args...)
+	return append(r, a...)
 }
 
 func (r Arguments) ExactAll(items ...string) bool {

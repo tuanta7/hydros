@@ -78,14 +78,14 @@ func (s *Server) RegisterRoutes() {
 	s.router.GET("/self-service/login", s.formHandler.LoginPage)
 	s.router.POST("/self-service/login", s.formHandler.Login)
 	s.router.GET("/self-service/consent", s.formHandler.ConsentPage)
-	s.router.POST("/self-service/consent", nil)
+	s.router.POST("/self-service/consent", s.formHandler.Consent)
 
 	// Authorization Service - Admin APIs
 	adminRouter := s.router.Group("/admin/api/v1")
 	adminRouter.GET("/clients", s.clientHandler.List)
 	adminRouter.POST("/clients", s.clientHandler.Create)
 
-	// Identity Service
+	// For external identity providers
 	adminRouter.GET("/login/flows", s.flowHandler.GetLoginFlow)
 	adminRouter.PUT("/login/accept", s.flowHandler.AcceptLogin)
 	adminRouter.PUT("/login/reject", s.flowHandler.RejectLogin)

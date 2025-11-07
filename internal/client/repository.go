@@ -37,7 +37,7 @@ func (r *clientRepository) List(ctx context.Context, page, pageSize uint64) ([]*
 		return nil, err
 	}
 
-	rows, err := r.pgClient.Pool().Query(ctx, query, args...)
+	rows, err := r.pgClient.QueryProvider().Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (r *clientRepository) Create(ctx context.Context, client *Client) error {
 		return err
 	}
 
-	_, err = r.pgClient.Pool().Exec(ctx, query, args...)
+	_, err = r.pgClient.QueryProvider().Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (r *clientRepository) Get(ctx context.Context, id string) (*Client, error) 
 		return nil, err
 	}
 
-	rows, err := r.pgClient.Pool().Query(ctx, query, args...)
+	rows, err := r.pgClient.QueryProvider().Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

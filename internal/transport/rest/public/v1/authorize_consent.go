@@ -30,8 +30,12 @@ func (h *OAuthHandler) requestConsent(
 	w http.ResponseWriter,
 	r *http.Request,
 	ar *core.AuthorizeRequest,
-	flow *flow.Flow,
+	f *flow.Flow,
 ) error {
+	if ar.Prompt.IncludeAll("consent") {
+		return h.forwardConsentRequest(ctx, w, r, ar, f, nil)
+	}
+
 	return errors.ErrAbortOAuth2Request
 }
 
@@ -42,4 +46,15 @@ func (h *OAuthHandler) verifyConsent(ctx context.Context, verifier string) (*flo
 	}
 
 	return f, nil
+}
+
+func (h *OAuthHandler) forwardConsentRequest(
+	ctx context.Context,
+	w http.ResponseWriter,
+	r *http.Request,
+	ar *core.AuthorizeRequest,
+	f *flow.Flow,
+	previousConsent *flow.Flow,
+) error {
+	return errors.ErrAbortOAuth2Request
 }

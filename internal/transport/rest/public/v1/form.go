@@ -186,3 +186,5 @@ func (h *FormHandler) acceptLogin(c *gin.Context, handledLoginRequest *flow.Hand
 func (h *FormHandler) ConsentPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "consent.html", nil)
 }
+
+func (h *FormHandler) Consent(c *gin.Context) {}

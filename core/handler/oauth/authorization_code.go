@@ -116,8 +116,7 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeResponse(
 	}
 
 	audienceStrategy := h.config.GetAudienceStrategy()
-	err := audienceStrategy(client.GetAudience(), req.Audience)
-	if err != nil {
+	if err := audienceStrategy(client.GetAudience(), req.Audience); err != nil {
 		return err
 	}
 

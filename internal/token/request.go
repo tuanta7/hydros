@@ -95,7 +95,7 @@ func (s *RequestSessionData) ToRequest(
 		Form:            form,
 		Client: &client.Client{
 			// I have not figured out how to get the full client object from the database like hydra,
-			// so just use the ID for now.
+			// so just use the ID for now 👍.
 			ID: s.ClientID,
 		},
 		Session: session,

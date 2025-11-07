@@ -8,11 +8,16 @@ import (
 )
 
 type client struct {
-	pool       Pool
+	pool       *pgxpool.Pool
 	sqlBuilder squirrel.StatementBuilderType
 }
 
-func (c *client) Pool() Pool {
+func (c *client) QueryProvider() QueryProvider {
+	//tx, _ := c.pool.BeginTx(context.Background(), pgx.TxOptions{
+	//	IsoLevel: pgx.RepeatableRead,
+	//})
+	//return tx
+
 	return c.pool
 }
 

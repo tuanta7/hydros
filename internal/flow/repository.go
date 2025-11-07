@@ -41,7 +41,7 @@ func (r *Repository) Create(ctx context.Context, flow *Flow) error {
 		return err
 	}
 
-	_, err = r.pgClient.Pool().Exec(ctx, query, args...)
+	_, err = r.pgClient.QueryProvider().Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -53,13 +53,13 @@ func (r *Repository) Get(ctx context.Context, challenge string) (*Flow, error) {
 	query, args, err := r.pgClient.SQLBuilder().
 		Select("*").
 		From(r.table).
-		Where(squirrel.Eq{"login_challenge": challenge}).
+		Where(squirrel.Eq{"id": challenge}).
 		ToSql()
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := r.pgClient.Pool().Query(ctx, query, args...)
+	rows, err := r.pgClient.QueryProvider().Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

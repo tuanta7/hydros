@@ -5,16 +5,18 @@ import (
 	"strconv"
 
 	"github.com/tuanta7/hydros/core"
+	"github.com/tuanta7/hydros/core/storage"
 	"github.com/tuanta7/hydros/core/x"
 )
 
-var oidcParameters = []string{"grant_type", "max_age", "prompt", "acr_values", "id_token_hint", "nonce"}
-
 type OpenIDConnectAuthorizationCodeFlowHandler struct {
+	storage storage.OpenIDConnectRequestStorage
 }
 
-func NewOpenIDConnectAuthorizationCodeFlowHandler() *OpenIDConnectAuthorizationCodeFlowHandler {
-	return &OpenIDConnectAuthorizationCodeFlowHandler{}
+func NewOpenIDConnectAuthorizationCodeFlowHandler(storage storage.OpenIDConnectRequestStorage) *OpenIDConnectAuthorizationCodeFlowHandler {
+	return &OpenIDConnectAuthorizationCodeFlowHandler{
+		storage: storage,
+	}
 }
 
 func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeRequest(ctx context.Context, req *core.AuthorizeRequest) error {
@@ -79,6 +81,21 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeResponse(
 
 	if len(res.Code) == 0 {
 		return core.ErrMisconfiguration.WithDebug("The authorization code has not been issued yet, indicating a broken code configuration.")
+	}
+
+	if req.RedirectURI.String() == "" {
+		return core.ErrInvalidRequest.WithHint("The 'redirect_uri' parameter is required when using OpenID Connect 1.0.")
+	}
+
+	if err := h.storage.CreateOpenIDConnectSession(ctx, res.Code, req.Sanitize(
+		"grant_type",
+		"max_age",
+		"prompt",
+		"acr_values",
+		"id_token_hint",
+		"nonce",
+	)); err != nil {
+		return core.ErrServerError.WithWrap(err).WithDebug(err.Error())
 	}
 
 	return nil

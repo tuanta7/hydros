@@ -53,7 +53,11 @@ func (h *FlowHandler) GetLoginFlow(c *gin.Context) {
 
 	f.Client = client.SanitizeClient(f.Client)
 	c.JSON(http.StatusOK, gin.H{
-		"flow": f,
+		"skip":        f.LoginSkip,
+		"subject":     f.Subject,
+		"client":      f.Client,
+		"request_url": f.RequestURL,
+		"session_id":  f.LoginSessionID,
 	})
 }
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 )
 
+// MapStringAny represents JSON in Go
 type MapStringAny map[string]any
 
 // Scan implements the Scanner interface.
