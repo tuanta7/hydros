@@ -2,12 +2,22 @@ package config
 
 import (
 	"net/url"
+	"time"
 )
 
 type IdentityConfig struct {
-	RegistrationURL string `koanf:"registration_url"`
-	LoginPageURL    string `koanf:"login_page_url"`
-	ConsentPageURL  string `koanf:"consent_page_url"`
+	RegistrationURL      string        `koanf:"registration_url"`
+	LoginPageURL         string        `koanf:"login_page_url"`
+	ConsentPageURL       string        `koanf:"consent_page_url"`
+	ConsentRequestMaxAge time.Duration `koanf:"consent_request_max_age"`
+}
+
+func (c *Config) GetConsentRequestMaxAge() time.Duration {
+	if c.Identity.ConsentRequestMaxAge == 0 {
+		return 10 * time.Minute
+	}
+
+	return c.Identity.ConsentRequestMaxAge
 }
 
 func (c *Config) GetRegistrationURL() *url.URL {

@@ -54,7 +54,7 @@ func main() {
 	tokenStorageUC := token.NewRequestSessionStorage(cfg, aeadAES, tokenRepo)
 
 	flowRepo := flow.NewFlowRepository(pgClient)
-	flowUC := flow.NewUseCase(flowRepo, aeadAES, logger)
+	flowUC := flow.NewUseCase(cfg, flowRepo, aeadAES, logger)
 
 	loginSessionRepo := session.NewSessionRepository(pgClient)
 	loginSessionUC := session.NewUseCase(loginSessionRepo)

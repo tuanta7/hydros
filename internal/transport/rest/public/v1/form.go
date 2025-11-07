@@ -3,15 +3,15 @@ package v1
 import (
 	"net/http"
 	"net/url"
-	"time"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
-	"github.com/tuanta7/hydros/core/x"
 	"github.com/tuanta7/hydros/internal/client"
 	"github.com/tuanta7/hydros/internal/flow"
-	"github.com/tuanta7/hydros/pkg/dbtype"
+	"github.com/tuanta7/hydros/internal/login"
+	"github.com/tuanta7/hydros/pkg/helper"
 	"github.com/tuanta7/hydros/pkg/urlx"
 )
 
@@ -19,6 +19,7 @@ import (
 // public APIs.
 type FormHandler struct {
 	cfg    *config.Config
+	idp    []login.IdentityProvider
 	flowUC *flow.UseCase
 }
 
@@ -38,6 +39,7 @@ func (h *FormHandler) LoginPage(c *gin.Context) {
 	if !f.LoginSkip {
 		c.HTML(http.StatusOK, "login.html", gin.H{
 			"LoginChallenge": c.Query("login_challenge"),
+			"CSRFToken":      f.LoginCSRF,
 		})
 		return
 	}
@@ -57,15 +59,20 @@ func (h *FormHandler) Login(c *gin.Context) {
 	email := c.PostForm("email")
 	password := c.PostForm("password")
 
+	// TODO: implement login strategies
 	if email != "admin@example.com" || password != "password" {
 		h.writeFormError(c, core.ErrRequestUnauthorized.WithHint("Invalid username or password"))
 		return
 	}
 
-	handledLoginRequest := &flow.HandledLoginRequest{
-		Subject: email,
-	}
-	h.acceptLogin(c, handledLoginRequest)
+	// If we use another standalone login provider, that IDP must call the /login/accept API endpoint internally to
+	// accept the login and persist the login session. The session will be persisted in the Hydros domain
+	rememberForDays, _ := strconv.ParseInt(c.PostForm("remember_for"), 10, 64)
+	h.acceptLogin(c, &flow.HandledLoginRequest{
+		Subject:     email,
+		Remember:    c.PostForm("remember") == "on",
+		RememberFor: int(rememberForDays) * 24 * 60 * 60, // to seconds
+	})
 }
 
 func (h *FormHandler) getLoginFlow(c *gin.Context) (*flow.Flow, bool) {
@@ -122,9 +129,12 @@ func (h *FormHandler) writeFormError(c *gin.Context, err *core.RFC6749Error) {
 func (h *FormHandler) acceptLogin(c *gin.Context, handledLoginRequest *flow.HandledLoginRequest) {
 	ctx := c.Request.Context()
 
-	challenge := c.PostForm("login_challenge")
+	challenge := helper.StringCoalesce(
+		c.Query("login_challenge"),    // skip login
+		c.PostForm("login_challenge"), // form value
+	)
 	if challenge == "" {
-		h.writeFormError(c, core.ErrInvalidRequest.WithHint("Form value 'login_challenge' is not defined but should have been."))
+		h.writeFormError(c, core.ErrInvalidRequest.WithHint("'login_challenge' is not defined but should have been."))
 		return
 	}
 
@@ -152,17 +162,11 @@ func (h *FormHandler) acceptLogin(c *gin.Context, handledLoginRequest *flow.Hand
 		return
 	}
 
-	if f.LoginSkip {
-		f.LoginRemember = true
-	} else {
-		f.LoginAuthenticatedAt = dbtype.NullTime(x.NowUTC().Truncate(time.Second))
+	err = f.HandleLoginRequest(handledLoginRequest)
+	if err != nil {
+		h.writeFormError(c, core.ErrorToRFC6749Error(err))
+		return
 	}
-
-	f.Subject = handledLoginRequest.Subject
-	f.LoginWasHandled = true
-	f.AMR = handledLoginRequest.AMR
-	f.ACR = handledLoginRequest.ACR
-	f.LoginRememberFor = handledLoginRequest.RememberFor
 
 	verifier, err := h.flowUC.EncodeFlow(ctx, f, flow.AsLoginVerifier)
 	if err != nil {

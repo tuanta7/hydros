@@ -1,8 +1,6 @@
 package session
 
 import (
-	"database/sql"
-
 	"github.com/mohae/deepcopy"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/handler/oidc"
@@ -45,11 +43,11 @@ func (s *Session) Clone() core.Session {
 }
 
 type LoginSession struct {
-	ID                        string          `db:"id"`
-	AuthenticatedAt           dbtype.NullTime `db:"authenticated_at"`
-	Subject                   string          `db:"subject"`
-	IdentityProviderSessionID sql.NullString  `db:"identity_provider_session_id"`
-	Remember                  bool            `db:"remember"`
+	ID                        string            `db:"id"`
+	AuthenticatedAt           dbtype.NullTime   `db:"authenticated_at"`
+	Subject                   string            `db:"subject"`
+	IdentityProviderSessionID dbtype.NullString `db:"identity_provider_session_id"`
+	Remember                  bool              `db:"remember"`
 }
 
 func (s *LoginSession) ColumnMap() map[string]any {

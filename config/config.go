@@ -21,15 +21,15 @@ type Config struct {
 	GRPCServerHost string `koanf:"grpc_server_host"`
 	GRPCServerPort string `koanf:"grpc_server_port"`
 
-	Redis       RedisConfig       `koanf:"redis"`
-	Postgres    PostgresConfig    `koanf:"postgres"`
-	Cookie      CookieConfig      `koanf:"cookie"`
-	OAuth       OAuthConfig       `koanf:"oauth"`
-	Lifetime    LifetimeConfig    `koanf:"lifetime"`
-	HMAC        HMACConfig        `koanf:"hmac"`
-	JWT         JWTConfig         `koanf:"jwt"`
-	Obfuscation ObfuscationConfig `koanf:"obfuscation"`
-	Identity    IdentityConfig    `koanf:"identity"`
+	Redis         RedisConfig         `koanf:"redis"`
+	Postgres      PostgresConfig      `koanf:"postgres"`
+	SessionCookie SessionCookieConfig `koanf:"session_cookie"`
+	OAuth         OAuthConfig         `koanf:"oauth"`
+	Lifetime      LifetimeConfig      `koanf:"lifetime"`
+	HMAC          HMACConfig          `koanf:"hmac"`
+	JWT           JWTConfig           `koanf:"jwt"`
+	Obfuscation   ObfuscationConfig   `koanf:"obfuscation"`
+	Identity      IdentityConfig      `koanf:"identity"`
 }
 
 func (c *Config) IsDebugging() bool {

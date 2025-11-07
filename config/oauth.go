@@ -12,7 +12,7 @@ type OAuthConfig struct {
 	AccessTokenFormat              string `koanf:"access_token_format"` // must be "jwt" or "opaque"
 	MinParameterEntropy            int    `koanf:"min_parameter_entropy"`
 	DisableRefreshTokenValidation  bool   `koanf:"disable_refresh_token_validation"`
-	EnablePKCEPlainChallengeMethod bool   `koanf:"disable_pkce_plain_challenge_method"`
+	EnablePKCEPlainChallengeMethod bool   `koanf:"enable_pkce_plain_challenge_method"`
 }
 
 func (c *Config) GetScopeStrategy() strategy.ScopeStrategy {

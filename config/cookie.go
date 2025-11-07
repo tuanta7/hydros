@@ -2,12 +2,12 @@ package config
 
 import "net/http"
 
-type CookieConfig struct {
-	Domain      string `koanf:"domain"`
-	Path        string `koanf:"path"`
-	SameSite    string `koanf:"same_site"`
-	Secure      bool   `koanf:"secure"`
-	SessionName string `koanf:"session_name"`
+type SessionCookieConfig struct {
+	Domain     string `koanf:"domain"`
+	Path       string `koanf:"path"`
+	SameSite   string `koanf:"same_site"`
+	Secure     bool   `koanf:"secure"`
+	SessionKey string `koanf:"session_key"`
 	// KeyPairs    [][]byte `koanf:"key_pairs"`
 }
 
@@ -17,20 +17,23 @@ func (c *Config) CookieKeyPairs() [][]byte {
 	return keyPairs
 }
 
-func (c *Config) CookieSessionName() string {
-	return c.Cookie.SessionName
+func (c *Config) SessionCookieKey() string {
+	if c.SessionCookie.SessionKey == "" {
+		return "login_session"
+	}
+	return c.SessionCookie.SessionKey
 }
 
-func (c *Config) CookieDomain() string {
-	return c.Cookie.Domain
+func (c *Config) SessionCookieDomain() string {
+	return c.SessionCookie.Domain
 }
 
-func (c *Config) CookiePath() string {
-	return c.Cookie.Path
+func (c *Config) SessionCookiePath() string {
+	return c.SessionCookie.Path
 }
 
-func (c *Config) CookieSameSiteMode() http.SameSite {
-	switch c.Cookie.SameSite {
+func (c *Config) SessionCookieSameSiteMode() http.SameSite {
+	switch c.SessionCookie.SameSite {
 	case "strict":
 		// only sent if the request is coming from the same site that set it
 		return http.SameSiteStrictMode
@@ -46,6 +49,6 @@ func (c *Config) CookieSameSiteMode() http.SameSite {
 	}
 }
 
-func (c *Config) CookieSecure() bool {
-	return c.Cookie.Secure
+func (c *Config) SessionCookieSecure() bool {
+	return c.SessionCookie.Secure
 }

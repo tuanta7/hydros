@@ -181,6 +181,12 @@ var (
 		HintField:        "Make sure that the request you are making is valid. Maybe the credential or request parameters you are using are limited in scope or otherwise restricted.",
 		CodeField:        http.StatusForbidden,
 	}
+	ErrRequestForbidden = &RFC6749Error{
+		ErrorField:       "request_forbidden",
+		DescriptionField: "The request is not allowed.",
+		HintField:        "You are not allowed to perform this action.",
+		CodeField:        http.StatusForbidden,
+	}
 )
 
 func ErrorToRFC6749Error(err error) *RFC6749Error {

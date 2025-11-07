@@ -4,8 +4,14 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/tuanta7/hydros/core"
+)
+
+const (
+	LoginRequestDeniedErrorName   = "login request denied"
+	ConsentRequestDeniedErrorName = "consent request denied"
 )
 
 type RequestDeniedError struct {
@@ -19,6 +25,16 @@ type RequestDeniedError struct {
 
 func (e *RequestDeniedError) IsError() bool {
 	return e != nil && e.Valid
+}
+
+func (e *RequestDeniedError) SetDefaults(name string) {
+	if e.Error == "" {
+		e.Error = name
+	}
+
+	if e.Code == 0 {
+		e.Code = http.StatusBadRequest
+	}
 }
 
 func (e *RequestDeniedError) ToRFCError() *core.RFC6749Error {

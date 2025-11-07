@@ -1,9 +1,10 @@
 -- +goose Up
 CREATE TABLE IF NOT EXISTS flow
 (
-    login_challenge               VARCHAR(40)                                NOT NULL,
+    id                            VARCHAR(40)                                NOT NULL,
+    acr                           TEXT         DEFAULT ''::TEXT              NOT NULL,
+    amr                           JSONB        DEFAULT '[]'::JSONB,
     login_skip                    BOOLEAN                                    NOT NULL,
-    login_verifier                VARCHAR(40)                                NOT NULL,
     login_csrf                    VARCHAR(40)                                NOT NULL,
     login_initialized_at          TIMESTAMP,
     login_remember                BOOLEAN      DEFAULT false                 NOT NULL,
@@ -14,10 +15,10 @@ CREATE TABLE IF NOT EXISTS flow
     login_authenticated_at        TIMESTAMP,
     login_session_id              VARCHAR(40),
     subject                       VARCHAR(255)                               NOT NULL,
+    forced_subject_identifier     VARCHAR(255) DEFAULT ''::CHARACTER VARYING NOT NULL,
+    identity_provider_session_id  VARCHAR(40),
 
-    consent_challenge             VARCHAR(40) UNIQUE,
     consent_skip                  BOOLEAN      DEFAULT false                 NOT NULL,
-    consent_verifier              VARCHAR(40),
     consent_csrf                  VARCHAR(40),
     consent_remember              BOOLEAN      DEFAULT false                 NOT NULL,
     consent_remember_for          INTEGER,
@@ -33,20 +34,16 @@ CREATE TABLE IF NOT EXISTS flow
     granted_audience              JSONB        DEFAULT '[]'::JSONB,
     client_id                     VARCHAR(255)                               NOT NULL,
 
-    acr                           TEXT         DEFAULT ''::TEXT              NOT NULL,
-    amr                           JSONB        DEFAULT '[]'::JSONB,
     context                       JSONB        DEFAULT '{}'::JSONB           NOT NULL,
     oidc_context                  JSONB        DEFAULT '{}'::JSONB           NOT NULL,
-    forced_subject_identifier     VARCHAR(255) DEFAULT ''::CHARACTER VARYING NOT NULL,
-    identity_provider_session_id  VARCHAR(40),
     session_id_token              JSONB        DEFAULT '{}'::JSONB           NOT NULL,
     session_access_token          JSONB        DEFAULT '{}'::JSONB           NOT NULL,
     state                         INTEGER                                    NOT NULL,
 
-    PRIMARY KEY (login_challenge),
+    PRIMARY KEY (id),
     CONSTRAINT flow_client_id_fk FOREIGN KEY (client_id) REFERENCES client ON DELETE CASCADE,
     CONSTRAINT flow_login_session_id_fk FOREIGN KEY (login_session_id) REFERENCES login_session ON DELETE SET NULL,
-    CONSTRAINT flow_check CHECK(
+    CONSTRAINT flow_check CHECK (
         (state = 128) OR (state = 129) OR (state = 1)
             OR (
             (state = 2) AND (
@@ -77,8 +74,6 @@ CREATE TABLE IF NOT EXISTS flow
                 (login_was_handled IS NOT NULL) AND
                 (context IS NOT NULL) AND
                 (amr IS NOT NULL) AND
-                (consent_challenge IS NOT NULL) AND
-                (consent_verifier IS NOT NULL) AND
                 (consent_skip IS NOT NULL) AND
                 (consent_csrf IS NOT NULL)
                 ))
@@ -91,8 +86,6 @@ CREATE TABLE IF NOT EXISTS flow
                 (login_was_handled IS NOT NULL) AND
                 (context IS NOT NULL) AND
                 (amr IS NOT NULL) AND
-                (consent_challenge IS NOT NULL) AND
-                (consent_verifier IS NOT NULL) AND
                 (consent_skip IS NOT NULL) AND
                 (consent_csrf IS NOT NULL)
                 ))
@@ -105,8 +98,6 @@ CREATE TABLE IF NOT EXISTS flow
                 (login_was_handled IS NOT NULL) AND
                 (context IS NOT NULL) AND
                 (amr IS NOT NULL) AND
-                (consent_challenge IS NOT NULL) AND
-                (consent_verifier IS NOT NULL) AND
                 (consent_skip IS NOT NULL) AND
                 (consent_csrf IS NOT NULL) AND
                 (granted_scope IS NOT NULL) AND

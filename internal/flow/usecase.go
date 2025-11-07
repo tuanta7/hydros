@@ -2,23 +2,24 @@ package flow
 
 import (
 	"context"
-	"time"
 
+	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/x"
 	"github.com/tuanta7/hydros/pkg/aead"
 	"github.com/tuanta7/hydros/pkg/zapx"
-	"go.uber.org/zap"
 )
 
 type UseCase struct {
+	cfg      *config.Config
 	flowRepo *Repository
 	aead     aead.Cipher
 	logger   *zapx.Logger
 }
 
-func NewUseCase(flowRepo *Repository, aead aead.Cipher, logger *zapx.Logger) *UseCase {
+func NewUseCase(cfg *config.Config, flowRepo *Repository, aead aead.Cipher, logger *zapx.Logger) *UseCase {
 	return &UseCase{
+		cfg:      cfg,
 		flowRepo: flowRepo,
 		aead:     aead,
 		logger:   logger,
@@ -39,27 +40,22 @@ func (u *UseCase) GetLoginRequest(ctx context.Context, challenge string) (*Flow,
 		return nil, err
 	}
 
-	// TODO: add login/consent timeout
-	if f.RequestedAt.Add(time.Minute * 15).Before(x.NowUTC()) {
+	if f.RequestedAt.Add(u.cfg.GetConsentRequestMaxAge()).Before(x.NowUTC()) {
 		return nil, core.ErrRequestUnauthorized.WithHint("The login request has expired, please try again.")
 	}
 
 	return f, nil
 }
 
-func (u *UseCase) VerifyAndInvalidateFlow(ctx context.Context, verifier string, as []byte) (*Flow, error) {
-	f, err := DecodeFlow(ctx, u.aead, verifier, as)
+func (u *UseCase) VerifyAndInvalidateLoginRequest(ctx context.Context, verifier string) (*Flow, error) {
+	f, err := DecodeFlow(ctx, u.aead, verifier, AsLoginVerifier)
 	if err != nil {
 		return nil, err
 	}
 
-	err = u.flowRepo.Create(ctx, f)
+	err = f.InvalidateLoginRequest()
 	if err != nil {
-		u.logger.Error("cannot create flow",
-			zap.Error(err),
-			zap.String("method", "flowRepo.Create"),
-		)
-		return nil, err
+		return nil, core.ErrInvalidRequest.WithDebug(err.Error())
 	}
 
 	return f, nil
