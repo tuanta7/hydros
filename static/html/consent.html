@@ -1,10 +1,230 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Grant Access</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: Inter, Segoe UI, Helvetica, Arial, sans-serif;
+            background: #fff;
+            color: #111;
+        }
+
+        .wrap {
+            max-width: 420px;
+            margin: 48px auto;
+            padding: 24px;
+        }
+
+        .card {
+            padding: 20px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 22px;
+        }
+
+        p.lead {
+            margin: 0 0 18px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .client-info {
+            background: #f9fafb;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+            border: 1px solid #e5e7eb;
+        }
+
+        .client-name {
+            font-weight: 600;
+            font-size: 15px;
+            color: #111;
+            margin-bottom: 4px;
+        }
+
+        .client-uri {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .scopes-section {
+            margin: 20px 0;
+        }
+
+        .scopes-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #111;
+            margin-bottom: 12px;
+        }
+
+        .scope-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .scope-item {
+            padding: 8px 0;
+            font-size: 14px;
+            color: #374151;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .scope-item::before {
+            content: "✓";
+            color: #111827;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: #444;
+            margin: 12px 0 6px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 14px;
+            color: #111;
+            background: #fff;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(17,24,39,0.06);
+            border-color: #111827;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            cursor: pointer;
+            accent-color: #111827;
+        }
+
+        input[type="checkbox"]:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(17,24,39,0.06);
+        }
+
+        .remember-group {
+            margin: 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .remember-group label {
+            margin: 0;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .actions {
+            margin-top: 18px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        button {
+            appearance: none;
+            border: 0;
+            background: #111827;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 14px;
+            flex: 1;
+        }
+
+        button:hover {
+            background: #1f2937;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: #111;
+            border: 1px solid #e5e7eb;
+        }
+
+        .btn-ghost:hover {
+            background: #f9fafb;
+        }
+
+        .warning {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+            font-size: 13px;
+            color: #92400e;
+        }
+    </style>
 </head>
 <body>
+<div class="wrap">
+    <div class="card">
+        <h1>Grant Access</h1>
+        <p class="lead">An application is requesting access to your account.</p>
 
+        <div class="client-info">
+            <div class="client-name">{{.ClientName}}</div>
+            {{if .ClientURI}}
+            <div class="client-uri">{{.ClientURI}}</div>
+            {{end}}
+        </div>
+
+        {{if .Scopes}}
+        <div class="scopes-section">
+            <div class="scopes-title">This application will be able to:</div>
+            <ul class="scope-list">
+                {{range .Scopes}}
+                <li class="scope-item">{{.}}</li>
+                {{end}}
+            </ul>
+        </div>
+        {{end}}
+
+        <form action="/self-service/consent" method="post" novalidate>
+            <div class="remember-group">
+                <input id="remember" name="remember" type="checkbox">
+                <label for="remember">Remember my decision</label>
+            </div>
+
+            <label for="remember_for">Remember for (days)</label>
+            <input id="remember_for" name="remember_for" type="number" value="7" min="0" step="1">
+
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <input type="hidden" name="consent_challenge" value="{{.ConsentChallenge}}">
+
+            <div class="actions">
+                <button type="submit" name="action" value="accept">Allow</button>
+                <button type="submit" name="action" value="deny" class="btn-ghost">Deny</button>
+            </div>
+        </form>
+    </div>
+</div>
 </body>
 </html>

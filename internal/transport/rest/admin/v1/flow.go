@@ -4,14 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tuanta7/hydros/core"
-	"github.com/tuanta7/hydros/core/x"
 	"github.com/tuanta7/hydros/internal/client"
 	"github.com/tuanta7/hydros/internal/flow"
-	"github.com/tuanta7/hydros/pkg/dbtype"
 	"github.com/tuanta7/hydros/pkg/urlx"
 )
 
@@ -101,17 +98,11 @@ func (h *FlowHandler) AcceptLogin(c *gin.Context) {
 		return
 	}
 
-	if f.LoginSkip {
-		f.LoginRemember = true
-	} else {
-		f.LoginAuthenticatedAt = dbtype.NullTime(x.NowUTC().Truncate(time.Second))
+	err = f.HandleLoginRequest(handledLoginRequest)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, core.ErrServerError.WithWrap(err))
+		return
 	}
-
-	f.Subject = handledLoginRequest.Subject
-	f.LoginWasHandled = true
-	f.AMR = handledLoginRequest.AMR
-	f.ACR = handledLoginRequest.ACR
-	f.LoginRememberFor = handledLoginRequest.RememberFor
 
 	verifier, err := h.flowUC.EncodeFlow(ctx, f, flow.AsLoginVerifier)
 	if err != nil {
@@ -125,12 +116,7 @@ func (h *FlowHandler) AcceptLogin(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"redirect_to": redirectTo,
-	})
-
-	return
-
+	c.JSON(http.StatusOK, gin.H{"redirect_to": redirectTo})
 }
 
 func (h *FlowHandler) RejectLogin(c *gin.Context) {

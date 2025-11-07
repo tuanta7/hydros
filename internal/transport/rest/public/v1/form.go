@@ -66,7 +66,7 @@ func (h *FormHandler) Login(c *gin.Context) {
 	}
 
 	// If we use another standalone login provider, that IDP must call the /login/accept API endpoint internally to
-	// accept the login and persist the login session. The session will be persisted in the Hydros domain
+	// accept the login and redirect back to the authorization endpoint with the login verifier.
 	rememberForDays, _ := strconv.ParseInt(c.PostForm("remember_for"), 10, 64)
 	h.acceptLogin(c, &flow.HandledLoginRequest{
 		Subject:     email,
@@ -145,7 +145,7 @@ func (h *FormHandler) acceptLogin(c *gin.Context, handledLoginRequest *flow.Hand
 
 	f, err := h.flowUC.GetLoginRequest(ctx, challenge)
 	if err != nil {
-		h.writeFormError(c, core.ErrorToRFC6749Error(err))
+		h.writeFormError(c, core.ErrInvalidRequest.WithWrap(err))
 		return
 	} else if f.Subject != "" && f.Subject != handledLoginRequest.Subject {
 		// if the flow already has a subject from a remembered login, we redirect the user back to the original
