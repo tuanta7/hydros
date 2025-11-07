@@ -12,11 +12,13 @@ type client struct {
 	sqlBuilder squirrel.StatementBuilderType
 }
 
-func (c *client) QueryProvider() QueryProvider {
-	//tx, _ := c.pool.BeginTx(context.Background(), pgx.TxOptions{
-	//	IsoLevel: pgx.RepeatableRead,
-	//})
-	//return tx
+func (c *client) QueryProvider(ctx context.Context) QueryProvider {
+	txConn := ctx.Value("tx_connection")
+	if txConn != nil {
+		if tx, ok := txConn.(*pgxpool.Tx); ok {
+			return tx
+		}
+	}
 
 	return c.pool
 }

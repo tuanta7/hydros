@@ -33,7 +33,7 @@ func (r *Repository) GetRememberedLoginSession(ctx context.Context, id string) (
 		return nil, err
 	}
 
-	rows, err := r.pgClient.QueryProvider().Query(ctx, query, args...)
+	rows, err := r.pgClient.QueryProvider(ctx).Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (r *Repository) UpsertLoginSession(ctx context.Context, session *LoginSessi
 		return err
 	}
 
-	ct, err := r.pgClient.QueryProvider().Exec(ctx, query, args...)
+	ct, err := r.pgClient.QueryProvider(ctx).Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (r *Repository) DeleteLoginSession(ctx context.Context, id string) (*LoginS
 		return nil, err
 	}
 
-	rows, err := r.pgClient.QueryProvider().Query(ctx, query, args...)
+	rows, err := r.pgClient.QueryProvider(ctx).Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

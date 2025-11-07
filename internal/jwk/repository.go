@@ -31,7 +31,7 @@ func (r *Repository) List(ctx context.Context, limit uint64) ([]*KeyData, error)
 		return nil, err
 	}
 
-	rows, err := r.pgClient.QueryProvider().Query(ctx, query, args...)
+	rows, err := r.pgClient.QueryProvider(ctx).Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (r *Repository) Create(ctx context.Context, key *KeyData) error {
 		return err
 	}
 
-	_, err = r.pgClient.QueryProvider().Exec(ctx, query, args...)
+	_, err = r.pgClient.QueryProvider(ctx).Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func (r *Repository) GetActiveKey(ctx context.Context, set Set) (*KeyData, error
 		return nil, err
 	}
 
-	rows, err := r.pgClient.QueryProvider().Query(ctx, query, args...)
+	rows, err := r.pgClient.QueryProvider(ctx).Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

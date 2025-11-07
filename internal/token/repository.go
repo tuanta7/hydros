@@ -47,7 +47,7 @@ func (r *RequestSessionRepo) Create(ctx context.Context, tokenType core.TokenTyp
 		return err
 	}
 
-	_, err = r.pgClient.QueryProvider().Exec(ctx, query, args...)
+	_, err = r.pgClient.QueryProvider(ctx).Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func (r *RequestSessionRepo) GetBySignature(ctx context.Context, tokenType core.
 		return nil, err
 	}
 
-	rows, err := r.pgClient.QueryProvider().Query(ctx, query, args...)
+	rows, err := r.pgClient.QueryProvider(ctx).Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (r *RequestSessionRepo) DeleteBySignature(ctx context.Context, tokenType co
 		return err
 	}
 
-	_, err = r.pgClient.QueryProvider().Exec(ctx, query, args...)
+	_, err = r.pgClient.QueryProvider(ctx).Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}

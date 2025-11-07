@@ -15,7 +15,7 @@ type QueryProvider interface {
 }
 
 type Client interface {
-	QueryProvider() QueryProvider
+	QueryProvider(context.Context) QueryProvider
 	SQLBuilder() squirrel.StatementBuilderType
 	Close()
 }

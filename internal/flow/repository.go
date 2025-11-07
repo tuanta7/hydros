@@ -41,7 +41,7 @@ func (r *Repository) Create(ctx context.Context, flow *Flow) error {
 		return err
 	}
 
-	_, err = r.pgClient.QueryProvider().Exec(ctx, query, args...)
+	_, err = r.pgClient.QueryProvider(ctx).Exec(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (r *Repository) Get(ctx context.Context, challenge string) (*Flow, error) {
 		return nil, err
 	}
 
-	rows, err := r.pgClient.QueryProvider().Query(ctx, query, args...)
+	rows, err := r.pgClient.QueryProvider(ctx).Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
