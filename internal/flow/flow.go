@@ -27,7 +27,6 @@ type Flow struct {
 	AMR                        dbtype.StringArray  `db:"amr" json:"am,omitempty"`
 	LoginSkip                  bool                `db:"login_skip" json:"ls,omitempty"`
 	LoginCSRF                  string              `db:"login_csrf" json:"lc,omitempty"`
-	LoginInitializedAt         dbtype.NullTime     `db:"login_initialized_at" json:"li,omitempty"`
 	LoginRemember              bool                `db:"login_remember" json:"lr,omitempty"`
 	LoginRememberFor           int                 `db:"login_remember_for" json:"lf,omitempty"`
 	LoginExtendSessionLifetime bool                `db:"login_extend_session_lifetime" json:"ll,omitempty"`
@@ -47,19 +46,17 @@ type Flow struct {
 	ConsentError       *RequestDeniedError `db:"consent_error" json:"cx"`
 	ConsentHandledAt   dbtype.NullTime     `db:"consent_handled_at" json:"ch,omitempty"`
 
-	RequestedAt        time.Time           `db:"requested_at" json:"ia,omitempty"`
-	RequestURL         string              `db:"request_url" json:"r,omitempty"`
-	RequestedScope     dbtype.StringArray  `db:"requested_scope" json:"rs,omitempty"`
-	GrantedScope       dbtype.StringArray  `db:"granted_scope" json:"gs,omitempty"`
-	RequestedAudience  dbtype.StringArray  `db:"requested_audience" json:"ra,omitempty" `
-	GrantedAudience    dbtype.StringArray  `db:"granted_at_audience" json:"ga,omitempty"`
-	Client             *client.Client      `db:"-" json:"c,omitempty"`
-	ClientID           string              `db:"client_id" json:"ci,omitempty"`
-	Context            json.RawMessage     `db:"context" json:"ct"`      // is it used tho?
-	OIDCContext        json.RawMessage     `db:"oidc_context" json:"oc"` // is it used tho?
-	SessionIDToken     dbtype.MapStringAny `db:"session_id_token" json:"st"`
-	SessionAccessToken dbtype.MapStringAny `db:"session_access_token" json:"sa"`
-	State              int16               `db:"state" json:"q,omitempty"`
+	RequestedAt       time.Time          `db:"requested_at" json:"ia,omitempty"`
+	RequestURL        string             `db:"request_url" json:"r,omitempty"`
+	RequestedScope    dbtype.StringArray `db:"requested_scope" json:"rs,omitempty"`
+	GrantedScope      dbtype.StringArray `db:"granted_scope" json:"gs,omitempty"`
+	RequestedAudience dbtype.StringArray `db:"requested_audience" json:"ra,omitempty" `
+	GrantedAudience   dbtype.StringArray `db:"granted_at_audience" json:"ga,omitempty"`
+	Client            *client.Client     `db:"-" json:"c,omitempty"`
+	ClientID          string             `db:"client_id" json:"ci,omitempty"`
+	Context           json.RawMessage    `db:"context" json:"ct"`      // is it used tho?
+	OIDCContext       json.RawMessage    `db:"oidc_context" json:"oc"` // is it used tho?
+	State             int16              `db:"state" json:"q,omitempty"`
 }
 
 func (f *Flow) ColumnMap() map[string]any {
@@ -69,7 +66,6 @@ func (f *Flow) ColumnMap() map[string]any {
 		"amr":                           f.AMR,
 		"login_skip":                    f.LoginSkip,
 		"login_csrf":                    f.LoginCSRF,
-		"login_initialized_at":          f.LoginInitializedAt,
 		"login_remember":                f.LoginRemember,
 		"login_remember_for":            f.LoginRememberFor,
 		"login_extend_session_lifetime": f.LoginExtendSessionLifetime,
@@ -89,17 +85,15 @@ func (f *Flow) ColumnMap() map[string]any {
 		"consent_error":        f.ConsentError,
 		"consent_handled_at":   f.ConsentHandledAt,
 
-		"requested_at":         f.RequestedAt,
-		"request_url":          f.RequestURL,
-		"requested_scope":      f.RequestedScope,
-		"granted_scope":        f.GrantedScope,
-		"requested_audience":   f.RequestedAudience,
-		"granted_audience":     f.GrantedAudience,
-		"client_id":            f.ClientID,
-		"context":              f.Context,
-		"oidc_context":         f.OIDCContext,
-		"session_id_token":     f.SessionIDToken,
-		"session_access_token": f.SessionAccessToken,
-		"state":                f.State,
+		"requested_at":       f.RequestedAt,
+		"request_url":        f.RequestURL,
+		"requested_scope":    f.RequestedScope,
+		"granted_scope":      f.GrantedScope,
+		"requested_audience": f.RequestedAudience,
+		"granted_audience":   f.GrantedAudience,
+		"client_id":          f.ClientID,
+		"context":            f.Context,
+		"oidc_context":       f.OIDCContext,
+		"state":              f.State,
 	}
 }

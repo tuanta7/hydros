@@ -24,10 +24,6 @@ func (f *Flow) HandleLoginRequest(h *HandledLoginRequest) error {
 		return fmt.Errorf("flow Subject %s does not match the HandledLoginRequest Subject %s", f.Subject, h.Subject)
 	}
 
-	if f.ForcedSubjectIdentifier != "" && h.ForcedSubjectIdentifier != "" && f.ForcedSubjectIdentifier != h.ForcedSubjectIdentifier {
-		return fmt.Errorf("flow ForcedSubjectIdentifier %s does not match the HandledLoginRequest ForcedSubjectIdentifier %s", f.ForcedSubjectIdentifier, h.ForcedSubjectIdentifier)
-	}
-
 	if h.Error != nil {
 		f.State = FlowStateLoginError
 	} else {
@@ -42,7 +38,6 @@ func (f *Flow) HandleLoginRequest(h *HandledLoginRequest) error {
 	f.ACR = h.ACR
 	f.LoginError = h.Error
 	f.Subject = h.Subject
-	f.ForcedSubjectIdentifier = h.ForcedSubjectIdentifier
 	f.IdentityProviderSessionID = dbtype.NullString(h.IdentityProviderSessionID)
 	f.LoginRememberFor = h.RememberFor
 	f.LoginRemember = h.Remember
@@ -72,17 +67,14 @@ func (f *Flow) InvalidateLoginRequest() error {
 	return nil
 }
 
-type LoginRequest struct{}
-
 type HandledLoginRequest struct {
-	Subject                   string              `json:"subject" form:"subject"`
+	ACR                       string              `json:"acr" form:"acr"`
+	AMR                       dbtype.StringArray  `json:"amr" form:"amr"`
 	Remember                  bool                `json:"remember" form:"remember"`
 	RememberFor               int                 `json:"remember_for" form:"remember_for"`
 	ExtendSessionLifespan     bool                `json:"extend_session_lifespan" form:"extend_session_lifespan"`
-	ACR                       string              `json:"acr" form:"acr"`
-	AMR                       dbtype.StringArray  `json:"amr" form:"amr"`
-	IdentityProviderSessionID string              `json:"identity_provider_session_id,omitempty" form:"identity_provider_session_id"`
-	ForcedSubjectIdentifier   string              `json:"forced_subject_identifier" form:"forced_subject_identifier"`
-	Context                   json.RawMessage     `json:"context" form:"context"`
+	Subject                   string              `json:"subject" form:"subject"`
 	Error                     *RequestDeniedError `json:"-"` // populated by the reject handler
+	IdentityProviderSessionID string              `json:"identity_provider_session_id,omitempty" form:"identity_provider_session_id"`
+	Context                   json.RawMessage     `json:"context" form:"context"`
 }

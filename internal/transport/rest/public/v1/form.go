@@ -194,14 +194,39 @@ func (h *FormHandler) ConsentPage(c *gin.Context) {
 			"CSRFToken":        f.ConsentCSRF,
 			"ClientName":       f.Client.Name,
 			"Scopes":           f.RequestedScope,
+			"Audiences":        f.RequestedAudience,
 		})
 		return
 	}
 
-	h.acceptConsent(c)
+	h.acceptConsent(c, &flow.HandledConsentRequest{
+		GrantedScope:    f.GrantedScope,
+		GrantedAudience: f.GrantedAudience,
+		Remember:        f.ConsentRemember,
+	})
 }
 
-func (h *FormHandler) Consent(c *gin.Context) {}
+func (h *FormHandler) Consent(c *gin.Context) {
+	err := c.Request.ParseForm()
+	if err != nil {
+		h.writeFormError(c, core.ErrorToRFC6749Error(err))
+		return
+	}
+
+	actions := c.PostForm("action")
+	if actions == "deny" {
+		h.rejectConsent(c)
+		return
+	}
+
+	rememberForDays, _ := strconv.ParseInt(c.PostForm("remember_for"), 10, 64)
+	h.acceptConsent(c, &flow.HandledConsentRequest{
+		GrantedScope:    c.PostFormArray("scope"),
+		GrantedAudience: c.PostFormArray("audience"),
+		Remember:        c.PostForm("remember") == "on",
+		RememberFor:     int(rememberForDays) * 24 * 60 * 60, // to seconds
+	})
+}
 
 func (h *FormHandler) getConsentFlow(c *gin.Context) (*flow.Flow, bool) {
 	ctx := c.Request.Context()
@@ -236,4 +261,43 @@ func (h *FormHandler) getConsentFlow(c *gin.Context) (*flow.Flow, bool) {
 	return f, false
 }
 
-func (h *FormHandler) acceptConsent(c *gin.Context) {}
+func (h *FormHandler) acceptConsent(c *gin.Context, handledConsentRequest *flow.HandledConsentRequest) {
+	ctx := c.Request.Context()
+
+	challenge := helper.StringCoalesce(
+		c.Query("consent_challenge"),    // skip consent
+		c.PostForm("consent_challenge"), // form value
+	)
+	if challenge == "" {
+		h.writeFormError(c, core.ErrInvalidRequest.WithHint("'consent_challenge' is not defined but should have been."))
+		return
+	}
+
+	f, err := h.flowUC.GetConsentRequest(ctx, challenge)
+	if err != nil {
+		h.writeFormError(c, core.ErrInvalidRequest.WithWrap(err))
+		return
+	}
+
+	err = f.HandleConsentRequest(handledConsentRequest)
+	if err != nil {
+		h.writeFormError(c, core.ErrorToRFC6749Error(err))
+		return
+	}
+
+	verifier, err := h.flowUC.EncodeFlow(ctx, f, flow.AsConsentVerifier)
+	if err != nil {
+		h.writeFormError(c, core.ErrorToRFC6749Error(err))
+		return
+	}
+
+	redirectTo, err := urlx.AppendQueryString(f.RequestURL, url.Values{"consent_verifier": []string{verifier}})
+	if err != nil {
+		h.writeFormError(c, core.ErrorToRFC6749Error(err))
+		return
+	}
+
+	c.Redirect(http.StatusSeeOther, redirectTo)
+}
+
+func (h *FormHandler) rejectConsent(c *gin.Context) {}

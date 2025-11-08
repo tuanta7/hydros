@@ -28,7 +28,7 @@ func (h *OAuthHandler) handleConsent(
 		return nil, h.requestConsent(ctx, w, r, req, flow)
 	}
 
-	return h.verifyConsent(ctx, consentVerifier)
+	return h.verifyConsent(ctx, r, consentVerifier)
 }
 
 func (h *OAuthHandler) requestConsent(
@@ -65,7 +65,7 @@ func (h *OAuthHandler) requestConsent(
 	return h.forwardConsentRequest(ctx, w, r, ar, f, consentSession)
 }
 
-func (h *OAuthHandler) verifyConsent(ctx context.Context, verifier string) (*flow.Flow, error) {
+func (h *OAuthHandler) verifyConsent(ctx context.Context, r *http.Request, verifier string) (*flow.Flow, error) {
 	f, err := h.flowUC.DecodeFlow(ctx, verifier, flow.AsConsentVerifier)
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func (h *OAuthHandler) verifyConsent(ctx context.Context, verifier string) (*flo
 		return nil, core.ErrServerError.WithHint("The authenticated time value was not set.")
 	}
 
-	err = session.ValidateCSRFSession(nil, h.store, session.ConsentCSRFCookieKey, f.ConsentCSRF.String())
+	err = session.ValidateCSRFSession(r, h.store, session.ConsentCSRFCookieKey, f.ConsentCSRF.String())
 	if err != nil {
 		return nil, err
 	}
@@ -120,6 +120,7 @@ func (h *OAuthHandler) forwardConsentRequest(
 
 	f.ConsentSkip = skip
 	f.ConsentCSRF = dbtype.NullString(csrf)
+	f.State = flow.FlowStateConsentInitialized
 
 	err := session.CreateCSRFSession(w, r, h.cfg, h.store, session.ConsentCSRFCookieKey, csrf, h.cfg.GetConsentRequestMaxAge())
 	if err != nil {

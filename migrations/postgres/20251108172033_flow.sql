@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS flow
     amr                           JSONB        DEFAULT '[]'::JSONB,
     login_skip                    BOOLEAN                                    NOT NULL,
     login_csrf                    VARCHAR(40)                                NOT NULL,
-    login_initialized_at          TIMESTAMP,
     login_remember                BOOLEAN      DEFAULT false                 NOT NULL,
     login_remember_for            INTEGER                                    NOT NULL,
     login_extend_session_lifetime BOOLEAN      DEFAULT false                 NOT NULL,
@@ -36,8 +35,6 @@ CREATE TABLE IF NOT EXISTS flow
 
     context                       JSONB        DEFAULT '{}'::JSONB           NOT NULL,
     oidc_context                  JSONB        DEFAULT '{}'::JSONB           NOT NULL,
-    session_id_token              JSONB        DEFAULT '{}'::JSONB           NOT NULL,
-    session_access_token          JSONB        DEFAULT '{}'::JSONB           NOT NULL,
     state                         INTEGER                                    NOT NULL,
 
     PRIMARY KEY (id),
@@ -104,8 +101,6 @@ CREATE TABLE IF NOT EXISTS flow
                 (consent_remember IS NOT NULL) AND
                 (consent_remember_for IS NOT NULL) AND
                 (consent_error IS NOT NULL) AND
-                (session_access_token IS NOT NULL) AND
-                (session_id_token IS NOT NULL) AND
                 (consent_was_handled IS NOT NULL)
                 ))
         )
