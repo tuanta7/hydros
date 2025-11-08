@@ -42,8 +42,8 @@ func (h *OAuthHandler) HandleTokenRequest(c *gin.Context) {
 		}
 	}
 
-	tokenRequest.GrantedScope = tokenRequest.GrantedScope.Append(tokenRequest.Scope...)
-	tokenRequest.GrantedAudience = tokenRequest.GrantedAudience.Append(tokenRequest.Audience...)
+	tokenRequest.GrantedScope = tokenRequest.GrantedScope.Append(tokenRequest.RequestedScope...)
+	tokenRequest.GrantedAudience = tokenRequest.GrantedAudience.Append(tokenRequest.RequestedAudience...)
 
 	s.ClientID = tokenRequest.Client.GetID()
 	s.IDTokenSession.Claims.Issuer = h.cfg.GetAccessTokenIssuer()

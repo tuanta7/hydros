@@ -25,6 +25,7 @@ type Config struct {
 	Postgres      PostgresConfig      `koanf:"postgres"`
 	SessionCookie SessionCookieConfig `koanf:"session_cookie"`
 	OAuth         OAuthConfig         `koanf:"oauth"`
+	OIDC          OIDCConfig          `koanf:"oidc"`
 	Lifetime      LifetimeConfig      `koanf:"lifetime"`
 	HMAC          HMACConfig          `koanf:"hmac"`
 	JWT           JWTConfig           `koanf:"jwt"`

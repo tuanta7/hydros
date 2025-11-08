@@ -70,13 +70,13 @@ func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 		return
 	}
 
-	//f, err = h.handleConsent(ctx, c.Writer, c.Request, ar, f)
-	//if stderr.Is(err, errors.ErrAbortOAuth2Request) {
-	//	return
-	//} else if err != nil {
-	//	h.writeAuthorizeError(c, ar, err)
-	//	return
-	//}
+	f, err = h.handleConsent(ctx, c.Writer, c.Request, ar, f)
+	if stderr.Is(err, errors.ErrAbortOAuth2Request) {
+		return
+	} else if err != nil {
+		h.writeAuthorizeError(c, ar, err)
+		return
+	}
 
 	ar.GrantedAudience = ar.GrantedAudience.Append(f.GrantedAudience...)
 	ar.GrantedScope = ar.GrantedScope.Append(f.GrantedScope...)

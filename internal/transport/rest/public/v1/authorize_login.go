@@ -30,7 +30,7 @@ func (h *OAuthHandler) handleLogin(
 		return nil, h.requestLogin(ctx, w, r, req)
 	}
 
-	return h.verifyLogin(ctx, w, r, req, loginVerifier)
+	return h.verifyLogin(ctx, w, r, loginVerifier)
 }
 
 func (h *OAuthHandler) requestLogin(
@@ -58,7 +58,6 @@ func (h *OAuthHandler) requestLogin(
 	}
 
 	// TODO: support token hint
-
 	return h.forwardLoginRequest(ctx, w, r, ar, loginSession)
 }
 
@@ -66,12 +65,16 @@ func (h *OAuthHandler) verifyLogin(
 	ctx context.Context,
 	w http.ResponseWriter,
 	r *http.Request,
-	ar *core.AuthorizeRequest,
 	verifier string,
 ) (*flow.Flow, error) {
-	f, err := h.flowUC.VerifyAndInvalidateLoginRequest(ctx, verifier)
+	f, err := h.flowUC.DecodeFlow(ctx, verifier, flow.AsLoginVerifier)
 	if err != nil {
 		return nil, err
+	}
+
+	err = f.InvalidateLoginRequest()
+	if err != nil {
+		return nil, core.ErrInvalidRequest.WithDebug(err.Error())
 	}
 
 	if f.LoginError.IsError() {
@@ -79,7 +82,7 @@ func (h *OAuthHandler) verifyLogin(
 		return nil, f.LoginError.ToRFCError()
 	}
 
-	err = session.ValidateCSRFSession(r, h.store, session.CSRFKey, f.LoginCSRF)
+	err = session.ValidateCSRFSession(r, h.store, session.LoginCSRFCookieKey, f.LoginCSRF)
 	if err != nil {
 		return nil, err
 	}
@@ -181,8 +184,8 @@ func (h *OAuthHandler) forwardLoginRequest(
 		LoginAuthenticatedAt:    dbtype.NullTime(authenticatedAt),
 		RequestedAt:             x.NowUTC().Truncate(time.Second),
 		RequestURL:              r.URL.String(), // TODO: get proper authorize request url when behind a reverse proxy
-		RequestedScope:          []string(ar.Scope),
-		RequestedAudience:       []string(ar.Audience),
+		RequestedScope:          []string(ar.RequestedScope),
+		RequestedAudience:       []string(ar.RequestedAudience),
 		Client:                  cl,
 		ClientID:                cl.GetID(),
 		Subject:                 subject,
@@ -193,7 +196,7 @@ func (h *OAuthHandler) forwardLoginRequest(
 		OIDCContext:             []byte("{}"),
 	}
 
-	err := session.CreateCSRFSession(w, r, h.cfg, h.store, session.CSRFKey, csrf, h.cfg.GetConsentRequestMaxAge())
+	err := session.CreateCSRFSession(w, r, h.cfg, h.store, session.LoginCSRFCookieKey, csrf, h.cfg.GetConsentRequestMaxAge())
 	if err != nil {
 		return err
 	}

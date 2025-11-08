@@ -93,7 +93,7 @@ func main() {
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
 			oauthAuthorizationCodeGrantHandler := oauth.NewAuthorizationCodeGrantHandler(cfg, tokenStrategy, tokenStorage)
-			oidcAuthorizationCodeFlowHandler := oidc.NewOpenIDConnectAuthorizationCodeFlowHandler(tokenStorage)
+			oidcAuthorizationCodeFlowHandler := oidc.NewOpenIDConnectAuthorizationCodeFlowHandler(cfg, tokenStorage)
 			pkceHandler := pkce.NewProofKeyForCodeExchangeHandler(cfg, tokenStrategy, tokenStorage)
 
 			oauthCore := core.NewOAuth2(cfg, clientUC,

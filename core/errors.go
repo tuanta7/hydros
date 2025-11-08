@@ -187,6 +187,11 @@ var (
 		HintField:        "You are not allowed to perform this action.",
 		CodeField:        http.StatusForbidden,
 	}
+	ErrConsentRequired = &RFC6749Error{
+		ErrorField:       "consent_required",
+		DescriptionField: "The Authorization Server requires End-User consent.",
+		CodeField:        http.StatusBadRequest,
+	}
 )
 
 func ErrorToRFC6749Error(err error) *RFC6749Error {

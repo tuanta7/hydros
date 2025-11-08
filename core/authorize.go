@@ -111,8 +111,8 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 	}
 
 	ar.ResponseTypes = x.SplitSpace(form.Get("response_type"))
-	ar.Scope = x.SplitSpace(form.Get("scope"))
-	ar.Audience = getAudience(ar)
+	ar.RequestedScope = x.SplitSpace(form.Get("scope"))
+	ar.RequestedAudience = getAudience(ar)
 
 	ar.CodeChallenge = form.Get("code_challenge")
 	ar.CodeChallengeMethod = form.Get("code_challenge_method")
@@ -131,7 +131,7 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 
 func (o *OAuth2) parseRedirectURI(ar *AuthorizeRequest, registeredURIs []string) (*url.URL, error) {
 	raw := ar.Form.Get("redirect_uri")
-	if raw == "" && ar.Scope.IncludeAll("openid") {
+	if raw == "" && ar.RequestedScope.IncludeAll("openid") {
 		return nil, ErrInvalidRequest.WithHint("The 'redirect_uri' parameter is required when using OpenID Connect 1.0.")
 	}
 

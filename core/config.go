@@ -2,6 +2,7 @@ package core
 
 import (
 	"hash"
+	"net/url"
 	"time"
 )
 
@@ -61,4 +62,12 @@ type MinParameterEntropyProvider interface {
 
 type EnablePKCEPlainChallengeMethodProvider interface {
 	IsEnablePKCEPlainChallengeMethod() bool
+}
+
+type AllowedPromptsProvider interface {
+	GetAllowedPrompts() []string
+}
+
+type RedirectSecureCheckerProvider interface {
+	GetRedirectSecureChecker() func(*url.URL) bool
 }

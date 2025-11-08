@@ -74,14 +74,14 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(ctx context.Conte
 	}
 
 	scopeStrategy := h.config.GetScopeStrategy()
-	for _, scope := range ar.Scope {
+	for _, scope := range ar.RequestedScope {
 		if !scopeStrategy(client.GetScopes(), scope) {
 			return core.ErrInvalidScope.WithHint("The OAuth 2.0 Client is not allowed to request scope '%s'.", scope)
 		}
 	}
 
 	audienceStrategy := h.config.GetAudienceStrategy()
-	if err = audienceStrategy(client.GetAudience(), ar.Audience); err != nil {
+	if err = audienceStrategy(client.GetAudience(), ar.RequestedAudience); err != nil {
 		return err
 	}
 
@@ -109,14 +109,14 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeResponse(
 	}
 
 	scopeStrategy := h.config.GetScopeStrategy()
-	for _, scope := range req.Scope {
+	for _, scope := range req.RequestedScope {
 		if !scopeStrategy(client.GetScopes(), scope) {
 			return core.ErrInvalidScope.WithHint("The OAuth 2.0 Client is not allowed to request scope '%s'.", scope)
 		}
 	}
 
 	audienceStrategy := h.config.GetAudienceStrategy()
-	if err := audienceStrategy(client.GetAudience(), req.Audience); err != nil {
+	if err := audienceStrategy(client.GetAudience(), req.RequestedAudience); err != nil {
 		return err
 	}
 

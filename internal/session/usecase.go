@@ -13,7 +13,6 @@ import (
 
 type UseCase interface {
 	GetRememberedLoginSession(ctx context.Context, loginSessionFromCookie *LoginSession, id string) (*LoginSession, error)
-	CreateLoginSession(ctx context.Context, session *LoginSession) error
 	DeleteLoginSession(ctx context.Context, id string) (deletedSession *LoginSession, err error)
 	RevokeSubjectLoginSession(ctx context.Context, user string) error
 	ConfirmLoginSession(ctx context.Context, loginSession *LoginSession) error
@@ -42,10 +41,6 @@ func (u *useCase) GetRememberedLoginSession(ctx context.Context, loginSessionFro
 	}
 
 	return s, nil
-}
-
-func (u *useCase) CreateLoginSession(ctx context.Context, session *LoginSession) error {
-	return nil
 }
 
 func (u *useCase) DeleteLoginSession(ctx context.Context, id string) (*LoginSession, error) {

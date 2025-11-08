@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	CSRFKey = "csrf_token"
+	LoginCSRFCookieKey   = "login_csrf_token"
+	ConsentCSRFCookieKey = "consent_csrf_token"
 )
 
 type CookieConfigurator interface {

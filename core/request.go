@@ -8,26 +8,26 @@ import (
 )
 
 type Request struct {
-	ID              string     `json:"id" form:"-"`
-	RequestedAt     time.Time  `json:"requested_at" form:"-"`
-	Scope           Arguments  `json:"scope" form:"scope"`
-	GrantedScope    Arguments  `json:"granted_scope" form:"-"`
-	Audience        Arguments  `json:"audience" form:"audience"`
-	GrantedAudience Arguments  `json:"granted_audience" form:"-"`
-	Form            url.Values `json:"form" form:"-"`
-	Client          Client     `json:"client" form:"-"`
-	Session         Session    `json:"session" form:"-"`
+	ID                string     `json:"id" form:"-"`
+	RequestedAt       time.Time  `json:"requested_at" form:"-"`
+	RequestedScope    Arguments  `json:"scope" form:"scope"`
+	GrantedScope      Arguments  `json:"granted_scope" form:"-"`
+	RequestedAudience Arguments  `json:"audience" form:"audience"`
+	GrantedAudience   Arguments  `json:"granted_audience" form:"-"`
+	Form              url.Values `json:"form" form:"-"`
+	Client            Client     `json:"client" form:"-"`
+	Session           Session    `json:"session" form:"-"`
 }
 
 func NewRequest() *Request {
 	return &Request{
-		ID:              x.RandomUUID(),
-		RequestedAt:     x.NowUTC(),
-		Scope:           Arguments{},
-		Audience:        Arguments{},
-		GrantedAudience: Arguments{},
-		GrantedScope:    Arguments{},
-		Form:            url.Values{},
+		ID:                x.RandomUUID(),
+		RequestedAt:       x.NowUTC(),
+		RequestedScope:    Arguments{},
+		RequestedAudience: Arguments{},
+		GrantedAudience:   Arguments{},
+		GrantedScope:      Arguments{},
+		Form:              url.Values{},
 	}
 }
 
@@ -35,9 +35,9 @@ func NewRequest() *Request {
 func (r *Request) Merge(target *Request) {
 	r.ID = target.ID
 	r.RequestedAt = target.RequestedAt
-	r.Scope = r.Scope.Append(target.Scope...)
+	r.RequestedScope = r.RequestedScope.Append(target.RequestedScope...)
 	r.GrantedScope = r.GrantedScope.Append(target.GrantedScope...)
-	r.Audience = r.Audience.Append(target.Audience...)
+	r.RequestedAudience = r.RequestedAudience.Append(target.RequestedAudience...)
 	r.GrantedAudience = r.GrantedAudience.Append(target.GrantedAudience...)
 	r.Client = target.Client
 	r.Session = target.Session
@@ -61,15 +61,15 @@ func (r *Request) Sanitize(allowedParameters ...string) *Request {
 	}
 
 	sr := &Request{
-		ID:              r.ID,
-		RequestedAt:     r.RequestedAt,
-		Scope:           r.Scope,
-		GrantedScope:    r.GrantedScope,
-		Audience:        r.Audience,
-		GrantedAudience: r.GrantedAudience,
-		Form:            url.Values{},
-		Client:          r.Client,
-		Session:         r.Session,
+		ID:                r.ID,
+		RequestedAt:       r.RequestedAt,
+		RequestedScope:    r.RequestedScope,
+		GrantedScope:      r.GrantedScope,
+		RequestedAudience: r.RequestedAudience,
+		GrantedAudience:   r.GrantedAudience,
+		Form:              url.Values{},
+		Client:            r.Client,
+		Session:           r.Session,
 	}
 
 	for k, v := range r.Form {

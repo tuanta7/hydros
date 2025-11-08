@@ -5,7 +5,6 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
-
 	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 )
 
@@ -49,11 +48,25 @@ func (r *Repository) Create(ctx context.Context, flow *Flow) error {
 	return nil
 }
 
-func (r *Repository) Get(ctx context.Context, challenge string) (*Flow, error) {
+func (r *Repository) GetGrantedAndRememberedConsent(ctx context.Context, client, subject string) (*Flow, error) {
 	query, args, err := r.pgClient.SQLBuilder().
 		Select("*").
 		From(r.table).
-		Where(squirrel.Eq{"id": challenge}).
+		Where(
+			squirrel.And{
+				squirrel.Eq{"subject": subject},
+				squirrel.Eq{"client_id": client},
+				squirrel.Or{
+					squirrel.Eq{"state": FlowStateConsentGranted},
+					squirrel.Eq{"state": FlowStateConsentHandled},
+				},
+				squirrel.Eq{"consent_remember": true},
+				squirrel.Eq{"consent_skip": false},
+				squirrel.Eq{"consent_error": []byte("{}")},
+			},
+		).
+		OrderBy("requested_at DESC").
+		Limit(1).
 		ToSql()
 	if err != nil {
 		return nil, err

@@ -86,13 +86,13 @@ func (s *RequestSessionData) ToRequest(
 	}
 
 	return &core.Request{
-		ID:              s.RequestID,
-		RequestedAt:     s.RequestedAt,
-		Scope:           strings.Split(s.Scope, "|"),
-		GrantedScope:    strings.Split(s.GrantedScope, "|"),
-		Audience:        strings.Split(s.Audience, "|"),
-		GrantedAudience: strings.Split(s.GrantedAudience, "|"),
-		Form:            form,
+		ID:                s.RequestID,
+		RequestedAt:       s.RequestedAt,
+		RequestedScope:    strings.Split(s.Scope, "|"),
+		GrantedScope:      strings.Split(s.GrantedScope, "|"),
+		RequestedAudience: strings.Split(s.Audience, "|"),
+		GrantedAudience:   strings.Split(s.GrantedAudience, "|"),
+		Form:              form,
 		Client: &client.Client{
 			// I have not figured out how to get the full client object from the database like hydra,
 			// so just use the ID for now 👍.

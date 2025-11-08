@@ -91,9 +91,8 @@ func (h *FormHandler) getLoginFlow(c *gin.Context) (*flow.Flow, bool) {
 	}
 
 	if f.LoginWasHandled {
-		c.JSON(http.StatusGone, gin.H{
-			"redirect_to": f.RequestURL, // authorize request
-		})
+		// redirect to the original authorization request
+		c.Redirect(http.StatusGone, f.RequestURL)
 		return nil, true
 	}
 
@@ -184,7 +183,57 @@ func (h *FormHandler) acceptLogin(c *gin.Context, handledLoginRequest *flow.Hand
 }
 
 func (h *FormHandler) ConsentPage(c *gin.Context) {
-	c.HTML(http.StatusOK, "consent.html", nil)
+	f, returned := h.getConsentFlow(c)
+	if returned {
+		return
+	}
+
+	if !f.ConsentSkip {
+		c.HTML(http.StatusOK, "consent.html", gin.H{
+			"ConsentChallenge": c.Query("consent_challenge"),
+			"CSRFToken":        f.ConsentCSRF,
+			"ClientName":       f.Client.Name,
+			"Scopes":           f.RequestedScope,
+		})
+		return
+	}
+
+	h.acceptConsent(c)
 }
 
 func (h *FormHandler) Consent(c *gin.Context) {}
+
+func (h *FormHandler) getConsentFlow(c *gin.Context) (*flow.Flow, bool) {
+	ctx := c.Request.Context()
+
+	challenge := c.Query("consent_challenge")
+	if challenge == "" {
+		c.JSON(http.StatusBadRequest, core.ErrInvalidRequest.WithHint("Query parameter 'consent_challenge' is not defined but should have been."))
+		return nil, true
+	}
+
+	f, err := h.flowUC.GetConsentRequest(ctx, challenge)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return nil, true
+	}
+
+	if f.ConsentWasHandled {
+		// redirect to the original authorization request
+		c.Redirect(http.StatusGone, f.RequestURL)
+		return nil, true
+	}
+
+	if f.RequestedScope == nil {
+		f.RequestedScope = []string{}
+	}
+
+	if f.RequestedScope == nil {
+		f.RequestedScope = []string{}
+	}
+
+	f.Client = client.SanitizeClient(f.Client)
+	return f, false
+}
+
+func (h *FormHandler) acceptConsent(c *gin.Context) {}

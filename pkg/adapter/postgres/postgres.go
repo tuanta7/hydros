@@ -4,12 +4,22 @@ import (
 	"context"
 
 	"github.com/Masterminds/squirrel"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type client struct {
 	pool       *pgxpool.Pool
 	sqlBuilder squirrel.StatementBuilderType
+}
+
+func (c *client) BeginTx(ctx context.Context, o pgx.TxOptions) (context.Context, error) {
+	tx, err := c.pool.BeginTx(ctx, o)
+	if err != nil {
+		return nil, err
+	}
+
+	return context.WithValue(ctx, "tx_connection", tx), nil
 }
 
 func (c *client) QueryProvider(ctx context.Context) QueryProvider {

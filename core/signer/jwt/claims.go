@@ -15,7 +15,7 @@ type IDTokenClaims struct {
 	ExpiresAt                           time.Time      `json:"exp"`
 	IssuedAt                            time.Time      `json:"iat"`
 	RequestedAt                         time.Time      `json:"rat"`
-	AuthTime                            time.Time      `json:"auth_time"`
+	AuthenticatedAt                     time.Time      `json:"authenticated_at"`
 	AccessTokenHash                     string         `json:"at_hash"`
 	AuthenticationContextClassReference string         `json:"acr"`
 	AuthenticationMethodsReferences     []string       `json:"amr"`

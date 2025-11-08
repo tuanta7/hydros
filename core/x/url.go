@@ -28,8 +28,13 @@ func IsValidRedirectURI(redirectURI string) bool {
 	return true
 }
 
-func IsURISecure(uri *url.URL) bool {
+// IsURISecureLax allow custom-scheme URLs, which can be hijacked for native apps.
+func IsURISecureLax(uri *url.URL) bool {
 	return !(uri.Scheme == "http" && !IsLocalhost(uri))
+}
+
+func IsURISecure(uri *url.URL) bool {
+	return uri.Scheme == "https" || (uri.Scheme == "http" && IsLocalhost(uri))
 }
 
 func IsLocalhost(uri *url.URL) bool {

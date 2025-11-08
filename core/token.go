@@ -68,8 +68,8 @@ func (o *OAuth2) NewTokenRequest(ctx context.Context, req *http.Request, session
 	tokenRequest.Client = client
 
 	tokenRequest.GrantType = form["grant_type"]
-	tokenRequest.Audience = form["audience"]
-	tokenRequest.Scope = form["scope"]
+	tokenRequest.RequestedAudience = form["audience"]
+	tokenRequest.RequestedScope = form["scope"]
 
 	tokenRequest.Code = form.Get("code")
 	tokenRequest.CodeVerifier = form.Get("code_verifier")

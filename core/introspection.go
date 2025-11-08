@@ -88,11 +88,11 @@ func (o *OAuth2) IntrospectToken(ctx context.Context, req *http.Request, session
 
 	return &IntrospectionResponse{
 		Active:    true,
-		Scope:     strings.Join(tr.Scope, " "),
+		Scope:     strings.Join(tr.RequestedScope, " "),
 		ClientID:  tr.Client.GetID(),
 		TokenType: accessTokenType,
 		Subject:   tr.Session.GetSubject(),
-		Audience:  strings.Join(tr.Audience, " "),
+		Audience:  strings.Join(tr.RequestedAudience, " "),
 	}, nil
 }
 

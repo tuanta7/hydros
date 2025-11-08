@@ -17,5 +17,6 @@ type QueryProvider interface {
 type Client interface {
 	QueryProvider(context.Context) QueryProvider
 	SQLBuilder() squirrel.StatementBuilderType
+	BeginTx(ctx context.Context, o pgx.TxOptions) (context.Context, error)
 	Close()
 }

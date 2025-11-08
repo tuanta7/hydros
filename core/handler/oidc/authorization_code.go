@@ -6,15 +6,22 @@ import (
 
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/storage"
+	"github.com/tuanta7/hydros/core/strategy"
 	"github.com/tuanta7/hydros/core/x"
 )
 
 type OpenIDConnectAuthorizationCodeFlowHandler struct {
-	storage storage.OpenIDConnectRequestStorage
+	config        OpenIDConnectPromptConfigurator
+	tokenStrategy strategy.OpenIDConnectTokenStrategy
+	storage       storage.OpenIDConnectRequestStorage
 }
 
-func NewOpenIDConnectAuthorizationCodeFlowHandler(storage storage.OpenIDConnectRequestStorage) *OpenIDConnectAuthorizationCodeFlowHandler {
+func NewOpenIDConnectAuthorizationCodeFlowHandler(
+	config OpenIDConnectPromptConfigurator,
+	storage storage.OpenIDConnectRequestStorage,
+) *OpenIDConnectAuthorizationCodeFlowHandler {
 	return &OpenIDConnectAuthorizationCodeFlowHandler{
+		config:  config,
 		storage: storage,
 	}
 }
@@ -24,7 +31,7 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeRequest(ctx c
 		return core.ErrUnsupportedResponseType
 	}
 
-	if req.Scope.IncludeAll("openid") {
+	if !req.RequestedScope.IncludeAll("openid") {
 		return nil // not an openid request
 	}
 
@@ -75,7 +82,7 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeResponse(
 		return core.ErrUnsupportedResponseType
 	}
 
-	if req.Scope.IncludeAll("openid") {
+	if !req.RequestedScope.IncludeAll("openid") {
 		return nil
 	}
 
@@ -85,6 +92,10 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeResponse(
 
 	if req.RedirectURI.String() == "" {
 		return core.ErrInvalidRequest.WithHint("The 'redirect_uri' parameter is required when using OpenID Connect 1.0.")
+	}
+
+	if err := validatePrompt(h.config, req, h.tokenStrategy); err != nil {
+		return err
 	}
 
 	if err := h.storage.CreateOpenIDConnectSession(ctx, res.Code, req.Sanitize(
@@ -102,11 +113,7 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeResponse(
 }
 
 func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleTokenRequest(ctx context.Context, req *core.TokenRequest) error {
-	if !req.GrantType.ExactOne("authorization_code") {
-		return core.ErrUnknownRequest
-	}
-
-	return nil
+	return core.ErrUnknownRequest
 }
 
 func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleTokenResponse(ctx context.Context, req *core.TokenRequest, res *core.TokenResponse) error {

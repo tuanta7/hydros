@@ -8,7 +8,7 @@ import (
 	"github.com/tuanta7/hydros/core/signer/jwt"
 )
 
-type Session interface {
+type OpenIDConnectSession interface {
 	IDTokenClaims() *jwt.IDTokenClaims
 	IDTokenHeaders() *jwt.Headers
 	core.Session
