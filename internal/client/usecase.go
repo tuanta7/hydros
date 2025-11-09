@@ -8,6 +8,7 @@ import (
 	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/x"
+	"github.com/tuanta7/hydros/pkg/dbtype"
 
 	"github.com/tuanta7/hydros/pkg/helper"
 	"github.com/tuanta7/hydros/pkg/zapx"
@@ -63,6 +64,10 @@ func (u *UseCase) CreateClient(ctx context.Context, client *Client) error {
 
 	if client.ID == "" {
 		client.ID = x.RandomUUID()
+	}
+
+	if client.JWKs == nil {
+		client.JWKs = &dbtype.JWKSet{}
 	}
 
 	if client.TokenEndpointAuthMethod == "" {

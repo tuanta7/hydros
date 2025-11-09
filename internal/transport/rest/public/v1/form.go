@@ -215,14 +215,17 @@ func (h *FormHandler) Consent(c *gin.Context) {
 
 	actions := c.PostForm("action")
 	if actions == "deny" {
-		h.rejectConsent(c)
+		h.rejectConsent(c, &flow.RequestDeniedError{
+			Error:            "scope_grant_denied",
+			ErrorDescription: "The resource owner denied the request",
+		})
 		return
 	}
 
 	rememberForDays, _ := strconv.ParseInt(c.PostForm("remember_for"), 10, 64)
 	h.acceptConsent(c, &flow.HandledConsentRequest{
-		GrantedScope:    c.PostFormArray("scope"),
-		GrantedAudience: c.PostFormArray("audience"),
+		GrantedScope:    c.PostFormArray("scopes"),
+		GrantedAudience: c.PostFormArray("audiences"),
 		Remember:        c.PostForm("remember") == "on",
 		RememberFor:     int(rememberForDays) * 24 * 60 * 60, // to seconds
 	})
@@ -300,4 +303,46 @@ func (h *FormHandler) acceptConsent(c *gin.Context, handledConsentRequest *flow.
 	c.Redirect(http.StatusSeeOther, redirectTo)
 }
 
-func (h *FormHandler) rejectConsent(c *gin.Context) {}
+func (h *FormHandler) rejectConsent(c *gin.Context, deniedErr *flow.RequestDeniedError) {
+	ctx := c.Request.Context()
+
+	challenge := helper.StringCoalesce(
+		c.Query("consent_challenge"),    // skip consent
+		c.PostForm("consent_challenge"), // form value
+	)
+	if challenge == "" {
+		h.writeFormError(c, core.ErrInvalidRequest.WithHint("'consent_challenge' is not defined but should have been."))
+		return
+	}
+
+	f, err := h.flowUC.GetConsentRequest(ctx, challenge)
+	if err != nil {
+		h.writeFormError(c, core.ErrInvalidRequest.WithWrap(err))
+		return
+	}
+
+	deniedErr.Valid = true
+	deniedErr.SetDefaults(flow.ConsentRequestDeniedErrorName)
+
+	err = f.HandleConsentRequest(&flow.HandledConsentRequest{
+		Error: deniedErr,
+	})
+	if err != nil {
+		h.writeFormError(c, core.ErrorToRFC6749Error(err))
+		return
+	}
+
+	verifier, err := h.flowUC.EncodeFlow(ctx, f, flow.AsConsentVerifier)
+	if err != nil {
+		h.writeFormError(c, core.ErrorToRFC6749Error(err))
+		return
+	}
+
+	redirectTo, err := urlx.AppendQueryString(f.RequestURL, url.Values{"consent_verifier": []string{verifier}})
+	if err != nil {
+		h.writeFormError(c, core.ErrorToRFC6749Error(err))
+		return
+	}
+
+	c.Redirect(http.StatusSeeOther, redirectTo)
+}

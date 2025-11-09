@@ -16,8 +16,8 @@ func (f *Flow) HandleLoginRequest(h *HandledLoginRequest) error {
 		return errors.ErrConflict.WithHint("The login request was already used and can no longer be changed.")
 	}
 
-	if f.State != FlowStateLoginInitialized && f.State != FlowStateLoginAuthenticated && f.State != FlowStateLoginError {
-		return fmt.Errorf("invalid flow state: expected %d/%d/%d, got %d", FlowStateLoginInitialized, FlowStateLoginAuthenticated, FlowStateLoginError, f.State)
+	if f.State != StateLoginInitialized && f.State != StateLoginAuthenticated && f.State != StateLoginError {
+		return fmt.Errorf("invalid flow state: expected %d/%d/%d, got %d", StateLoginInitialized, StateLoginAuthenticated, StateLoginError, f.State)
 	}
 
 	if f.Subject != "" && h.Subject != "" && f.Subject != h.Subject {
@@ -25,9 +25,9 @@ func (f *Flow) HandleLoginRequest(h *HandledLoginRequest) error {
 	}
 
 	if h.Error != nil {
-		f.State = FlowStateLoginError
+		f.State = StateLoginError
 	} else {
-		f.State = FlowStateLoginAuthenticated
+		f.State = StateLoginAuthenticated
 	}
 
 	if f.Context != nil {
@@ -54,8 +54,8 @@ func (f *Flow) HandleLoginRequest(h *HandledLoginRequest) error {
 }
 
 func (f *Flow) InvalidateLoginRequest() error {
-	if f.State != FlowStateLoginAuthenticated && f.State != FlowStateLoginError {
-		return fmt.Errorf("invalid flow state: expected %d or %d, got %d", FlowStateLoginAuthenticated, FlowStateLoginError, f.State)
+	if f.State != StateLoginAuthenticated && f.State != StateLoginError {
+		return fmt.Errorf("invalid flow state: expected %d or %d, got %d", StateLoginAuthenticated, StateLoginError, f.State)
 	}
 
 	if f.LoginWasHandled {
@@ -63,7 +63,7 @@ func (f *Flow) InvalidateLoginRequest() error {
 	}
 
 	f.LoginWasHandled = true
-	f.State = FlowStateLoginHandled
+	f.State = StateLoginHandled
 	return nil
 }
 

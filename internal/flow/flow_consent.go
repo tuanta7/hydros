@@ -10,21 +10,21 @@ import (
 )
 
 func (f *Flow) HandleConsentRequest(h *HandledConsentRequest) error {
-	if f.State != FlowStateConsentInitialized && f.State != FlowStateConsentGranted && f.State != FlowStateConsentError {
-		return fmt.Errorf("invalid flow state: expected %d/%d/%d, got %d", FlowStateConsentInitialized, FlowStateConsentGranted, FlowStateConsentError, f.State)
+	if f.State != StateConsentInitialized && f.State != StateConsentGranted && f.State != StateConsentError {
+		return fmt.Errorf("invalid flow state: expected %d/%d/%d, got %d", StateConsentInitialized, StateConsentGranted, StateConsentError, f.State)
 	}
 
 	if h.Error != nil {
-		f.State = FlowStateConsentError
+		f.State = StateConsentError
 	} else {
-		f.State = FlowStateConsentGranted
+		f.State = StateConsentGranted
 	}
 
 	f.GrantedScope = h.GrantedScope
 	f.GrantedAudience = h.GrantedAudience
 	f.ConsentRemember = h.Remember
 	f.ConsentRememberFor = &h.RememberFor
-	f.ConsentHandledAt = dbtype.NullTime(x.NowUTC())
+	f.ConsentGrantedAt = dbtype.NullTime(x.NowUTC())
 	f.ConsentError = h.Error
 	if h.Context != nil {
 		f.Context = h.Context
@@ -37,12 +37,12 @@ func (f *Flow) InvalidateConsentRequest() error {
 	if f.ConsentWasHandled {
 		return errors.New("consent verifier has already been used")
 	}
-	if f.State != FlowStateConsentGranted && f.State != FlowStateConsentError {
-		return fmt.Errorf("unexpected flow state: expected %d or %d, got %d", FlowStateConsentGranted, FlowStateConsentError, f.State)
+	if f.State != StateConsentGranted && f.State != StateConsentError {
+		return fmt.Errorf("unexpected flow state: expected %d or %d, got %d", StateConsentGranted, StateConsentError, f.State)
 	}
 
 	f.ConsentWasHandled = true
-	f.State = FlowStateConsentHandled
+	f.State = StateConsentHandled
 	return nil
 }
 

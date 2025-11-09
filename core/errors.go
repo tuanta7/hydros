@@ -24,7 +24,7 @@ func (e *RFC6749Error) Error() string {
 	return e.ErrorField
 }
 
-func (e *RFC6749Error) WithHint(hint string, args ...interface{}) *RFC6749Error {
+func (e *RFC6749Error) WithHint(hint string, args ...any) *RFC6749Error {
 	err := *e
 	err.HintField = fmt.Sprintf(hint, args...)
 	return &err

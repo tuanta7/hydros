@@ -190,7 +190,7 @@ func (h *OAuthHandler) forwardLoginRequest(
 		ClientID:                cl.GetID(),
 		Subject:                 subject,
 		LoginSessionID:          dbtype.NullString(sessionID),
-		State:                   flow.FlowStateLoginInitialized,
+		State:                   flow.StateLoginInitialized,
 		ForcedSubjectIdentifier: "",
 		Context:                 []byte("{}"),
 		OIDCContext:             []byte("{}"),

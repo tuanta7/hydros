@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -45,6 +46,17 @@ func NewClient(dsn string, options ...Option) (Client, error) {
 	pool, err := newPool(dsn, options...)
 	if err != nil {
 		return nil, err
+	}
+
+	return &client{
+		pool:       pool,
+		sqlBuilder: squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
+	}, nil
+}
+
+func NewClientFromPool(pool *pgxpool.Pool) (Client, error) {
+	if pool == nil {
+		return nil, errors.New("pool must not be nil")
 	}
 
 	return &client{

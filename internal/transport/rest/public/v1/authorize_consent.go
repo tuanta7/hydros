@@ -120,7 +120,7 @@ func (h *OAuthHandler) forwardConsentRequest(
 
 	f.ConsentSkip = skip
 	f.ConsentCSRF = dbtype.NullString(csrf)
-	f.State = flow.FlowStateConsentInitialized
+	f.State = flow.StateConsentInitialized
 
 	err := session.CreateCSRFSession(w, r, h.cfg, h.store, session.ConsentCSRFCookieKey, csrf, h.cfg.GetConsentRequestMaxAge())
 	if err != nil {

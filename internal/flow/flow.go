@@ -9,14 +9,15 @@ import (
 )
 
 const (
-	FlowStateLoginInitialized   = int16(1)
-	FlowStateLoginAuthenticated = int16(2) // done on the user side
-	FlowStateLoginHandled       = int16(3) // done on the server side
-	FlowStateConsentInitialized = int16(4)
-	FlowStateConsentGranted     = int16(5)
-	FlowStateConsentHandled     = int16(6)
-	FlowStateLoginError         = int16(128)
-	FlowStateConsentError       = int16(129)
+	StateLoginInitialized   = int16(1)
+	StateLoginAuthenticated = int16(2)   // done on the user side
+	StateLoginError         = int16(128) // done on the user side
+	StateLoginHandled       = int16(3)   // done on the server side
+
+	StateConsentInitialized = int16(4)
+	StateConsentGranted     = int16(5)   // done on the user side
+	StateConsentError       = int16(129) // done on the user side
+	StateConsentHandled     = int16(6)   // done on the server side
 )
 
 // Flow represents the flow information associated with an OAuth2/IDToken Connect session.
@@ -26,32 +27,33 @@ type Flow struct {
 	ACR                        string              `db:"acr" json:"a,omitempty"`
 	AMR                        dbtype.StringArray  `db:"amr" json:"am,omitempty"`
 	LoginSkip                  bool                `db:"login_skip" json:"ls,omitempty"`
+	LoginExtendSessionLifetime bool                `db:"login_extend_session_lifetime" json:"ll,omitempty"`
 	LoginCSRF                  string              `db:"login_csrf" json:"lc,omitempty"`
 	LoginRemember              bool                `db:"login_remember" json:"lr,omitempty"`
 	LoginRememberFor           int                 `db:"login_remember_for" json:"lf,omitempty"`
-	LoginExtendSessionLifetime bool                `db:"login_extend_session_lifetime" json:"ll,omitempty"`
-	LoginWasHandled            bool                `db:"login_was_handled" json:"lw,omitempty"`
-	LoginError                 *RequestDeniedError `db:"login_error" json:"le,omitempty"`
 	LoginAuthenticatedAt       dbtype.NullTime     `db:"login_authenticated_at" json:"la,omitempty"`
-	LoginSessionID             dbtype.NullString   `db:"login_session_id" json:"si,omitempty"`
-	Subject                    string              `db:"subject" json:"s,omitempty"`
-	ForcedSubjectIdentifier    string              `db:"forced_subject_identifier" json:"fs,omitempty"`
-	IdentityProviderSessionID  dbtype.NullString   `db:"identity_provider_session_id" json:"is,omitempty"`
+	LoginError                 *RequestDeniedError `db:"login_error" json:"le,omitempty"`
+	LoginWasHandled            bool                `db:"login_was_handled" json:"lw,omitempty"` // prevent double-submits
+
+	LoginSessionID            dbtype.NullString `db:"login_session_id" json:"si,omitempty"`
+	Subject                   string            `db:"subject" json:"s,omitempty"`
+	ForcedSubjectIdentifier   string            `db:"forced_subject_identifier" json:"fs,omitempty"`
+	IdentityProviderSessionID dbtype.NullString `db:"identity_provider_session_id" json:"is,omitempty"`
 
 	ConsentSkip        bool                `db:"consent_skip" json:"cs,omitempty"`
 	ConsentCSRF        dbtype.NullString   `db:"consent_csrf" json:"cr,omitempty"`
 	ConsentRemember    bool                `db:"consent_remember" json:"ce,omitempty"`
 	ConsentRememberFor *int                `db:"consent_remember_for" json:"cf"`
-	ConsentWasHandled  bool                `db:"consent_was_handled" json:"cw,omitempty"`
+	ConsentGrantedAt   dbtype.NullTime     `db:"consent_granted_at" json:"ch,omitempty"`
 	ConsentError       *RequestDeniedError `db:"consent_error" json:"cx"`
-	ConsentHandledAt   dbtype.NullTime     `db:"consent_handled_at" json:"ch,omitempty"`
+	ConsentWasHandled  bool                `db:"consent_was_handled" json:"cw,omitempty"`
 
 	RequestedAt       time.Time          `db:"requested_at" json:"ia,omitempty"`
 	RequestURL        string             `db:"request_url" json:"r,omitempty"`
 	RequestedScope    dbtype.StringArray `db:"requested_scope" json:"rs,omitempty"`
 	GrantedScope      dbtype.StringArray `db:"granted_scope" json:"gs,omitempty"`
 	RequestedAudience dbtype.StringArray `db:"requested_audience" json:"ra,omitempty" `
-	GrantedAudience   dbtype.StringArray `db:"granted_at_audience" json:"ga,omitempty"`
+	GrantedAudience   dbtype.StringArray `db:"granted_audience" json:"ga,omitempty"`
 	Client            *client.Client     `db:"-" json:"c,omitempty"`
 	ClientID          string             `db:"client_id" json:"ci,omitempty"`
 	Context           json.RawMessage    `db:"context" json:"ct"`      // is it used tho?
@@ -60,30 +62,31 @@ type Flow struct {
 }
 
 func (f *Flow) ColumnMap() map[string]any {
-	return map[string]interface{}{
+	return map[string]any{
 		"id":                            f.ID,
 		"acr":                           f.ACR,
 		"amr":                           f.AMR,
 		"login_skip":                    f.LoginSkip,
+		"login_extend_session_lifetime": f.LoginExtendSessionLifetime,
 		"login_csrf":                    f.LoginCSRF,
 		"login_remember":                f.LoginRemember,
 		"login_remember_for":            f.LoginRememberFor,
-		"login_extend_session_lifetime": f.LoginExtendSessionLifetime,
-		"login_was_handled":             f.LoginWasHandled,
-		"login_error":                   f.LoginError,
 		"login_authenticated_at":        f.LoginAuthenticatedAt,
-		"login_session_id":              f.LoginSessionID,
-		"subject":                       f.Subject,
-		"forced_subject_identifier":     f.ForcedSubjectIdentifier,
-		"identity_provider_session_id":  f.IdentityProviderSessionID,
+		"login_error":                   f.LoginError,
+		"login_was_handled":             f.LoginWasHandled,
+
+		"login_session_id":             f.LoginSessionID,
+		"subject":                      f.Subject,
+		"forced_subject_identifier":    f.ForcedSubjectIdentifier,
+		"identity_provider_session_id": f.IdentityProviderSessionID,
 
 		"consent_skip":         f.ConsentSkip,
 		"consent_csrf":         f.ConsentCSRF,
 		"consent_remember":     f.ConsentRemember,
 		"consent_remember_for": f.ConsentRememberFor,
-		"consent_was_handled":  f.ConsentWasHandled,
+		"consent_granted_at":   f.ConsentGrantedAt,
 		"consent_error":        f.ConsentError,
-		"consent_handled_at":   f.ConsentHandledAt,
+		"consent_was_handled":  f.ConsentWasHandled,
 
 		"requested_at":       f.RequestedAt,
 		"request_url":        f.RequestURL,

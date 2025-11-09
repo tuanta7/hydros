@@ -62,13 +62,14 @@
             font-size: 14px;
             font-weight: 600;
             color: #111;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         .scope-list {
             list-style: none;
-            padding: 0;
             margin: 0;
+            padding: 2px 0 12px 0;
+            border-bottom: 1px solid #e5e7eb;
         }
 
         .scope-item {
@@ -76,15 +77,14 @@
             font-size: 14px;
             color: #374151;
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             gap: 8px;
         }
 
-        .scope-item::before {
-            content: "✓";
-            color: #111827;
-            font-weight: 600;
-            flex-shrink: 0;
+        .scope-item label {
+            margin: 0;
+            font-size: 14px;
+            cursor: pointer;
         }
 
         label {
@@ -196,18 +196,27 @@
             {{end}}
         </div>
 
-        {{if .Scopes}}
-        <div class="scopes-section">
-            <div class="scopes-title">This application will be able to:</div>
-            <ul class="scope-list">
-                {{range .Scopes}}
-                <li class="scope-item">{{.}}</li>
-                {{end}}
-            </ul>
-        </div>
-        {{end}}
-
         <form action="/self-service/consent" method="post" novalidate>
+            {{if .Scopes}}
+            <div class="scopes-section">
+                <div class="scopes-title">This application will be able to:</div>
+                <ul class="scope-list">
+                    {{range $i, $s := .Scopes}}
+                    <li class="scope-item">
+                        <input id="scope_{{$i}}" name="scopes" type="checkbox" value="{{$s}}" checked>
+                        <label for="scope_{{$i}}">{{$s}}</label>
+                    </li>
+                    {{end}}
+                </ul>
+            </div>
+            {{end}}
+
+            {{if .Audiences}}
+            {{range $i, $s := .Audiences}}
+            <input id="audience_{{$i}}" name="audiences" type="hidden" value="{{$s}}">
+            {{end}}
+            {{end}}
+
             <div class="remember-group">
                 <input id="remember" name="remember" type="checkbox">
                 <label for="remember">Remember my decision</label>
