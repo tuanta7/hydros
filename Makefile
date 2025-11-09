@@ -16,6 +16,13 @@ env-example:
     	NF>=1 {gsub(/^[[:space:]]+|[[:space:]]+$$/, "", $$1); print $$1"="}' .env > .env.example
 	echo ".env.example generated successfully."
 
+env-example-test:
+	awk -F'=' 'BEGIN {OFS="="} \
+    	/^[[:space:]]*#/ {print; next} \
+    	/^[[:space:]]*$$/ {print ""; next} \
+    	NF>=1 {gsub(/^[[:space:]]+|[[:space:]]+$$/, "", $$1); print $$1"="}' ./test/.env > ./test/.env.example
+	echo "./test/env.example generated successfully."
+
 install-goose:
 	go install github.com/pressly/goose/v3/cmd/goose@latest
 	ls "$(shell go env GOPATH)/bin/" | grep goose
