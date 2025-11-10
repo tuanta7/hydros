@@ -8,14 +8,5 @@ import (
 )
 
 type OpenIDConnectTokenStrategy interface {
-	GenerateIDToken(ctx context.Context, lifetime time.Duration, r *core.Request) (token string, err error)
-	ValidateIDToken(ctx context.Context, token string) (err error)
-}
-
-func (js JWTStrategy) GenerateIDToken(ctx context.Context, lifetime time.Duration, r *core.Request) (token string, err error) {
-	return "", nil
-}
-
-func (js JWTStrategy) ValidateIDToken(ctx context.Context, token string) (err error) {
-	return nil
+	GenerateIDToken(ctx context.Context, lifetime time.Duration, tr *core.TokenRequest) (token string, err error)
 }

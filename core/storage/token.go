@@ -22,6 +22,7 @@ type AccessTokenStorage interface {
 	CreateAccessTokenSession(ctx context.Context, signature string, req *core.Request) error
 	GetAccessTokenSession(ctx context.Context, signature string, session core.Session) (*core.Request, error)
 	DeleteAccessTokenSession(ctx context.Context, signature string) error
+	RevokeAccessToken(ctx context.Context, requestID string) error
 }
 
 type RefreshTokenStorage interface {
@@ -29,6 +30,7 @@ type RefreshTokenStorage interface {
 	GetRefreshTokenSession(ctx context.Context, signature string, session core.Session) (*core.Request, error)
 	DeleteRefreshTokenSession(ctx context.Context, signature string) (err error)
 	RotateRefreshToken(ctx context.Context, requestID string, signature string) (err error)
+	RevokeRefreshToken(ctx context.Context, requestID string) error
 }
 
 // IDTokenStorage is unused. ID Token is always JWT, so no storage is needed

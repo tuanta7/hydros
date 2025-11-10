@@ -3,6 +3,7 @@ package v1
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-jose/go-jose/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/x"
 	"github.com/tuanta7/hydros/internal/jwk"
@@ -47,7 +48,7 @@ func (h *OAuthHandler) HandleTokenRequest(c *gin.Context) {
 
 	s.ClientID = tokenRequest.Client.GetID()
 	s.IDTokenSession.Claims.Issuer = h.cfg.GetAccessTokenIssuer()
-	s.IDTokenSession.Claims.IssuedAt = x.NowUTC()
+	s.IDTokenSession.Claims.IssuedAt = jwt.NewNumericDate(x.NowUTC())
 
 	// TODO: Implement rfc8693 token exchange
 

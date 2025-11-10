@@ -9,6 +9,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const txKey = "tx_connection"
+
 type client struct {
 	pool       *pgxpool.Pool
 	sqlBuilder squirrel.StatementBuilderType
@@ -20,11 +22,11 @@ func (c *client) BeginTx(ctx context.Context, o pgx.TxOptions) (context.Context,
 		return nil, err
 	}
 
-	return context.WithValue(ctx, "tx_connection", tx), nil
+	return context.WithValue(ctx, txKey, tx), nil
 }
 
 func (c *client) QueryProvider(ctx context.Context) QueryProvider {
-	txConn := ctx.Value("tx_connection")
+	txConn := ctx.Value(txKey)
 	if txConn != nil {
 		if tx, ok := txConn.(*pgxpool.Tx); ok {
 			return tx

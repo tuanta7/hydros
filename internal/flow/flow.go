@@ -24,8 +24,8 @@ const (
 // It contains information about the login and consent steps that were taken.
 type Flow struct {
 	ID                         string              `db:"id" json:"i"`
-	ACR                        string              `db:"acr" json:"a,omitempty"`
-	AMR                        dbtype.StringArray  `db:"amr" json:"am,omitempty"`
+	ACR                        string              `db:"acr" json:"a,omitempty"`  // not supported yet
+	AMR                        dbtype.StringArray  `db:"amr" json:"am,omitempty"` // not supported yet
 	LoginSkip                  bool                `db:"login_skip" json:"ls,omitempty"`
 	LoginExtendSessionLifetime bool                `db:"login_extend_session_lifetime" json:"ll,omitempty"`
 	LoginCSRF                  string              `db:"login_csrf" json:"lc,omitempty"`

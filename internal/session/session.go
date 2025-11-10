@@ -27,7 +27,6 @@ func NewSession(subject string) *Session {
 	return &Session{
 		IDTokenSession: &oidc.IDTokenSession{
 			Claims:  &jwt.IDTokenClaims{},
-			Headers: &jwt.Headers{},
 			Subject: subject,
 		},
 		Challenge: "",

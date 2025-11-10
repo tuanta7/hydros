@@ -62,6 +62,8 @@ const (
 )
 
 var (
+	ErrInvalidAuthorizationCode = errors.New("authorization code has ben invalidated")
+
 	ErrServerError = &RFC6749Error{
 		ErrorField:       "server_error",
 		DescriptionField: "The authorization server encountered an unexpected condition that prevented it from fulfilling the request.",

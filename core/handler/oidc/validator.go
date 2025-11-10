@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/tuanta7/hydros/core"
+
 	"github.com/tuanta7/hydros/core/strategy"
 	"github.com/tuanta7/hydros/core/x"
 )
@@ -63,20 +64,20 @@ func validatePrompt(
 	}
 
 	// add 5 seconds to account for clock skew
-	if claims.AuthenticatedAt.After(x.NowUTC().Add(5 * time.Second)) {
+	if claims.AuthTime.After(x.NowUTC().Add(5 * time.Second)) {
 		return core.ErrServerError.WithDebug("Failed to validate OpenID Connect request because authentication time is in the future.")
 	}
 
-	if slices.Contains(prompts, "login") && claims.AuthenticatedAt.Before(claims.RequestedAt) {
-		return core.ErrLoginRequired.WithHint("Failed to validate OpenID Connect request because prompt was set to 'login' but auth_time ('%s') happened before the authorization request ('%s') was registered, indicating that the user was not re-authenticated which is forbidden.", claims.AuthenticatedAt, claims.RequestedAt)
+	if slices.Contains(prompts, "login") && claims.AuthTime.Before(claims.RequestedAt) {
+		return core.ErrLoginRequired.WithHint("Failed to validate OpenID Connect request because prompt was set to 'login' but auth_time ('%s') happened before the authorization request ('%s') was registered, indicating that the user was not re-authenticated which is forbidden.", claims.AuthTime, claims.RequestedAt)
 	}
 
 	if slices.Contains(prompts, "none") {
-		if claims.AuthenticatedAt.IsZero() {
+		if claims.AuthTime.IsZero() {
 			return core.ErrServerError.WithDebug("Failed to validate OpenID Connect request because because authentication time is missing from session.")
 		}
-		if !claims.AuthenticatedAt.Equal(claims.RequestedAt) && claims.AuthenticatedAt.After(claims.RequestedAt) {
-			return core.ErrLoginRequired.WithHint("Failed to validate OpenID Connect request because prompt was set to 'none' but auth_time ('%s') happened after the authorization request ('%s') was registered, indicating that the user was logged in during this request which is not allowed.", claims.AuthenticatedAt, claims.RequestedAt)
+		if !claims.AuthTime.Equal(claims.RequestedAt) && claims.AuthTime.After(claims.RequestedAt) {
+			return core.ErrLoginRequired.WithHint("Failed to validate OpenID Connect request because prompt was set to 'none' but auth_time ('%s') happened after the authorization request ('%s') was registered, indicating that the user was logged in during this request which is not allowed.", claims.AuthTime, claims.RequestedAt)
 		}
 	}
 
@@ -86,11 +87,11 @@ func validatePrompt(
 	}
 
 	if maxAge > 0 {
-		if claims.AuthenticatedAt.IsZero() {
+		if claims.AuthTime.IsZero() {
 			return core.ErrServerError.WithDebug("Failed to validate OpenID Connect request because authentication time claim is required when max_age is set.")
 		} else if claims.RequestedAt.IsZero() {
 			return core.ErrServerError.WithDebug("Failed to validate OpenID Connect request because requested time claim is required when max_age is set.")
-		} else if claims.AuthenticatedAt.Add(time.Duration(maxAge) * time.Second).Before(claims.RequestedAt) {
+		} else if claims.AuthTime.Add(time.Duration(maxAge) * time.Second).Before(claims.RequestedAt) {
 			return core.ErrLoginRequired.WithDebug("Failed to validate OpenID Connect request because authentication time does not satisfy max_age time.")
 		}
 	}

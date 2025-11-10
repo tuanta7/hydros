@@ -41,8 +41,19 @@ func NewSigner(cfg Configurator, fn GetPrivateKeyFn) (*DefaultSigner, error) {
 	}, nil
 }
 
-func (s DefaultSigner) Generate(ctx context.Context, request *core.Request, tokenType core.TokenType) (string, string, error) {
+func (s *DefaultSigner) GenerateWithClaims(ctx context.Context, claims gojwt.Claims) (string, string, error) {
 	privateKey, algorithm, err := s.getSignKey(ctx)
+
+	token := gojwt.NewWithClaims(algorithm, claims)
+	signedToken, err := token.SignedString(privateKey)
+	if err != nil {
+		return "", "", err
+	}
+
+	return signedToken, s.GetSignature(signedToken), nil
+}
+
+func (s *DefaultSigner) Generate(ctx context.Context, request *core.Request, tokenType core.TokenType) (string, string, error) {
 	claims := &Claims{
 		RegisteredClaims: gojwt.RegisteredClaims{
 			ID:        x.RandomUUID(),
@@ -56,16 +67,10 @@ func (s DefaultSigner) Generate(ctx context.Context, request *core.Request, toke
 		Scope:    strings.Join(request.GrantedScope, " "),
 	}
 
-	token := gojwt.NewWithClaims(algorithm, claims)
-	signedToken, err := token.SignedString(privateKey)
-	if err != nil {
-		return "", "", err
-	}
-
-	return signedToken, s.GetSignature(signedToken), nil
+	return s.GenerateWithClaims(ctx, claims)
 }
 
-func (s DefaultSigner) getSignKey(ctx context.Context) (any, gojwt.SigningMethod, error) {
+func (s *DefaultSigner) getSignKey(ctx context.Context) (any, gojwt.SigningMethod, error) {
 	key, err := s.getPrivateKeyFn(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -95,7 +100,7 @@ func (s DefaultSigner) getSignKey(ctx context.Context) (any, gojwt.SigningMethod
 	return privateKey, algorithm, nil
 }
 
-func (s DefaultSigner) GetSignature(token string) string {
+func (s *DefaultSigner) GetSignature(token string) string {
 	parts := strings.SplitN(token, ".", 3)
 	if len(parts) != 3 {
 		return ""
@@ -103,7 +108,7 @@ func (s DefaultSigner) GetSignature(token string) string {
 	return parts[2]
 }
 
-func (s DefaultSigner) Validate(ctx context.Context, token string) (err error) {
+func (s *DefaultSigner) Validate(ctx context.Context, token string) (err error) {
 	publicKey, err := s.getVerificationKey(ctx)
 	if err != nil {
 		return err
@@ -124,7 +129,7 @@ func (s DefaultSigner) Validate(ctx context.Context, token string) (err error) {
 	return nil
 }
 
-func (s DefaultSigner) getVerificationKey(ctx context.Context) (any, error) {
+func (s *DefaultSigner) getVerificationKey(ctx context.Context) (any, error) {
 	key, err := s.getPrivateKeyFn(ctx)
 	if err != nil {
 		return nil, err

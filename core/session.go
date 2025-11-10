@@ -1,6 +1,8 @@
 package core
 
-import "time"
+import (
+	"time"
+)
 
 type Session interface {
 	SetExpiresAt(key TokenType, exp time.Time)

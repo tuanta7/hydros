@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	stderr "errors"
 	"fmt"
 	"strings"
 
@@ -50,8 +51,14 @@ func (r *RequestSessionStorage) CreateAccessTokenSession(ctx context.Context, si
 
 func (r *RequestSessionStorage) GetAccessTokenSession(ctx context.Context, signature string, session core.Session) (*core.Request, error) {
 	s, err := r.pg.GetBySignature(ctx, core.AccessToken, signature)
-	if err != nil {
+	if stderr.Is(err, sql.ErrNoRows) {
+		return nil, core.ErrNotFound
+	} else if err != nil {
 		return nil, err
+	}
+
+	if !s.Active {
+		return nil, core.ErrInactiveToken
 	}
 
 	return s.ToRequest(ctx, signature, session, core.AccessToken, r.aead)
@@ -59,6 +66,10 @@ func (r *RequestSessionStorage) GetAccessTokenSession(ctx context.Context, signa
 
 func (r *RequestSessionStorage) DeleteAccessTokenSession(ctx context.Context, signature string) error {
 	return r.pg.DeleteBySignature(ctx, core.AccessToken, signature)
+}
+
+func (r *RequestSessionStorage) RevokeAccessToken(ctx context.Context, requestID string) error {
+	return nil
 }
 
 func (r *RequestSessionStorage) CreateRefreshTokenSession(ctx context.Context, signature string, accessSignature string, req *core.Request) (err error) {
@@ -77,6 +88,10 @@ func (r *RequestSessionStorage) RotateRefreshToken(ctx context.Context, requestI
 	return nil
 }
 
+func (r *RequestSessionStorage) RevokeRefreshToken(ctx context.Context, requestID string) error {
+	return nil
+}
+
 func (r *RequestSessionStorage) CreateAuthorizeCodeSession(ctx context.Context, code string, req *core.Request) (err error) {
 	s, err := r.sessionFromRequest(ctx, code, req, core.AuthorizationCode)
 	if err != nil {
@@ -88,11 +103,23 @@ func (r *RequestSessionStorage) CreateAuthorizeCodeSession(ctx context.Context, 
 
 func (r *RequestSessionStorage) GetAuthorizationCodeSession(ctx context.Context, code string, session core.Session) (*core.Request, error) {
 	s, err := r.pg.GetBySignature(ctx, core.AuthorizationCode, code)
+	if stderr.Is(err, sql.ErrNoRows) {
+		return nil, core.ErrNotFound
+	} else if err != nil {
+		return nil, err
+	}
+
+	ar, err := s.ToRequest(ctx, code, session, core.AuthorizationCode, r.aead)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.ToRequest(ctx, code, session, core.AuthorizationCode, r.aead)
+	if !s.Active {
+		// the authorization code has been used previously.
+		return ar, core.ErrInvalidAuthorizationCode
+	}
+
+	return ar, nil
 }
 
 func (r *RequestSessionStorage) InvalidateAuthorizeCodeSession(ctx context.Context, code string) (err error) {

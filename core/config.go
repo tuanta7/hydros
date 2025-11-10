@@ -28,6 +28,10 @@ type RefreshTokenLifetimeProvider interface {
 	GetRefreshTokenLifetime() time.Duration
 }
 
+type IDTokenLifetimeProvider interface {
+	GetIDTokenLifetime() time.Duration
+}
+
 type SecretsHasherProvider interface {
 	GetSecretsHasher() Hasher
 }
@@ -42,6 +46,10 @@ type AccessTokenFormatProvider interface {
 
 type AccessTokenIssuerProvider interface {
 	GetAccessTokenIssuer() string
+}
+
+type IDTokenIssuerProvider interface {
+	GetIDTokenIssuer() string
 }
 
 type TokenEntropyProvider interface {

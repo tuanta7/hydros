@@ -72,12 +72,10 @@ func (h *TokenIntrospectionHandler) IntrospectToken(
 		if err != nil {
 			return "", err
 		}
-
 	case core.IDToken:
 		tokenType = core.IDToken
 		fallthrough
-	default:
-		// default to access token
+	default: // default to access token
 		tokenType = core.AccessToken
 		signature := h.tokenStrategy.AccessTokenSignature(ctx, ir.Token)
 		tokenRequestDB, err = h.tokenStorage.GetAccessTokenSession(ctx, signature, tr.Session)

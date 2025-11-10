@@ -10,13 +10,11 @@ import (
 
 type OpenIDConnectSession interface {
 	IDTokenClaims() *jwt.IDTokenClaims
-	IDTokenHeaders() *jwt.Headers
 	core.Session
 }
 
 type IDTokenSession struct {
 	Claims    *jwt.IDTokenClaims           `json:"id_token_claims"`
-	Headers   *jwt.Headers                 `json:"headers"`
 	Username  string                       `json:"username"`
 	Subject   string                       `json:"subject"`
 	ExpiresAt map[core.TokenType]time.Time `json:"expires_at"`
@@ -27,13 +25,6 @@ func (s *IDTokenSession) IDTokenClaims() *jwt.IDTokenClaims {
 		s.Claims = &jwt.IDTokenClaims{}
 	}
 	return s.Claims
-}
-
-func (s *IDTokenSession) IDTokenHeaders() *jwt.Headers {
-	if s.Headers == nil {
-		s.Headers = &jwt.Headers{}
-	}
-	return s.Headers
 }
 
 func (s *IDTokenSession) SetExpiresAt(key core.TokenType, exp time.Time) {

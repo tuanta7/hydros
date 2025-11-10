@@ -57,22 +57,26 @@ func (h *FormHandler) Login(c *gin.Context) {
 	}
 
 	email := c.PostForm("email")
-	password := c.PostForm("password")
+	for _, i := range h.idp {
+		err = i.Login(c.Request.Context(), &login.Credentials{
+			Username: email,
+			Password: c.PostForm("password"),
+		})
 
-	// TODO: implement login strategies
-	if email != "admin@example.com" || password != "password" {
-		h.writeFormError(c, core.ErrRequestUnauthorized.WithHint("Invalid username or password"))
-		return
+		if err == nil {
+			// If we use another standalone login provider, that IDP must call the /login/accept API endpoint internally to
+			// accept the login and redirect back to the authorization endpoint with the login verifier.
+			rememberForDays, _ := strconv.ParseInt(c.PostForm("remember_for"), 10, 64)
+			h.acceptLogin(c, &flow.HandledLoginRequest{
+				Subject:     c.PostForm("email"),
+				Remember:    c.PostForm("remember") == "on",
+				RememberFor: int(rememberForDays) * 24 * 60 * 60, // to seconds
+			})
+			return
+		}
 	}
 
-	// If we use another standalone login provider, that IDP must call the /login/accept API endpoint internally to
-	// accept the login and redirect back to the authorization endpoint with the login verifier.
-	rememberForDays, _ := strconv.ParseInt(c.PostForm("remember_for"), 10, 64)
-	h.acceptLogin(c, &flow.HandledLoginRequest{
-		Subject:     email,
-		Remember:    c.PostForm("remember") == "on",
-		RememberFor: int(rememberForDays) * 24 * 60 * 60, // to seconds
-	})
+	h.writeFormError(c, core.ErrRequestUnauthorized.WithHint("Invalid username or password"))
 }
 
 func (h *FormHandler) getLoginFlow(c *gin.Context) (*flow.Flow, bool) {

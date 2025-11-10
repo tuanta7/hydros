@@ -18,11 +18,13 @@ type OpenIDConnectAuthorizationCodeFlowHandler struct {
 
 func NewOpenIDConnectAuthorizationCodeFlowHandler(
 	config OpenIDConnectPromptConfigurator,
+	tokenStrategy strategy.OpenIDConnectTokenStrategy,
 	storage storage.OpenIDConnectRequestStorage,
 ) *OpenIDConnectAuthorizationCodeFlowHandler {
 	return &OpenIDConnectAuthorizationCodeFlowHandler{
-		config:  config,
-		storage: storage,
+		config:        config,
+		tokenStrategy: tokenStrategy,
+		storage:       storage,
 	}
 }
 
@@ -117,5 +119,11 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleTokenRequest(ctx conte
 }
 
 func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleTokenResponse(ctx context.Context, req *core.TokenRequest, res *core.TokenResponse) error {
+	token, err := h.tokenStrategy.GenerateIDToken(ctx, 0, req)
+	if err != nil {
+		return err
+	}
+
+	res.IDToken = token
 	return nil
 }
