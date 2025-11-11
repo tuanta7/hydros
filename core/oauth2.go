@@ -22,6 +22,23 @@ const (
 	GrantTypeClientCredentials GrantType = "client_credentials"
 )
 
+type OAuth2Provider interface {
+	NewAuthorizeRequest(ctx context.Context, req *http.Request) (*AuthorizeRequest, error)
+	NewAuthorizeResponse(ctx context.Context, req *AuthorizeRequest, session Session) (*AuthorizeResponse, error)
+	WriteAuthorizeError(ctx context.Context, rw http.ResponseWriter, req *AuthorizeRequest, err error)
+	WriteAuthorizeResponse(ctx context.Context, rw http.ResponseWriter, req *AuthorizeRequest, resp *AuthorizeResponse)
+
+	AuthenticateClient(ctx context.Context, r *http.Request, form url.Values) (Client, error)
+	NewTokenRequest(ctx context.Context, req *http.Request, session Session) (*TokenRequest, error)
+	NewTokenResponse(ctx context.Context, req *TokenRequest) (*TokenResponse, error)
+	WriteTokenError(ctx context.Context, rw http.ResponseWriter, req *TokenRequest, err error)
+	WriteTokenResponse(ctx context.Context, rw http.ResponseWriter, req *TokenRequest, resp *TokenResponse)
+
+	IntrospectToken(ctx context.Context, req *http.Request, session Session) (*IntrospectionResponse, error)
+	WriteIntrospectionError(ctx context.Context, rw http.ResponseWriter, err error)
+	WriteIntrospectionResponse(ctx context.Context, rw http.ResponseWriter, r *IntrospectionResponse)
+}
+
 // OAuth2 implements the OAuth2Provider interface.
 type OAuth2 struct {
 	config               Configurator
@@ -45,23 +62,6 @@ func NewOAuth2(
 		tokenHandlers:        tokenHandlers,
 		introspectionHandler: introspectionHandler,
 	}
-}
-
-type OAuth2Provider interface {
-	NewAuthorizeRequest(ctx context.Context, req *http.Request) (*AuthorizeRequest, error)
-	NewAuthorizeResponse(ctx context.Context, req *AuthorizeRequest, session Session) (*AuthorizeResponse, error)
-	WriteAuthorizeError(ctx context.Context, rw http.ResponseWriter, req *AuthorizeRequest, err error)
-	WriteAuthorizeResponse(ctx context.Context, rw http.ResponseWriter, req *AuthorizeRequest, resp *AuthorizeResponse)
-
-	AuthenticateClient(ctx context.Context, r *http.Request, form url.Values) (Client, error)
-	NewTokenRequest(ctx context.Context, req *http.Request, session Session) (*TokenRequest, error)
-	NewTokenResponse(ctx context.Context, req *TokenRequest) (*TokenResponse, error)
-	WriteTokenError(ctx context.Context, rw http.ResponseWriter, req *TokenRequest, err error)
-	WriteTokenResponse(ctx context.Context, rw http.ResponseWriter, req *TokenRequest, resp *TokenResponse)
-
-	IntrospectToken(ctx context.Context, req *http.Request, session Session) (*IntrospectionResponse, error)
-	WriteIntrospectionError(ctx context.Context, rw http.ResponseWriter, err error)
-	WriteIntrospectionResponse(ctx context.Context, rw http.ResponseWriter, r *IntrospectionResponse)
 }
 
 type Configurator interface {

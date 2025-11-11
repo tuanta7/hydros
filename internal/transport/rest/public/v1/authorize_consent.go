@@ -55,11 +55,8 @@ func (h *OAuthHandler) requestConsent(
 	}
 
 	scopeStrategy := h.cfg.GetScopeStrategy()
-	for _, s := range ar.RequestedScope {
-		// if a new scope is required, forward the consent request without the consent session
-		if !scopeStrategy(consentSession.GrantedScope, s) {
-			return h.forwardConsentRequest(ctx, w, r, ar, f, nil)
-		}
+	if err = scopeStrategy(consentSession.GrantedScope, ar.RequestedScope); err != nil {
+		return h.forwardConsentRequest(ctx, w, r, ar, f, nil)
 	}
 
 	return h.forwardConsentRequest(ctx, w, r, ar, f, consentSession)

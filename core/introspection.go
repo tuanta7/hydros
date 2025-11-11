@@ -106,7 +106,7 @@ func (o *OAuth2) WriteIntrospectionError(ctx context.Context, rw http.ResponseWr
 		return
 	}
 
-	if !errors.Is(err, ErrInactiveToken) {
+	if errors.Is(err, ErrInvalidRequest) || errors.Is(err, ErrRequestUnauthorized) || errors.Is(err, ErrInvalidClient) {
 		o.writeError(ctx, rw, err)
 		return
 	}

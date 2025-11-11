@@ -52,10 +52,8 @@ func (h *ClientCredentialsGrantHandler) HandleTokenRequest(ctx context.Context, 
 	}
 
 	scopeStrategy := h.config.GetScopeStrategy()
-	for _, scope := range req.RequestedScope {
-		if !scopeStrategy(client.GetScopes(), scope) {
-			return core.ErrInvalidScope
-		}
+	if err := scopeStrategy(client.GetScopes(), req.RequestedScope); err != nil {
+		return err
 	}
 
 	audienceStrategy := h.config.GetAudienceStrategy()

@@ -44,10 +44,10 @@ func (h *TokenIntrospectionHandler) IntrospectToken(
 	ctx context.Context,
 	ir *core.IntrospectionRequest,
 	tr *core.TokenRequest,
-) (core.TokenType, error) {
+) (tokenType core.TokenType, err error) {
 	if h.config.IsDisableRefreshTokenValidation() {
 		signature := h.tokenStrategy.AccessTokenSignature(ctx, ir.Token)
-		_, err := h.tokenStorage.GetAccessTokenSession(ctx, signature, tr.Session)
+		_, err = h.tokenStorage.GetAccessTokenSession(ctx, signature, tr.Session)
 		if err != nil {
 			return "", err
 		}
@@ -55,46 +55,39 @@ func (h *TokenIntrospectionHandler) IntrospectToken(
 		return core.AccessToken, nil
 	}
 
-	var tokenRequestDB *core.Request
-	var err error
-	var tokenType core.TokenType
+	var handledTokenRequest *core.Request
 
 	switch ir.TokenTypeHint {
 	case core.RefreshToken:
 		tokenType = core.RefreshToken
 		signature := h.tokenStrategy.RefreshTokenSignature(ctx, ir.Token)
-		tokenRequestDB, err = h.tokenStorage.GetRefreshTokenSession(ctx, signature, tr.Session)
+		handledTokenRequest, err = h.tokenStorage.GetRefreshTokenSession(ctx, signature, tr.Session)
 		if err != nil {
 			return "", err
 		}
 
-		err = h.tokenStrategy.ValidateRefreshToken(ctx, tokenRequestDB, ir.Token)
+		err = h.tokenStrategy.ValidateRefreshToken(ctx, handledTokenRequest, ir.Token)
 		if err != nil {
 			return "", err
 		}
-	case core.IDToken:
-		tokenType = core.IDToken
-		fallthrough
-	default: // default to access token
+	default:
 		tokenType = core.AccessToken
 		signature := h.tokenStrategy.AccessTokenSignature(ctx, ir.Token)
-		tokenRequestDB, err = h.tokenStorage.GetAccessTokenSession(ctx, signature, tr.Session)
+		handledTokenRequest, err = h.tokenStorage.GetAccessTokenSession(ctx, signature, tr.Session)
 		if err != nil {
 			return "", err
 		}
 
-		err = h.tokenStrategy.ValidateAccessToken(ctx, tokenRequestDB, ir.Token)
+		err = h.tokenStrategy.ValidateAccessToken(ctx, handledTokenRequest, ir.Token)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	for _, scope := range ir.Scope {
-		if !h.scopeStrategy(tokenRequestDB.GrantedScope, scope) {
-			return "", core.ErrInvalidScope.WithHint("The request scope '%s' has not been granted or is not allowed to be requested.", scope)
-		}
+	if err = h.scopeStrategy(handledTokenRequest.GrantedScope, ir.Scope); err != nil {
+		return "", err
 	}
 
-	tr.Merge(tokenRequestDB)
+	tr.Merge(handledTokenRequest)
 	return tokenType, nil
 }
