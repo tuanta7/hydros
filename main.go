@@ -146,10 +146,10 @@ func getTokenStrategy(cfg *config.Config, jwkUC *jwk.UseCase) (strategy.TokenStr
 			return nil, err
 		}
 
-		return strategy.NewJWTStrategy(hmacSigner, jwtSigner), nil
+		return oauth.NewJWTStrategy(cfg, hmacSigner, jwtSigner), nil
 	}
 
-	return strategy.NewHMACStrategy(cfg, hmacSigner), nil
+	return oauth.NewHMACStrategy(cfg, hmacSigner), nil
 }
 
 func panicErr(err error) {

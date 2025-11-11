@@ -6,6 +6,7 @@ import (
 
 	gojwt "github.com/golang-jwt/jwt/v5"
 	"github.com/tuanta7/hydros/core"
+	"github.com/tuanta7/hydros/core/strategy"
 	"github.com/tuanta7/hydros/core/x"
 )
 
@@ -17,13 +18,13 @@ type IDTokenStrategyConfigurator interface {
 
 type IDTokenStrategy struct {
 	cfg IDTokenStrategyConfigurator
-	IDTokenSigner
+	strategy.JWTSigner
 }
 
-func NewIDTokenStrategy(cfg IDTokenStrategyConfigurator, jwtSigner IDTokenSigner) *IDTokenStrategy {
+func NewIDTokenStrategy(cfg IDTokenStrategyConfigurator, jwtSigner strategy.JWTSigner) *IDTokenStrategy {
 	return &IDTokenStrategy{
-		cfg:           cfg,
-		IDTokenSigner: jwtSigner,
+		cfg:       cfg,
+		JWTSigner: jwtSigner,
 	}
 }
 
@@ -64,6 +65,6 @@ func (i *IDTokenStrategy) GenerateIDToken(ctx context.Context, lifetime time.Dur
 	claims.Audience = append(claims.Audience, tr.Client.GetID())
 	claims.IssuedAt = gojwt.NewNumericDate(x.NowUTC())
 
-	token, _, err := i.IDTokenSigner.GenerateWithClaims(ctx, claims)
+	token, _, err := i.JWTSigner.Generate(ctx, claims)
 	return token, err
 }

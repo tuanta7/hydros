@@ -119,11 +119,11 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleTokenRequest(ctx conte
 }
 
 func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleTokenResponse(ctx context.Context, req *core.TokenRequest, res *core.TokenResponse) error {
-	token, err := h.tokenStrategy.GenerateIDToken(ctx, 0, req)
-	if err != nil {
-		return err
-	}
-
-	res.IDToken = token
+	//token, err := h.tokenStrategy.GenerateIDToken(ctx, 0, req)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//res.IDToken = token
 	return nil
 }

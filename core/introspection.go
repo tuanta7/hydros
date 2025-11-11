@@ -47,6 +47,11 @@ func (o *OAuth2) IntrospectToken(ctx context.Context, req *http.Request, session
 		return nil, ErrInvalidRequest.WithHint("The POST body can not be empty.")
 	}
 
+	_, clientErr := o.AuthenticateClient(ctx, req, form)
+	if clientErr != nil {
+		return nil, clientErr
+	}
+
 	request := &IntrospectionRequest{
 		Token:         form.Get("token"),
 		TokenTypeHint: TokenType(form.Get("token_type_hint")),
@@ -101,7 +106,7 @@ func (o *OAuth2) WriteIntrospectionError(ctx context.Context, rw http.ResponseWr
 		return
 	}
 
-	if !errors.Is(err, ErrInactiveToken) && (errors.Is(err, ErrInvalidRequest) || errors.Is(err, ErrRequestUnauthorized)) {
+	if !errors.Is(err, ErrInactiveToken) {
 		o.writeError(ctx, rw, err)
 		return
 	}

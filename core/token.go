@@ -99,7 +99,9 @@ func (o *OAuth2) NewTokenResponse(ctx context.Context, req *TokenRequest) (*Toke
 
 	for _, th := range o.tokenHandlers {
 		he := th.HandleTokenResponse(ctx, req, tokenResponse)
-		if he != nil {
+		if he == nil || errors.Is(he, ErrUnknownRequest) {
+			continue
+		} else if he != nil {
 			return nil, he
 		}
 	}

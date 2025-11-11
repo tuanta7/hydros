@@ -9,7 +9,6 @@ import (
 	"github.com/go-jose/go-jose/v4"
 	gojwt "github.com/golang-jwt/jwt/v5"
 	"github.com/tuanta7/hydros/core"
-	"github.com/tuanta7/hydros/core/x"
 )
 
 var SupportedAlgorithm = map[string]gojwt.SigningMethod{
@@ -41,7 +40,7 @@ func NewSigner(cfg Configurator, fn GetPrivateKeyFn) (*DefaultSigner, error) {
 	}, nil
 }
 
-func (s *DefaultSigner) GenerateWithClaims(ctx context.Context, claims gojwt.Claims) (string, string, error) {
+func (s *DefaultSigner) Generate(ctx context.Context, claims gojwt.Claims, headers ...map[string]any) (string, string, error) {
 	privateKey, algorithm, err := s.getSignKey(ctx)
 
 	token := gojwt.NewWithClaims(algorithm, claims)
@@ -51,23 +50,6 @@ func (s *DefaultSigner) GenerateWithClaims(ctx context.Context, claims gojwt.Cla
 	}
 
 	return signedToken, s.GetSignature(signedToken), nil
-}
-
-func (s *DefaultSigner) Generate(ctx context.Context, request *core.Request, tokenType core.TokenType) (string, string, error) {
-	claims := &Claims{
-		RegisteredClaims: gojwt.RegisteredClaims{
-			ID:        x.RandomUUID(),
-			Issuer:    s.config.GetAccessTokenIssuer(),
-			Subject:   request.Session.GetSubject(),
-			Audience:  gojwt.ClaimStrings(request.GrantedAudience),
-			IssuedAt:  gojwt.NewNumericDate(x.NowUTC()),
-			ExpiresAt: gojwt.NewNumericDate(request.Session.GetExpiresAt(tokenType)),
-		},
-		ClientID: request.Client.GetID(),
-		Scope:    strings.Join(request.GrantedScope, " "),
-	}
-
-	return s.GenerateWithClaims(ctx, claims)
 }
 
 func (s *DefaultSigner) getSignKey(ctx context.Context) (any, gojwt.SigningMethod, error) {

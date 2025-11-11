@@ -10,7 +10,6 @@ import (
 	"github.com/tuanta7/hydros/core/handler/pkce"
 	"github.com/tuanta7/hydros/core/signer/hmac"
 	"github.com/tuanta7/hydros/core/signer/jwt"
-	"github.com/tuanta7/hydros/core/strategy"
 	"github.com/tuanta7/hydros/internal/client"
 	"github.com/tuanta7/hydros/internal/flow"
 	"github.com/tuanta7/hydros/internal/jwk"
@@ -96,11 +95,17 @@ func SetupTestApp(t *testing.T) *App {
 		t.Fatalf("Failed to create JWT signer: %v", err)
 	}
 
-	tokenStrategy := strategy.NewJWTStrategy(hmacSigner, jwtSigner)
+	tokenStrategy := oauth.NewJWTStrategy(cfg, hmacSigner, jwtSigner)
+
+	idTokenSigner, err := jwt.NewSigner(cfg, jwkUC.GetOrCreateJWKFn(jwk.IDTokenSet))
+	if err != nil {
+		t.Fatalf("Failed to create ID Token signer: %v", err)
+	}
+	idTokenStrategy := oidc.NewIDTokenStrategy(cfg, idTokenSigner)
 
 	// Setup OAuth handlers
 	oauthAuthorizationCodeHandler := oauth.NewAuthorizationCodeGrantHandler(cfg, tokenStrategy, tokenStorage)
-	oidcHandler := oidc.NewOpenIDConnectAuthorizationCodeFlowHandler(cfg, tokenStorage)
+	oidcHandler := oidc.NewOpenIDConnectAuthorizationCodeFlowHandler(cfg, idTokenStrategy, tokenStorage)
 	pkceHandler := pkce.NewProofKeyForCodeExchangeHandler(cfg, tokenStrategy, tokenStorage)
 
 	oauthCore := core.NewOAuth2(cfg, clientUC,
