@@ -47,11 +47,6 @@ func (o *OAuth2) IntrospectToken(ctx context.Context, req *http.Request, session
 		return nil, ErrInvalidRequest.WithHint("The POST body can not be empty.")
 	}
 
-	_, clientErr := o.AuthenticateClient(ctx, req, form)
-	if clientErr != nil {
-		return nil, clientErr
-	}
-
 	request := &IntrospectionRequest{
 		Token:         form.Get("token"),
 		TokenTypeHint: TokenType(form.Get("token_type_hint")),
@@ -62,8 +57,14 @@ func (o *OAuth2) IntrospectToken(ctx context.Context, req *http.Request, session
 		if request.Token == clientToken {
 			return nil, ErrRequestUnauthorized.WithHint("Bearer and introspection token are identical.")
 		}
-		// TODO: read fosite/hydra implementation, idk what to do here
+		// TODO: implement bearer token form of authorization
 	} else {
+		client, clientErr := o.AuthenticateClient(ctx, req, form)
+		if clientErr != nil {
+			return nil, clientErr
+		} else if client.IsPublic() {
+			return nil, ErrRequestUnauthorized.WithHint("The introspection endpoint is not meant for public clients.")
+		}
 	}
 
 	handled := false
