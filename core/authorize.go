@@ -95,7 +95,7 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 	}
 	ar.Client = client
 
-	redirectURI, err := o.parseRedirectURI(ar, client.GetRedirectURIs())
+	redirectURI, err := parseRedirectURI(ar, client.GetRedirectURIs())
 	if err != nil {
 		return ar, err
 	}
@@ -110,9 +110,18 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 		return ar, ErrInvalidState.WithHint("Request parameter 'state' must be at least be %d characters long to ensure sufficient entropy.", o.config.GetMinParameterEntropy())
 	}
 
+	audiences := ar.Form["audience"]
+	if len(audiences) > 1 {
+		ar.RequestedAudience = x.RemoveEmpty(audiences)
+	} else if len(audiences) == 1 {
+		// GET requests format the audience as a space-separated list
+		ar.RequestedAudience = x.SplitSpace(audiences[0])
+	} else {
+		ar.RequestedAudience = []string{}
+	}
+
 	ar.ResponseTypes = x.SplitSpace(form.Get("response_type"))
 	ar.RequestedScope = x.SplitSpace(form.Get("scope"))
-	ar.RequestedAudience = getAudience(ar)
 
 	ar.CodeChallenge = form.Get("code_challenge")
 	ar.CodeChallengeMethod = form.Get("code_challenge_method")
@@ -129,7 +138,7 @@ func (o *OAuth2) NewAuthorizeRequest(ctx context.Context, req *http.Request) (*A
 	return ar, nil
 }
 
-func (o *OAuth2) parseRedirectURI(ar *AuthorizeRequest, registeredURIs []string) (*url.URL, error) {
+func parseRedirectURI(ar *AuthorizeRequest, registeredURIs []string) (*url.URL, error) {
 	raw := ar.Form.Get("redirect_uri")
 	if raw == "" && ar.RequestedScope.IncludeAll("openid") {
 		return nil, ErrInvalidRequest.WithHint("The 'redirect_uri' parameter is required when using OpenID Connect 1.0.")
@@ -165,20 +174,6 @@ func parseResponseMode(ar *AuthorizeRequest) (ResponseMode, error) {
 	}
 }
 
-func getAudience(request *AuthorizeRequest) []string {
-	audiences := request.Form["audience"]
-	if len(audiences) > 1 {
-		return x.RemoveEmpty(audiences)
-	}
-
-	if len(audiences) == 1 {
-		// GET requests format the audience as a space-separated list
-		return x.SplitSpace(audiences[0])
-	}
-
-	return []string{}
-}
-
 func (o *OAuth2) NewAuthorizeResponse(ctx context.Context, req *AuthorizeRequest, session Session) (*AuthorizeResponse, error) {
 	response := NewAuthorizeResponse()
 
@@ -207,18 +202,13 @@ func (o *OAuth2) WriteAuthorizeError(ctx context.Context, rw http.ResponseWriter
 	if !req.IsRedirectURIValid() {
 		return
 	}
-
 	req.RedirectURI.Fragment = ""
 
 	var redirectURIString string
 	switch req.ResponseMode {
 	case ResponseModeFormPost:
 		rw.Header().Set("Content-Type", "text/html;charset=UTF-8")
-
-		// TODO: implement form post response mode
-		rw.WriteHeader(http.StatusNotImplemented)
-		_, _ = rw.Write([]byte("<html><body>Form post response mode not implemented.</body></html>"))
-
+		o.FormPostResponse(req.RedirectURI.String(), rw)
 		return
 	case ResponseModeFragment:
 		redirectURIString = req.RedirectURI.String() + "#" + errorsForm.Encode()
@@ -239,11 +229,7 @@ func (o *OAuth2) WriteAuthorizeResponse(ctx context.Context, rw http.ResponseWri
 	switch req.ResponseMode {
 	case ResponseModeFormPost:
 		rw.Header().Set("Content-Type", "text/html;charset=UTF-8")
-
-		// TODO: implement form post response mode
-		rw.WriteHeader(http.StatusNotImplemented)
-		_, _ = rw.Write([]byte("<html><body>Form post response mode not implemented.</body></html>"))
-
+		o.FormPostResponse(req.RedirectURI.String(), rw)
 		return
 	case ResponseModeFragment:
 		req.RedirectURI.Fragment = ""

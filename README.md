@@ -35,8 +35,8 @@ RFC 6749 (OAuth 2.0 Core) defines the base OAuth framework. Since its publicatio
 several companion specifications that extend and clarify the protocol — the complete list can be
 found [here](https://oauth.net/2/). Hydros is under active development and is not yet production-ready.
 
-| RFC                     | Name                                                            | Status         |
-| ----------------------- | --------------------------------------------------------------- | -------------- |
+| RFC                     | Name                                                            | Status        |
+|-------------------------|-----------------------------------------------------------------|---------------|
 | (Active Internet-Draft) | The OAuth 2.1 Authorization Framework                           | ⏳ Development |
 | RFC 6750                | Bearer Token Usage                                              | ✅ Supported   |
 | RFC 7636                | PKCE: Proof Key for Code Exchange                               | ⏳ Development |
@@ -44,17 +44,17 @@ found [here](https://oauth.net/2/). Hydros is under active development and is no
 | RFC 9068                | JWT Profile for OAuth Access Tokens                             | ✅ Supported   |
 | RFC 7009                | OAuth 2.0 Token Revocation                                      | ⏳ Development |
 | RFC 8252                | OAuth 2.0 for Mobile and Native Apps                            | ⏳ Development |
-| RFC 8693                | OAuth 2.0 Token Exchange                                        | Todo           |
-| RFC 9126                | Pushed Authorization Requests (PAR)                             | Todo           |
-| RFC 7521                | Assertion Framework for OAuth 2.0 Client Authn and Authz Grants | Todo           |
-| RFC 7523                | JSON Web Token (JWT) Profile for OAuth 2.0 Client Authn and...  | Todo           |
+| RFC 8693                | OAuth 2.0 Token Exchange                                        | Todo          |
+| RFC 9126                | Pushed Authorization Requests (PAR)                             | Todo          |
+| RFC 7521                | Assertion Framework for OAuth 2.0 Client Authn and Authz Grants | Todo          |
+| RFC 7523                | JWT Profile for OAuth 2.0 Client Authn and Authz Grants         | Todo          |
 
 ### OpenID Connect
 
 The complete list of specifications can be found [here](https://openid.net/developers/specs/).
 
-| Specification                      | Status         |
-| ---------------------------------- | -------------- |
+| Specification                      | Status        |
+|------------------------------------|---------------|
 | OpenID Connect Core 1.0            | ⏳ Development |
-| OAuth 2.0 Form Post Response Mode  | Todo           |
-| OpenID Connect RP-Initiated Logout | Todo           |
+| OAuth 2.0 Form Post Response Mode  | ⏳ Development |
+| OpenID Connect RP-Initiated Logout | Todo          |

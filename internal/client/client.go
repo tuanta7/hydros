@@ -10,6 +10,7 @@ import (
 )
 
 // Client represents an OAuth2.1 and IDToken Connect client.
+// TODO: Support RFC7591 dynamic client registration
 type Client struct {
 	ID            string             `json:"id" db:"id"`
 	Name          string             `json:"name" db:"name"`
@@ -21,31 +22,28 @@ type Client struct {
 	ResponseTypes dbtype.StringArray `json:"response_types" db:"response_types"`
 	Audience      dbtype.StringArray `json:"audience" db:"audience"`
 	RequestURIs   dbtype.StringArray `json:"request_uris,omitempty" db:"request_uris"`
-
 	// JWKs and JWKsURI are mutually exclusive, they are used for authenticate clients using the private_key_jwt method.
 	JWKs                        *dbtype.JWKSet `json:"jwks,omitempty" db:"jwks"`
 	JWKsURI                     string         `json:"jwks_uri,omitempty" db:"jwks_uri"`
 	TokenEndpointAuthMethod     string         `json:"token_endpoint_auth_method,omitempty" db:"token_endpoint_auth_method"`
 	TokenEndpointAuthSigningAlg string         `json:"token_endpoint_auth_signing_alg,omitempty" db:"token_endpoint_auth_signing_alg"`
-
-	CreatedAt time.Time `json:"created_at,omitempty" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at,omitempty" db:"updated_at"`
-	// TODO: Support rfc7591 dynamic client registration
+	CreatedAt                   time.Time      `json:"created_at,omitempty" db:"created_at"`
+	UpdatedAt                   time.Time      `json:"updated_at,omitempty" db:"updated_at"`
 }
 
-func (c Client) GetID() string {
+func (c *Client) GetID() string {
 	return c.ID
 }
 
-func (c Client) GetHashedSecret() []byte {
+func (c *Client) GetHashedSecret() []byte {
 	return []byte(c.Secret)
 }
 
-func (c Client) GetRedirectURIs() []string {
+func (c *Client) GetRedirectURIs() []string {
 	return c.RedirectURIs
 }
 
-func (c Client) GetGrantTypes() core.Arguments {
+func (c *Client) GetGrantTypes() core.Arguments {
 	if len(c.GrantTypes) == 0 {
 		return core.Arguments{"authorization_code"}
 	}
@@ -53,42 +51,42 @@ func (c Client) GetGrantTypes() core.Arguments {
 	return core.Arguments(c.GrantTypes)
 }
 
-func (c Client) GetResponseTypes() core.Arguments {
+func (c *Client) GetResponseTypes() core.Arguments {
 	return core.Arguments(c.ResponseTypes)
 }
 
-func (c Client) GetScopes() core.Arguments {
+func (c *Client) GetScopes() core.Arguments {
 	return strings.Fields(c.Scope)
 }
 
-func (c Client) IsPublic() bool {
-	return c.TokenEndpointAuthMethod == "none"
+func (c *Client) IsPublic() bool {
+	return c.TokenEndpointAuthMethod == core.ClientAuthenticationMethodNone
 }
 
-func (c Client) GetAudience() core.Arguments {
+func (c *Client) GetAudience() core.Arguments {
 	return core.Arguments(c.Audience)
 }
 
-func (c Client) GetRequestURIs() []string {
+func (c *Client) GetRequestURIs() []string {
 	return c.RequestURIs
 }
 
-func (c Client) GetJWKs() *jose.JSONWebKeySet {
+func (c *Client) GetJWKs() *jose.JSONWebKeySet {
 	if c.JWKs == nil {
 		return nil
 	}
 	return c.JWKs.JSONWebKeySet
 }
 
-func (c Client) GetJWKsURI() string {
+func (c *Client) GetJWKsURI() string {
 	return c.JWKsURI
 }
 
-func (c Client) GetTokenEndpointAuthMethod() string {
+func (c *Client) GetTokenEndpointAuthMethod() string {
 	return c.TokenEndpointAuthMethod
 }
 
-func (c Client) GetResponseModes() []core.ResponseMode {
+func (c *Client) GetResponseModes() []core.ResponseMode {
 	// fixed for now
 	return []core.ResponseMode{
 		core.ResponseModeDefault,
@@ -98,7 +96,7 @@ func (c Client) GetResponseModes() []core.ResponseMode {
 	}
 }
 
-func (c Client) ColumnMap() map[string]any {
+func (c *Client) ColumnMap() map[string]any {
 	return map[string]any{
 		"id":                              c.ID,
 		"name":                            c.Name,
