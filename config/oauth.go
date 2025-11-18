@@ -19,32 +19,28 @@ func (c *Config) GetScopeStrategy() strategy.ScopeStrategy {
 	switch c.OAuth.ScopeStrategy {
 	case "exact":
 		return strategy.ExactScopeStrategy
-	case "hierarchical":
-		return strategy.HierarchicScopeStrategy
+	case "prefix":
+		return strategy.PrefixScopeStrategy
+	default:
+		return strategy.ExactScopeStrategy
 	}
-
-	return strategy.ExactScopeStrategy
 }
 
 func (c *Config) GetAudienceStrategy() strategy.AudienceStrategy {
 	switch c.OAuth.AudienceStrategy {
 	case "exact":
 		return strategy.ExactAudienceStrategy
+	default:
+		return strategy.ExactAudienceStrategy
 	}
-
-	return strategy.ExactAudienceStrategy
 }
 
 func (c *Config) GetMinParameterEntropy() int {
-	if c.OAuth.MinParameterEntropy == 0 {
+	if c.OAuth.MinParameterEntropy < MinParameterEntropy {
 		return MinParameterEntropy
-	} else {
-		return c.OAuth.MinParameterEntropy
 	}
-}
 
-func (c *Config) IsDisableRefreshTokenValidation() bool {
-	return c.OAuth.DisableRefreshTokenValidation
+	return c.OAuth.MinParameterEntropy
 }
 
 func (c *Config) GetAccessTokenFormat() string {
@@ -53,6 +49,10 @@ func (c *Config) GetAccessTokenFormat() string {
 	}
 
 	return "opaque"
+}
+
+func (c *Config) IsDisableRefreshTokenValidation() bool {
+	return c.OAuth.DisableRefreshTokenValidation
 }
 
 func (c *Config) IsEnablePKCEPlainChallengeMethod() bool {

@@ -1,10 +1,12 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 	"github.com/knadh/koanf/parsers/json"
 	"github.com/knadh/koanf/providers/env"
@@ -89,26 +91,26 @@ func LoadConfig(envFiles ...string) *Config {
 		log.Fatalf("error loading env config: %v", err)
 	}
 
-	// JSON config will override env config
-	f := file.Provider("static/config/config.json")
-	err = k.Load(f, json.Parser())
-	if err != nil {
-		log.Fatalf("error loading json config: %v", err)
+	cfg := &Config{}
+	if err = k.Unmarshal("", cfg); err != nil {
+		log.Fatalf("error unmarshalling config: %v", err)
 	}
 
-	cfg := &Config{}
-	if ue := k.Unmarshal("", cfg); ue != nil {
-		log.Fatalf("error unmarshalling config: %v", ue)
+	if err = validateConfig(cfg); err != nil {
+		log.Fatalf("invalid config: %v", err)
 	}
 
 	go func() {
+		// JSON config will override env config
+		f := file.Provider("static/config/config.json")
+
 		we := f.Watch(func(event any, err error) {
 			if err != nil {
 				log.Printf("watch error: %v", err)
 				return
 			}
 
-			log.Println("config changed. Reloading ...")
+			log.Println("Config changed. Reloading ...")
 			if le := k.Load(f, json.Parser()); le != nil {
 				log.Printf("error loading config: %v", le)
 				return
@@ -127,4 +129,27 @@ func LoadConfig(envFiles ...string) *Config {
 	}()
 
 	return cfg
+}
+
+type ValidationError struct {
+	Field string
+	Tag   string
+	Value any
+}
+
+var validate = validator.New(validator.WithRequiredStructEnabled())
+
+func validateConfig(cfg *Config) (validateErr error) {
+	if errs := validate.Struct(cfg); errs != nil {
+		for _, err := range errs.(validator.ValidationErrors) {
+			validateErr = errors.Join(validateErr, fmt.Errorf(
+				"invalid value for %s, expected constraints: %s, got `%s`",
+				err.Field(),
+				err.Tag(),
+				err.Value(),
+			))
+		}
+	}
+
+	return validateErr
 }

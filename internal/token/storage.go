@@ -150,7 +150,9 @@ func (r *RequestSessionStorage) DeletePKCERequestSession(ctx context.Context, au
 
 func (r *RequestSessionStorage) GetOpenIDConnectSession(ctx context.Context, authorizeCode string, session core.Session) (*core.Request, error) {
 	s, err := r.pg.GetBySignature(ctx, OIDC, authorizeCode)
-	if err != nil {
+	if stderr.Is(err, sql.ErrNoRows) {
+		return nil, core.ErrNotFound
+	} else if err != nil {
 		return nil, err
 	}
 

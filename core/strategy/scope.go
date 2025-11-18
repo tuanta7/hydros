@@ -33,7 +33,7 @@ func ExactScopeStrategy(haystack []string, needles []string) error {
 	return nil
 }
 
-func HierarchicScopeStrategy(haystack []string, needles []string) error {
+func PrefixScopeStrategy(haystack []string, needles []string) error {
 	if len(needles) == 0 {
 		return nil
 	}

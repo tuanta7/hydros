@@ -5,7 +5,7 @@ import "fmt"
 type JWTConfig struct {
 	Algorithm         string `koanf:"algorithm"`
 	KeySize           int    `koanf:"key_size"`
-	AccessTokenIssuer string `koanf:"access_token_issuer"`
+	AccessTokenIssuer string `koanf:"access_token_issuer" validate:"required"`
 }
 
 func (c *Config) GetAccessTokenIssuer() string {

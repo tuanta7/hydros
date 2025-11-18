@@ -46,8 +46,8 @@ found [here](https://oauth.net/2/). Hydros is under active development and is no
 | RFC 8252                | OAuth 2.0 for Mobile and Native Apps                            | ⏳ Development |
 | RFC 8693                | OAuth 2.0 Token Exchange                                        | Todo          |
 | RFC 9126                | Pushed Authorization Requests (PAR)                             | Todo          |
-| RFC 7521                | Assertion Framework for OAuth 2.0 Client Authn and Authz Grants | Todo          |
-| RFC 7523                | JWT Profile for OAuth 2.0 Client Authn and Authz Grants         | Todo          |
+| RFC 7521                | Assertion Framework for OAuth 2.0 Client AuthN and AuthZ Grants | Todo          |
+| RFC 7523                | JWT Profile for OAuth 2.0 Client AuthN and AuthZ Grants         | Todo          |
 
 ### OpenID Connect
 

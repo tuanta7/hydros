@@ -2,6 +2,7 @@ package oidc
 
 import (
 	"context"
+	stderr "errors"
 	"strconv"
 
 	"github.com/tuanta7/hydros/core"
@@ -115,15 +116,39 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleAuthorizeResponse(
 }
 
 func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleTokenRequest(ctx context.Context, req *core.TokenRequest) error {
-	return core.ErrUnknownRequest
+	if !req.GrantType.ExactOne("authorization_code") {
+		return core.ErrUnknownRequest
+	}
+
+	authorizeRequest, err := h.storage.GetOpenIDConnectSession(ctx, req.Code, req.Session)
+	if stderr.Is(err, core.ErrNotFound) {
+		return core.ErrUnknownRequest.WithWrap(err).WithDebug(err.Error())
+	} else if err != nil {
+		return core.ErrServerError.WithWrap(err).WithDebug(err.Error())
+	}
+
+	if !authorizeRequest.GrantedScope.IncludeAll("openid") {
+		return core.ErrMisconfiguration.WithDebug("An OpenID Connect session was found but the openid scope is missing, probably due to a broken code configuration.")
+	}
+
+	if authorizeRequest.Client.GetGrantTypes().IncludeAll("authorization_code") {
+		return core.ErrInvalidGrant.WithHint("The OAuth 2.0 Client is not allowed to use authorization grant \"authorization_code\".")
+	}
+
+	return nil
 }
 
 func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleTokenResponse(ctx context.Context, req *core.TokenRequest, res *core.TokenResponse) error {
-	//token, err := h.tokenStrategy.GenerateIDToken(ctx, 0, req)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//res.IDToken = token
+	if !req.GrantType.ExactOne("authorization_code") {
+		return core.ErrUnknownRequest
+	}
+
+	token, err := h.tokenStrategy.GenerateIDToken(ctx, 0, req)
+	if err != nil {
+		return err
+	}
+
+	res.IDToken = token
+
 	return nil
 }

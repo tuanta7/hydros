@@ -2,6 +2,7 @@ package pkce
 
 import (
 	"context"
+	stderr "errors"
 
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/storage"
@@ -102,13 +103,36 @@ func (h *ProofKeyForCodeExchangeHandler) HandleTokenRequest(ctx context.Context,
 		return core.ErrUnknownRequest
 	}
 
+	codeSignature := h.codeStrategy.AuthorizeCodeSignature(ctx, req.Code)
+	pkceRequest, err := h.storage.GetPKCERequestSession(ctx, codeSignature, req.Session)
+	if stderr.Is(err, core.ErrNotFound) {
+		return core.ErrInvalidGrant.WithHint("Unable to find initial PKCE data tied to this request").WithWrap(err).WithDebug(err.Error())
+	} else if err != nil {
+		return core.ErrServerError.WithWrap(err).WithDebug(err.Error())
+	}
+
+	challenge := pkceRequest.Form.Get("code_challenge")
+	method := pkceRequest.Form.Get("code_challenge_method")
+
+	if err = h.validatePKCE(ctx, challenge, method); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *ProofKeyForCodeExchangeHandler) validatePKCE(ctx context.Context, challenge, method string) error {
 	return nil
 }
 
 func (h *ProofKeyForCodeExchangeHandler) HandleTokenResponse(
 	ctx context.Context,
 	req *core.TokenRequest,
-	res *core.TokenResponse,
+	_ *core.TokenResponse,
 ) error {
+	if !req.GrantType.ExactOne("authorization_code") {
+		return core.ErrUnknownRequest
+	}
+
 	return nil
 }

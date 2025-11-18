@@ -14,7 +14,7 @@ type TokenRequest struct {
 	GrantType        Arguments `json:"grant_type" form:"grant_type"`
 	HandledGrantType Arguments `json:"handled_grant_type" form:"handled_grant_type"`
 	RedirectURI      string    `json:"redirect_uri" form:"redirect_uri"`
-	Code             string    `json:"code" form:"code"`
+	Code             string    `json:"code" form:"code"` // authorization code
 	CodeVerifier     string    `json:"code_verifier" form:"code_verifier"`
 	Request
 }
