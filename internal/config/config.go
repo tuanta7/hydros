@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
@@ -78,7 +79,7 @@ func (c *PostgresConfig) DSN(opts ...map[string]string) string {
 func LoadConfig(envFiles ...string) *Config {
 	err := godotenv.Load(envFiles...)
 	if err != nil {
-		log.Fatalf("No .env file found or error loading .env file: %v", err)
+		log.Fatalf("no .env file found or error loading .env file: %v", err)
 	}
 
 	k := koanf.New(".")
@@ -97,7 +98,7 @@ func LoadConfig(envFiles ...string) *Config {
 	}
 
 	if err = validateConfig(cfg); err != nil {
-		log.Fatalf("invalid config: %v", err)
+		log.Fatalf("invalid config values:\n%v", err)
 	}
 
 	go func() {
@@ -110,7 +111,7 @@ func LoadConfig(envFiles ...string) *Config {
 				return
 			}
 
-			log.Println("Config changed. Reloading ...")
+			log.Println("config changed, reloading ...")
 			if le := k.Load(f, json.Parser()); le != nil {
 				log.Printf("error loading config: %v", le)
 				return
@@ -140,10 +141,19 @@ type ValidationError struct {
 var validate = validator.New(validator.WithRequiredStructEnabled())
 
 func validateConfig(cfg *Config) (validateErr error) {
+	validate.RegisterTagNameFunc(func(f reflect.StructField) string {
+		name := f.Tag.Get("koanf")
+		if name == "-" {
+			return ""
+		}
+
+		return strings.ToUpper(name)
+	})
+
 	if errs := validate.Struct(cfg); errs != nil {
 		for _, err := range errs.(validator.ValidationErrors) {
 			validateErr = errors.Join(validateErr, fmt.Errorf(
-				"invalid value for %s, expected constraints: %s, got `%s`",
+				"invalid value for %s; constraints: %s, got `%s`",
 				err.Field(),
 				err.Tag(),
 				err.Value(),

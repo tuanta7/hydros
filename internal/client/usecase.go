@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/x"
+	"github.com/tuanta7/hydros/internal/config"
 	"github.com/tuanta7/hydros/pkg/dbtype"
 
 	"github.com/tuanta7/hydros/pkg/helper"

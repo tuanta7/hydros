@@ -70,7 +70,7 @@ func (o *OAuth2) IntrospectToken(ctx context.Context, req *http.Request, session
 	handled := false
 	tokenType := TokenType("")
 	tr := NewTokenRequest(session)
-	for _, ih := range o.introspectionHandler {
+	for _, ih := range o.introspectionHandlers {
 		tt, ie := ih.IntrospectToken(ctx, request, tr)
 		if ie == nil {
 			handled = true

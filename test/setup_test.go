@@ -3,7 +3,6 @@ package test
 import (
 	"testing"
 
-	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/handler/oauth"
 	"github.com/tuanta7/hydros/core/handler/oidc"
@@ -11,6 +10,7 @@ import (
 	"github.com/tuanta7/hydros/core/signer/hmac"
 	"github.com/tuanta7/hydros/core/signer/jwt"
 	"github.com/tuanta7/hydros/internal/client"
+	config2 "github.com/tuanta7/hydros/internal/config"
 	"github.com/tuanta7/hydros/internal/flow"
 	"github.com/tuanta7/hydros/internal/jwk"
 	"github.com/tuanta7/hydros/internal/session"
@@ -23,7 +23,7 @@ import (
 )
 
 type App struct {
-	Config        *config.Config
+	Config        *config2.Config
 	ClientUC      *client.UseCase
 	FlowUC        *flow.UseCase
 	OAuthCore     *core.OAuth2
@@ -38,7 +38,7 @@ type App struct {
 func SetupTestApp(t *testing.T) *App {
 	t.Helper()
 
-	cfg := &config.Config{
+	cfg := &config2.Config{
 		Version:        "1.0.0-test",
 		LogLevel:       "debug",
 		ReleaseMode:    "debug",
@@ -46,10 +46,10 @@ func SetupTestApp(t *testing.T) *App {
 		RestServerPort: "8080",
 		GRPCServerHost: "localhost",
 		GRPCServerPort: "9090",
-		Obfuscation: config.ObfuscationConfig{
+		Obfuscation: config2.ObfuscationConfig{
 			AESSecretKey: "test-secret-key-32-chars-long!!!",
 		},
-		HMAC: config.HMACConfig{
+		HMAC: config2.HMACConfig{
 			GlobalSecret: "test-global-secret-64-chars-long!!!test-global-secret-64-chars-long!!!",
 		},
 	}
@@ -104,22 +104,13 @@ func SetupTestApp(t *testing.T) *App {
 	idTokenStrategy := oidc.NewIDTokenStrategy(cfg, idTokenSigner)
 
 	// Setup OAuth handlers
-	oauthAuthorizationCodeHandler := oauth.NewAuthorizationCodeGrantHandler(cfg, tokenStrategy, tokenStorage)
-	oidcHandler := oidc.NewOpenIDConnectAuthorizationCodeFlowHandler(cfg, idTokenStrategy, tokenStorage)
-	pkceHandler := pkce.NewProofKeyForCodeExchangeHandler(cfg, tokenStrategy, tokenStorage)
-
 	oauthCore := core.NewOAuth2(cfg, clientUC,
-		[]core.AuthorizeHandler{oauthAuthorizationCodeHandler, oidcHandler, pkceHandler},
-		[]core.TokenHandler{
-			oauthAuthorizationCodeHandler,
-			oidcHandler,
-			pkceHandler,
-			oauth.NewClientCredentialsGrantHandler(cfg, tokenStrategy, tokenStorage),
-		},
-		[]core.IntrospectionHandler{
-			oauth.NewJWTIntrospectionHandler(tokenStrategy),
-			oauth.NewTokenIntrospectionHandler(cfg, tokenStrategy, tokenStorage),
-		},
+		oauth.NewAuthorizationCodeGrantHandler(cfg, tokenStrategy, tokenStorage),
+		oidc.NewOpenIDConnectAuthorizationCodeFlowHandler(cfg, idTokenStrategy, tokenStorage),
+		pkce.NewProofKeyForCodeExchangeHandler(cfg, tokenStrategy, tokenStorage),
+		oauth.NewClientCredentialsGrantHandler(cfg, tokenStrategy, tokenStorage),
+		oauth.NewJWTIntrospectionHandler(tokenStrategy),
+		oauth.NewTokenIntrospectionHandler(cfg, tokenStrategy, tokenStorage),
 	)
 
 	// Setup handlers

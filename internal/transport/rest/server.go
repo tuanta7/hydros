@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tuanta7/hydros/config"
+	"github.com/tuanta7/hydros/internal/config"
 	v1admin "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
 	v1public "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
 )

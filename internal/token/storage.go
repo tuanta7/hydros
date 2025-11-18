@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
+	"github.com/tuanta7/hydros/internal/config"
 	"github.com/tuanta7/hydros/internal/session"
 	"github.com/tuanta7/hydros/pkg/aead"
 )

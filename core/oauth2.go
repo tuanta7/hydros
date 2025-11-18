@@ -41,26 +41,42 @@ type OAuth2Provider interface {
 
 // OAuth2 implements the OAuth2Provider interface.
 type OAuth2 struct {
-	config               Configurator
-	store                Storage
-	authorizeHandlers    []AuthorizeHandler
-	tokenHandlers        []TokenHandler
-	introspectionHandler []IntrospectionHandler
+	config                Configurator
+	store                 Storage
+	authorizeHandlers     []AuthorizeHandler
+	tokenHandlers         []TokenHandler
+	introspectionHandlers []IntrospectionHandler
 }
 
 func NewOAuth2(
 	config Configurator,
 	store Storage,
-	authorizeHandlers []AuthorizeHandler,
-	tokenHandlers []TokenHandler,
-	introspectionHandler []IntrospectionHandler,
+	handlers ...any,
 ) *OAuth2 {
+	authorizeHandlers := make([]AuthorizeHandler, 0)
+	tokenHandlers := make([]TokenHandler, 0)
+	introspectionHandlers := make([]IntrospectionHandler, 0)
+
+	for _, handler := range handlers {
+		if h, ok := handler.(AuthorizeHandler); ok {
+			authorizeHandlers = append(authorizeHandlers, h)
+		}
+
+		if h, ok := handler.(TokenHandler); ok {
+			tokenHandlers = append(tokenHandlers, h)
+		}
+
+		if h, ok := handler.(IntrospectionHandler); ok {
+			introspectionHandlers = append(introspectionHandlers, h)
+		}
+	}
+
 	return &OAuth2{
-		config:               config,
-		store:                store,
-		authorizeHandlers:    authorizeHandlers,
-		tokenHandlers:        tokenHandlers,
-		introspectionHandler: introspectionHandler,
+		config:                config,
+		store:                 store,
+		authorizeHandlers:     authorizeHandlers,
+		tokenHandlers:         tokenHandlers,
+		introspectionHandlers: introspectionHandlers,
 	}
 }
 

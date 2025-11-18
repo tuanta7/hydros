@@ -6,9 +6,9 @@ import (
 	stderr "errors"
 	"time"
 
-	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/x"
+	"github.com/tuanta7/hydros/internal/config"
 	"github.com/tuanta7/hydros/internal/errors"
 	"github.com/tuanta7/hydros/pkg/aead"
 	"github.com/tuanta7/hydros/pkg/zapx"

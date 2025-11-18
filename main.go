@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/tuanta7/hydros/cmd"
-	"github.com/tuanta7/hydros/config"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/handler/oauth"
 	"github.com/tuanta7/hydros/core/handler/oidc"
@@ -16,6 +15,7 @@ import (
 	"github.com/tuanta7/hydros/core/signer/jwt"
 	"github.com/tuanta7/hydros/core/strategy"
 	"github.com/tuanta7/hydros/internal/client"
+	"github.com/tuanta7/hydros/internal/config"
 	"github.com/tuanta7/hydros/internal/flow"
 	"github.com/tuanta7/hydros/internal/jwk"
 	"github.com/tuanta7/hydros/internal/session"
@@ -94,26 +94,13 @@ func main() {
 			cmd.NewCreateClientsCommand(clientUC),
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
-			oauthAuthorizationCodeGrantHandler := oauth.NewAuthorizationCodeGrantHandler(cfg, tokenStrategy, tokenStorage)
-			oidcAuthorizationCodeFlowHandler := oidc.NewOpenIDConnectAuthorizationCodeFlowHandler(cfg, idTokenStrategy, tokenStorage)
-			pkceHandler := pkce.NewProofKeyForCodeExchangeHandler(cfg, tokenStrategy, tokenStorage)
-
 			oauthCore := core.NewOAuth2(cfg, clientUC,
-				[]core.AuthorizeHandler{
-					oauthAuthorizationCodeGrantHandler,
-					oidcAuthorizationCodeFlowHandler,
-					pkceHandler,
-				},
-				[]core.TokenHandler{
-					oauthAuthorizationCodeGrantHandler,
-					oidcAuthorizationCodeFlowHandler,
-					pkceHandler,
-					oauth.NewClientCredentialsGrantHandler(cfg, tokenStrategy, tokenStorage),
-				},
-				[]core.IntrospectionHandler{
-					oauth.NewJWTIntrospectionHandler(tokenStrategy),
-					oauth.NewTokenIntrospectionHandler(cfg, tokenStrategy, tokenStorage),
-				},
+				oauth.NewAuthorizationCodeGrantHandler(cfg, tokenStrategy, tokenStorage),
+				oidc.NewOpenIDConnectAuthorizationCodeFlowHandler(cfg, idTokenStrategy, tokenStorage),
+				pkce.NewProofKeyForCodeExchangeHandler(cfg, tokenStrategy, tokenStorage),
+				oauth.NewClientCredentialsGrantHandler(cfg, tokenStrategy, tokenStorage),
+				oauth.NewJWTIntrospectionHandler(tokenStrategy),
+				oauth.NewTokenIntrospectionHandler(cfg, tokenStrategy, tokenStorage),
 			)
 
 			cookieStore := session.NewCookieStore(cfg)
