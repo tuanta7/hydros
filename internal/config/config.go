@@ -92,6 +92,13 @@ func LoadConfig(envFiles ...string) *Config {
 		log.Fatalf("error loading env config: %v", err)
 	}
 
+	// JSON config will override env config
+	f := file.Provider("static/config/config.json")
+	if err = k.Load(f, json.Parser()); err != nil {
+		log.Printf("error loading json config: %v", err)
+		return
+	}
+
 	cfg := &Config{}
 	if err = k.Unmarshal("", cfg); err != nil {
 		log.Fatalf("error unmarshalling config: %v", err)
@@ -102,9 +109,6 @@ func LoadConfig(envFiles ...string) *Config {
 	}
 
 	go func() {
-		// JSON config will override env config
-		f := file.Provider("static/config/config.json")
-
 		we := f.Watch(func(event any, err error) {
 			if err != nil {
 				log.Printf("watch error: %v", err)
@@ -112,14 +116,18 @@ func LoadConfig(envFiles ...string) *Config {
 			}
 
 			log.Println("config changed, reloading ...")
-			if le := k.Load(f, json.Parser()); le != nil {
-				log.Printf("error loading config: %v", le)
+			if err = k.Load(f, json.Parser()); err != nil {
+				log.Printf("error loading config: %v", err)
 				return
 			}
 
-			if ue := k.Unmarshal("", cfg); ue != nil {
-				log.Printf("error unmarshalling config: %v", ue)
+			if err = k.Unmarshal("", cfg); err != nil {
+				log.Printf("error unmarshalling config: %v", err)
 				return
+			}
+
+			if err = validateConfig(cfg); err != nil {
+				log.Printf("⚠️ invalid config values:\n%v", err)
 			}
 
 			k.Print()
