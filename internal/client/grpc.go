@@ -1,3 +1,3 @@
 package client
 
-type GRPCSource struct{}
+type GRPCAdapter struct{}

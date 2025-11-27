@@ -39,7 +39,7 @@ found [here](https://oauth.net/2/). Hydros is under active development and is no
 |-------------------------|-----------------------------------------------------------------|---------------|
 | (Active Internet-Draft) | The OAuth 2.1 Authorization Framework                           | ⏳ Development |
 | RFC 6750                | Bearer Token Usage                                              | ✅ Supported   |
-| RFC 7636                | PKCE: Proof Key for Code Exchange                               | ⏳ Development |
+| RFC 7636                | PKCE: Proof Key for Code Exchange                               | ✅✅ Forced     |
 | RFC 7662                | Token Introspection                                             | ✅ Supported   |
 | RFC 9068                | JWT Profile for OAuth Access Tokens                             | ✅ Supported   |
 | RFC 7009                | OAuth 2.0 Token Revocation                                      | ⏳ Development |

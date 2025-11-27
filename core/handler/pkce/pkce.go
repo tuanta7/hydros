@@ -2,7 +2,10 @@ package pkce
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	stderr "errors"
+	"regexp"
 
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/storage"
@@ -98,6 +101,8 @@ func (h *ProofKeyForCodeExchangeHandler) validateChallengeMethod(challengeMethod
 	return core.ErrInvalidRequest.WithHint("The code_challenge_method is not supported, use S256 instead.")
 }
 
+var verifierWrongFormat = regexp.MustCompile("[^\\w.\\-~]") //
+
 func (h *ProofKeyForCodeExchangeHandler) HandleTokenRequest(ctx context.Context, req *core.TokenRequest) error {
 	if !req.GrantType.ExactOne("authorization_code") {
 		return core.ErrUnknownRequest
@@ -111,17 +116,68 @@ func (h *ProofKeyForCodeExchangeHandler) HandleTokenRequest(ctx context.Context,
 		return core.ErrServerError.WithWrap(err).WithDebug(err.Error())
 	}
 
+	if err = h.storage.DeletePKCERequestSession(ctx, codeSignature); err != nil {
+		return core.ErrServerError.WithWrap(err).WithDebug(err.Error())
+	}
+
 	challenge := pkceRequest.Form.Get("code_challenge")
 	method := pkceRequest.Form.Get("code_challenge_method")
 
-	if err = h.validatePKCE(ctx, challenge, method); err != nil {
+	if err = h.validatePKCE(challenge, method); err != nil {
 		return err
+	}
+
+	verifier := req.CodeVerifier
+	if l := len(verifier); l < 43 || l > 128 {
+		return core.ErrInvalidRequest.WithHint("The PKCE code verifier must be between 43 and 128 characters long.")
+	} else if verifierWrongFormat.MatchString(verifier) {
+		return core.ErrInvalidGrant.WithHint("The PKCE code verifier must only contain [a-Z], [0-9], '-', '.', '_', '~'.")
+	} else if len(challenge) == 0 {
+		return core.ErrInvalidGrant.WithHint("The PKCE code verifier was provided but the challenge was missing.")
+	}
+
+	switch method {
+	case "S256":
+		hash := sha256.New()
+		if _, err = hash.Write([]byte(verifier)); err != nil {
+			return core.ErrServerError.WithWrap(err).WithDebug(err.Error())
+		}
+
+		if base64.RawURLEncoding.EncodeToString(hash.Sum([]byte{})) != challenge {
+			return core.ErrInvalidGrant.WithHint("The PKCE code verifier does not match the challenge.")
+		}
+
+	case "plain":
+		fallthrough
+	default:
+		if verifier != challenge {
+			return core.ErrInvalidGrant.WithHint("The PKCE code verifier does not match the challenge.")
+		}
 	}
 
 	return nil
 }
 
-func (h *ProofKeyForCodeExchangeHandler) validatePKCE(ctx context.Context, challenge, method string) error {
+func (h *ProofKeyForCodeExchangeHandler) validatePKCE(challenge, method string) error {
+	if len(challenge) == 0 {
+		return core.ErrInvalidRequest.WithHint("The PKCE code challenge is missing.")
+	}
+
+	switch method {
+	case "S256":
+		break
+	case "plain":
+		fallthrough
+	case "":
+		if !h.config.IsEnablePKCEPlainChallengeMethod() {
+			return core.ErrInvalidRequest.
+				WithHint("The PKCE code challenge method is not supported, use S256 instead.").
+				WithDebug("The server is configured in a way that enforces PKCE S256 as challenge method for clients.")
+		}
+	default:
+		return core.ErrInvalidRequest.WithHint("The PKCE code challenge method is not supported, use S256 instead.")
+	}
+
 	return nil
 }
 
