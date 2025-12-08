@@ -14,11 +14,6 @@ import (
 
 var defaultPrompts = []string{"login", "none", "consent", "select_account"}
 
-type OpenIDConnectPromptConfigurator interface {
-	core.AllowedPromptsProvider
-	core.RedirectSecureCheckerProvider
-}
-
 func validatePrompt(
 	cfg OpenIDConnectPromptConfigurator,
 	ar *core.AuthorizeRequest,

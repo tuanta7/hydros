@@ -33,7 +33,7 @@ type TokenResponse struct {
 	AccessToken  string        `json:"access_token" form:"access_token"`
 	TokenType    string        `json:"token_type" form:"token_type"`
 	ExpiresIn    time.Duration `json:"expires_in,omitempty" form:"expires_in"`
-	Scope        Arguments     `json:"scope,omitempty" form:"scope"`
+	Scope        string        `json:"scope,omitempty" form:"scope"`
 	RefreshToken string        `json:"refresh_token,omitempty" form:"refresh_token"`
 	IDToken      string        `json:"id_token,omitempty" form:"id_token"`
 }

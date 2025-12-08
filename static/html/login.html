@@ -41,6 +41,7 @@
             margin: 12px 0 6px;
         }
 
+        input[type="text"],
         input[type="email"],
         input[type="password"],
         input[type="number"] {
@@ -54,11 +55,12 @@
             background: #fff;
         }
 
+        input[type="text"]:focus,
         input[type="email"]:focus,
         input[type="password"]:focus,
         input[type="number"]:focus {
             outline: none;
-            box-shadow: 0 0 0 3px rgba(17,24,39,0.06);
+            box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.06);
             border-color: #111827;
         }
 
@@ -73,7 +75,7 @@
 
         input[type="checkbox"]:focus {
             outline: none;
-            box-shadow: 0 0 0 3px rgba(17,24,39,0.06);
+            box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.06);
         }
 
         .remember-group {
@@ -113,6 +115,27 @@
             color: #111;
             border: 1px solid #e5e7eb;
         }
+
+        .error-box {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin: 16px 0;
+            color: #991b1b;
+            font-size: 14px;
+        }
+
+        .error-box strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .error-box p {
+            margin: 0;
+            color: #7f1d1d;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -125,6 +148,19 @@
             <input id="email" name="email" type="email" autocomplete="email" required>
             <label for="password">Password</label>
             <input id="password" name="password" type="password" autocomplete="current-password" required>
+
+            {{if .Error}}
+            <div class="error-box">
+                <strong>{{.Error}}</strong>
+                {{if .ErrorDescription}}
+                <p>{{.ErrorDescription}}</p>
+                {{end}}
+                {{if .Hint}}
+                <p>{{.Hint}}</p>
+                {{end}}
+            </div>
+            {{end}}
+
 
             <div class="remember-group">
                 <input id="remember" name="remember" type="checkbox">

@@ -6,7 +6,7 @@ func NowUTC() time.Time {
 	return time.Now().UTC()
 }
 
-func IsExpired(created time.Time, expiresInSeconds int64) bool {
-	expiredAt := created.Add(time.Duration(expiresInSeconds) * time.Second)
-	return NowUTC().After(expiredAt)
+func SecondsFromNow(expiredAt time.Time) time.Duration {
+	nanosecondsFromNow := time.Duration(expiredAt.UnixNano() - NowUTC().UnixNano())
+	return time.Duration(nanosecondsFromNow.Round(time.Second).Seconds())
 }

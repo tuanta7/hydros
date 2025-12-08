@@ -4,6 +4,7 @@ import (
 	"context"
 	stderr "errors"
 	"strings"
+	"time"
 
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/storage"
@@ -16,6 +17,8 @@ type AuthorizationCodeGrantConfigurator interface {
 	strategy.AudienceStrategyProvider
 	core.MinParameterEntropyProvider
 	core.AuthorizationCodeLifetimeProvider
+	core.AccessTokenLifetimeProvider
+	core.RefreshTokenLifetimeProvider
 }
 
 type AuthorizationCodeGrantHandler struct {
@@ -196,6 +199,22 @@ func (h *AuthorizationCodeGrantHandler) HandleTokenRequest(ctx context.Context, 
 		return core.ErrInvalidGrant.WithHint("The OAuth 2.0 Client ID from this request does not match the one from the authorize request.")
 	}
 
+	redirectURI := tokenRequest.RedirectURI
+	if redirectURI != "" && redirectURI != authorizeRequest.Form.Get("redirect_uri") {
+		return core.ErrInvalidGrant.WithHint("The redirect_uri parameter does not match the one used in the authorization request.")
+	}
+
+	tokenRequest.Session = authorizeRequest.Session
+	tokenRequest.ID = authorizeRequest.ID
+
+	accessTokenLifetime := h.config.GetAccessTokenLifetime()
+	tokenRequest.Session.SetExpiresAt(core.AccessToken, x.NowUTC().Add(accessTokenLifetime))
+
+	refreshTokenLifetime := h.config.GetRefreshTokenLifetime()
+	if refreshTokenLifetime > -1 {
+		tokenRequest.Session.SetExpiresAt(core.RefreshToken, x.NowUTC().Add(refreshTokenLifetime))
+	}
+
 	return nil
 }
 
@@ -208,5 +227,25 @@ func (h *AuthorizationCodeGrantHandler) HandleTokenResponse(
 		return core.ErrUnknownRequest
 	}
 
+	accessToken, signature, err := h.tokenStrategy.GenerateAccessToken(ctx, &req.Request)
+	if err != nil {
+		return err
+	}
+
+	err = h.tokenStorage.CreateAccessTokenSession(ctx, signature, &req.Request)
+	if err != nil {
+		return err
+	}
+
+	accessTokenLifetime := h.config.GetAccessTokenLifetime()
+	if req.Session.GetExpiresAt(core.AccessToken).IsZero() {
+		res.ExpiresIn = time.Duration(accessTokenLifetime.Seconds())
+	} else {
+		res.ExpiresIn = x.SecondsFromNow(req.Session.GetExpiresAt(core.AccessToken))
+	}
+
+	res.AccessToken = accessToken
+	res.TokenType = core.BearerToken
+	res.Scope = strings.Join(req.GrantedScope, " ")
 	return nil
 }

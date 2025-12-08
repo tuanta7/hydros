@@ -82,25 +82,6 @@ func (h *ProofKeyForCodeExchangeHandler) HandleAuthorizeResponse(
 	return nil
 }
 
-func (h *ProofKeyForCodeExchangeHandler) validateChallengeMethod(challengeMethod string) error {
-	switch challengeMethod {
-	case "S256":
-		return nil
-	case "plain":
-		fallthrough
-	case "":
-		if h.config.IsEnablePKCEPlainChallengeMethod() {
-			return nil
-		}
-
-		return core.ErrInvalidRequest.
-			WithHint("Clients must use code_challenge_method=S256, plain is not allowed.").
-			WithDebug("The server is configured in a way that enforces PKCE S256 as challenge method for clients.")
-	}
-
-	return core.ErrInvalidRequest.WithHint("The code_challenge_method is not supported, use S256 instead.")
-}
-
 var verifierWrongFormat = regexp.MustCompile("[^\\w.\\-~]") //
 
 func (h *ProofKeyForCodeExchangeHandler) HandleTokenRequest(ctx context.Context, req *core.TokenRequest) error {
@@ -123,7 +104,11 @@ func (h *ProofKeyForCodeExchangeHandler) HandleTokenRequest(ctx context.Context,
 	challenge := pkceRequest.Form.Get("code_challenge")
 	method := pkceRequest.Form.Get("code_challenge_method")
 
-	if err = h.validatePKCE(challenge, method); err != nil {
+	if len(challenge) == 0 {
+		return core.ErrInvalidRequest.WithHint("The PKCE code challenge is missing.")
+	}
+
+	if err = h.validateChallengeMethod(method); err != nil {
 		return err
 	}
 
@@ -132,8 +117,6 @@ func (h *ProofKeyForCodeExchangeHandler) HandleTokenRequest(ctx context.Context,
 		return core.ErrInvalidRequest.WithHint("The PKCE code verifier must be between 43 and 128 characters long.")
 	} else if verifierWrongFormat.MatchString(verifier) {
 		return core.ErrInvalidGrant.WithHint("The PKCE code verifier must only contain [a-Z], [0-9], '-', '.', '_', '~'.")
-	} else if len(challenge) == 0 {
-		return core.ErrInvalidGrant.WithHint("The PKCE code verifier was provided but the challenge was missing.")
 	}
 
 	switch method {
@@ -158,29 +141,6 @@ func (h *ProofKeyForCodeExchangeHandler) HandleTokenRequest(ctx context.Context,
 	return nil
 }
 
-func (h *ProofKeyForCodeExchangeHandler) validatePKCE(challenge, method string) error {
-	if len(challenge) == 0 {
-		return core.ErrInvalidRequest.WithHint("The PKCE code challenge is missing.")
-	}
-
-	switch method {
-	case "S256":
-		break
-	case "plain":
-		fallthrough
-	case "":
-		if !h.config.IsEnablePKCEPlainChallengeMethod() {
-			return core.ErrInvalidRequest.
-				WithHint("The PKCE code challenge method is not supported, use S256 instead.").
-				WithDebug("The server is configured in a way that enforces PKCE S256 as challenge method for clients.")
-		}
-	default:
-		return core.ErrInvalidRequest.WithHint("The PKCE code challenge method is not supported, use S256 instead.")
-	}
-
-	return nil
-}
-
 func (h *ProofKeyForCodeExchangeHandler) HandleTokenResponse(
 	ctx context.Context,
 	req *core.TokenRequest,
@@ -191,4 +151,23 @@ func (h *ProofKeyForCodeExchangeHandler) HandleTokenResponse(
 	}
 
 	return nil
+}
+
+func (h *ProofKeyForCodeExchangeHandler) validateChallengeMethod(challengeMethod string) error {
+	switch challengeMethod {
+	case "S256":
+		return nil
+	case "plain":
+		fallthrough
+	case "":
+		if h.config.IsEnablePKCEPlainChallengeMethod() {
+			return nil
+		}
+
+		return core.ErrInvalidRequest.
+			WithHint("Clients must use code_challenge_method=S256, plain is not allowed.").
+			WithDebug("The server is configured in a way that enforces PKCE S256 as challenge method for clients.")
+	}
+
+	return core.ErrInvalidRequest.WithHint("The code_challenge_method is not supported, use S256 instead.")
 }

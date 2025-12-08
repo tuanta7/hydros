@@ -22,6 +22,10 @@ func AppendQuery(u *url.URL, query url.Values) *url.URL {
 	q := ep.Query()
 
 	for k := range query {
+		if query.Get(k) == "" {
+			continue
+		}
+
 		q.Set(k, query.Get(k))
 	}
 

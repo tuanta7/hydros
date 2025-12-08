@@ -50,12 +50,12 @@ func (i *IDTokenStrategy) GenerateIDToken(ctx context.Context, lifetime time.Dur
 		claims.ExpiresAt = gojwt.NewNumericDate(x.NowUTC().Add(lifetime))
 	}
 
-	if claims.ExpiresAt.Before(time.Now().UTC()) {
+	if claims.ExpiresAt.Before(x.NowUTC()) {
 		return "", core.ErrServerError.WithDebug("Failed to generate id token because expiry claim can not be in the past.")
 	}
 
 	if claims.AuthTime.IsZero() {
-		claims.AuthTime = time.Now().Truncate(time.Second).UTC()
+		claims.AuthTime = x.NowUTC().Truncate(time.Second)
 	}
 
 	if claims.Issuer == "" {

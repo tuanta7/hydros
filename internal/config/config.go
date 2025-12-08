@@ -96,7 +96,6 @@ func LoadConfig(envFiles ...string) *Config {
 	f := file.Provider("static/config/config.json")
 	if err = k.Load(f, json.Parser()); err != nil {
 		log.Printf("error loading json config: %v", err)
-		return
 	}
 
 	cfg := &Config{}

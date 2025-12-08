@@ -18,6 +18,7 @@ import (
 	"github.com/tuanta7/hydros/internal/config"
 	"github.com/tuanta7/hydros/internal/flow"
 	"github.com/tuanta7/hydros/internal/jwk"
+	"github.com/tuanta7/hydros/internal/login"
 	"github.com/tuanta7/hydros/internal/session"
 	"github.com/tuanta7/hydros/internal/token"
 	restadminv1 "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
@@ -107,7 +108,8 @@ func main() {
 			clientHandler := restadminv1.NewClientHandler(clientUC)
 			flowHandler := restadminv1.NewFlowHandler(flowUC)
 
-			formHandler := restpublicv1.NewFormHandler(cfg, flowUC)
+			defaultLoginStrategy := login.NewDefaultStrategy()
+			formHandler := restpublicv1.NewFormHandler(cfg, flowUC, defaultLoginStrategy)
 			oauthHandler := restpublicv1.NewOAuthHandler(cfg, cookieStore, oauthCore, jwkUC, loginSessionUC, flowUC, logger)
 
 			restServer := rest.NewServer(cfg, clientHandler, flowHandler, oauthHandler, formHandler)

@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/tuanta7/hydros/core"
@@ -101,12 +102,12 @@ func (h *ClientCredentialsGrantHandler) HandleTokenResponse(
 	accessTokenLifetime := h.config.GetAccessTokenLifetime()
 	if req.Session.GetExpiresAt(core.AccessToken).IsZero() {
 		res.ExpiresIn = time.Duration(accessTokenLifetime.Seconds())
+	} else {
+		res.ExpiresIn = x.SecondsFromNow(req.Session.GetExpiresAt(core.AccessToken))
 	}
-
-	expiresInNano := time.Duration(req.Session.GetExpiresAt(core.AccessToken).UnixNano() - x.NowUTC().UnixNano())
-	res.ExpiresIn = time.Duration(expiresInNano.Round(time.Second).Seconds())
 
 	res.AccessToken = token
 	res.TokenType = core.BearerToken
+	res.Scope = strings.Join(req.GrantedScope, " ")
 	return nil
 }

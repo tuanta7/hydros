@@ -23,10 +23,11 @@ type FormHandler struct {
 	flowUC *flow.UseCase
 }
 
-func NewFormHandler(cfg *config.Config, uc *flow.UseCase) *FormHandler {
+func NewFormHandler(cfg *config.Config, uc *flow.UseCase, idp ...login.IdentityProvider) *FormHandler {
 	return &FormHandler{
 		cfg:    cfg,
 		flowUC: uc,
+		idp:    idp,
 	}
 }
 
@@ -38,8 +39,11 @@ func (h *FormHandler) LoginPage(c *gin.Context) {
 
 	if !f.LoginSkip {
 		c.HTML(http.StatusOK, "login.html", gin.H{
-			"LoginChallenge": c.Query("login_challenge"),
-			"CSRFToken":      f.LoginCSRF,
+			"LoginChallenge":   c.Query("login_challenge"),
+			"CSRFToken":        f.LoginCSRF,
+			"Error":            c.Query("error"),
+			"ErrorDescription": c.Query("error_description"),
+			"Hint":             c.Query("hint"),
 		})
 		return
 	}
@@ -113,20 +117,23 @@ func (h *FormHandler) getLoginFlow(c *gin.Context) (*flow.Flow, bool) {
 }
 
 func (h *FormHandler) writeFormError(c *gin.Context, err *core.RFC6749Error) {
-	req := c.Request.URL
-	urlx.AppendQuery(req, url.Values{
-		"error":       []string{err.Error()},
-		"description": []string{err.DescriptionField},
+	formURL := c.Request.URL
+
+	formURL = urlx.AppendQuery(formURL, url.Values{
+		"login_challenge":   []string{c.PostForm("login_challenge")},
+		"consent_challenge": []string{c.PostForm("consent_challenge")},
+		"error":             []string{err.Error()},
+		"error_description": []string{err.DescriptionField},
 	})
 
 	if h.cfg.IsDebugging() {
-		urlx.AppendQuery(req, url.Values{
+		formURL = urlx.AppendQuery(formURL, url.Values{
 			"debug": []string{err.DebugField},
 			"hint":  []string{err.HintField},
 		})
 	}
 
-	c.Redirect(http.StatusSeeOther, req.String())
+	c.Redirect(http.StatusSeeOther, formURL.String())
 }
 
 func (h *FormHandler) acceptLogin(c *gin.Context, handledLoginRequest *flow.HandledLoginRequest) {

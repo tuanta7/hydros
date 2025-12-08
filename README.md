@@ -35,20 +35,20 @@ RFC 6749 (OAuth 2.0 Core) defines the base OAuth framework. Since its publicatio
 several companion specifications that extend and clarify the protocol — the complete list can be
 found [here](https://oauth.net/2/). Hydros is under active development and is not yet production-ready.
 
-| RFC                     | Name                                                            | Status        |
-|-------------------------|-----------------------------------------------------------------|---------------|
-| (Active Internet-Draft) | The OAuth 2.1 Authorization Framework                           | ⏳ Development |
-| RFC 6750                | Bearer Token Usage                                              | ✅ Supported   |
-| RFC 7636                | PKCE: Proof Key for Code Exchange                               | ✅✅ Forced     |
-| RFC 7662                | Token Introspection                                             | ✅ Supported   |
-| RFC 9068                | JWT Profile for OAuth Access Tokens                             | ✅ Supported   |
-| RFC 7009                | OAuth 2.0 Token Revocation                                      | ⏳ Development |
-| RFC 8252                | OAuth 2.0 for Mobile and Native Apps                            | ⏳ Development |
-| RFC 8693                | OAuth 2.0 Token Exchange                                        | Todo          |
-| RFC 9126                | Pushed Authorization Requests (PAR)                             | Todo          |
-| RFC 7521                | Assertion Framework for OAuth 2.0 Client AuthN and AuthZ Grants | Todo          |
-| RFC 7523                | JWT Profile for OAuth 2.0 Client AuthN and AuthZ Grants         | Todo          |
-| RFC 8628                | OAuth 2.0 Device Authorization Grant                            | Todo          |
+| RFC      | Name                                                            | Status        |
+|----------|-----------------------------------------------------------------|---------------|
+| Draft    | The OAuth 2.1 Authorization Framework                           | ⏳ Development |
+| RFC 6750 | Bearer Token Usage                                              | ✅ Supported   |
+| RFC 7636 | PKCE: Proof Key for Code Exchange                               | ✅ Supported   |
+| RFC 7662 | Token Introspection                                             | ✅ Supported   |
+| RFC 9068 | JWT Profile for OAuth Access Tokens                             | ✅ Supported   |
+| RFC 7009 | OAuth 2.0 Token Revocation                                      | ⏳ Development |
+| RFC 8252 | OAuth 2.0 for Mobile and Native Apps                            | ⏳ Development |
+| RFC 8693 | OAuth 2.0 Token Exchange                                        | Todo          |
+| RFC 9126 | Pushed Authorization Requests (PAR)                             | Todo          |
+| RFC 7521 | Assertion Framework for OAuth 2.0 Client AuthN and AuthZ Grants | Todo          |
+| RFC 7523 | JWT Profile for OAuth 2.0 Client AuthN and AuthZ Grants         | Todo          |
+| RFC 8628 | OAuth 2.0 Device Authorization Grant                            | Todo          |
 
 ### OpenID Connect
 
@@ -59,3 +59,15 @@ The complete list of specifications can be found [here](https://openid.net/devel
 | OpenID Connect Core 1.0            | ⏳ Development |
 | OAuth 2.0 Form Post Response Mode  | ✅ Supported   |
 | OpenID Connect RP-Initiated Logout | Todo          |
+
+### TODO
+
+- [ ] Implement Authorization Code Grant with PKCE
+- [x] Implement Client Credentials Grant
+- [ ] Implement Refresh Token Grant
+- [ ] Implement Token Revocation
+- [x] Implement Token Introspection
+- [x] Implement JWT Access Tokens
+- [ ] Write unit and integration tests
+- [ ] Documentation and examples
+- [ ] Dockerfile and deployment scripts

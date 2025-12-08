@@ -11,6 +11,12 @@ import (
 	"github.com/tuanta7/hydros/core/x"
 )
 
+type OpenIDConnectPromptConfigurator interface {
+	core.AllowedPromptsProvider
+	core.RedirectSecureCheckerProvider
+	core.IDTokenLifetimeProvider
+}
+
 type OpenIDConnectAuthorizationCodeFlowHandler struct {
 	config        OpenIDConnectPromptConfigurator
 	tokenStrategy strategy.OpenIDConnectTokenStrategy
@@ -135,6 +141,18 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleTokenRequest(ctx conte
 		return core.ErrInvalidGrant.WithHint("The OAuth 2.0 Client is not allowed to use authorization grant \"authorization_code\".")
 	}
 
+	sess, ok := req.Session.(OpenIDConnectSession)
+	if !ok {
+		return core.ErrServerError.WithDebug("Failed to validate OpenID Connect request because session is not of type OpenIDConnectSession.")
+	}
+
+	if err = h.storage.DeleteOpenIDConnectSession(ctx, req.Code); err != nil {
+		return core.ErrServerError.WithWrap(err).WithDebug(err.Error())
+	}
+
+	claims := sess.IDTokenClaims()
+	claims.AccessTokenHash = ""
+
 	return nil
 }
 
@@ -143,7 +161,8 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleTokenResponse(ctx cont
 		return core.ErrUnknownRequest
 	}
 
-	token, err := h.tokenStrategy.GenerateIDToken(ctx, 0, req)
+	idTokenLifetime := h.config.GetIDTokenLifetime()
+	token, err := h.tokenStrategy.GenerateIDToken(ctx, idTokenLifetime, req)
 	if err != nil {
 		return err
 	}
