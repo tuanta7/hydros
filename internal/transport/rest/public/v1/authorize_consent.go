@@ -5,7 +5,6 @@ import (
 	stderr "errors"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/tuanta7/hydros/core"
@@ -15,21 +14,6 @@ import (
 	"github.com/tuanta7/hydros/internal/session"
 	"github.com/tuanta7/hydros/pkg/dbtype"
 )
-
-func (h *OAuthHandler) handleConsent(
-	ctx context.Context,
-	w http.ResponseWriter,
-	r *http.Request,
-	req *core.AuthorizeRequest,
-	flow *flow.Flow,
-) (*flow.Flow, error) {
-	consentVerifier := strings.TrimSpace(req.Form.Get("consent_verifier"))
-	if consentVerifier == "" {
-		return nil, h.requestConsent(ctx, w, r, req, flow)
-	}
-
-	return h.verifyConsent(ctx, r, consentVerifier)
-}
 
 func (h *OAuthHandler) requestConsent(
 	ctx context.Context,

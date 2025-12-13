@@ -5,10 +5,8 @@ import (
 	stderr "errors"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/x"
 	"github.com/tuanta7/hydros/internal/client"
@@ -18,20 +16,6 @@ import (
 	"github.com/tuanta7/hydros/pkg/dbtype"
 	"github.com/tuanta7/hydros/pkg/mapx"
 )
-
-func (h *OAuthHandler) handleLogin(
-	ctx context.Context,
-	w http.ResponseWriter,
-	r *http.Request,
-	req *core.AuthorizeRequest,
-) (*flow.Flow, error) {
-	loginVerifier := strings.TrimSpace(req.Form.Get("login_verifier"))
-	if loginVerifier == "" {
-		return nil, h.requestLogin(ctx, w, r, req)
-	}
-
-	return h.verifyLogin(ctx, w, r, loginVerifier)
-}
 
 func (h *OAuthHandler) requestLogin(
 	ctx context.Context,
@@ -147,7 +131,7 @@ func (h *OAuthHandler) forwardLoginRequest(
 	ar *core.AuthorizeRequest,
 	loginSession *session.LoginSession,
 ) error {
-	sessionID := uuid.NewString()
+	sessionID := ""
 	subject := ""
 	authenticatedAt := time.Time{}
 

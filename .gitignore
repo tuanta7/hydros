@@ -144,3 +144,4 @@ fabric.properties
 buf.lock
 .env
 .idea/
+.vscode/

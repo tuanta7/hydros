@@ -128,7 +128,7 @@ func getTokenStrategy(cfg *config.Config, jwkUC *jwk.UseCase) (strategy.TokenStr
 		return nil, err
 	}
 
-	if cfg.GetAccessTokenFormat() == "jwt" {
+	if cfg.GetAccessTokenFormat() == config.AccessTokenFormatJWT {
 		getPrivateKeyFn := jwkUC.GetOrCreateJWKFn(jwk.AccessTokenSet)
 		jwtSigner, err := jwt.NewSigner(cfg, getPrivateKeyFn)
 		if err != nil {

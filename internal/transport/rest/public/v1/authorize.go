@@ -4,6 +4,7 @@ import (
 	"context"
 	stderr "errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
@@ -62,15 +63,7 @@ func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 		return
 	}
 
-	f, err := h.handleLogin(ctx, c.Writer, c.Request, ar)
-	if stderr.Is(err, errors.ErrAbortOAuth2Request) {
-		return
-	} else if err != nil {
-		h.writeAuthorizeError(c, ar, err)
-		return
-	}
-
-	f, err = h.handleConsent(ctx, c.Writer, c.Request, ar, f)
+	f, err := h.handleAuthorizeRequest(ctx, c.Writer, c.Request, ar)
 	if stderr.Is(err, errors.ErrAbortOAuth2Request) {
 		return
 	} else if err != nil {
@@ -93,6 +86,28 @@ func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 	}
 
 	h.oauth2.WriteAuthorizeResponse(ctx, c.Writer, ar, authorizeResponse)
+}
+
+func (h *OAuthHandler) handleAuthorizeRequest(
+	ctx context.Context,
+	w http.ResponseWriter,
+	r *http.Request,
+	req *core.AuthorizeRequest,
+) (*flow.Flow, error) {
+	loginVerifier := strings.TrimSpace(req.Form.Get("login_verifier"))
+	consentVerifier := strings.TrimSpace(req.Form.Get("consent_verifier"))
+	if loginVerifier == "" && consentVerifier == "" {
+		return nil, h.requestLogin(ctx, w, r, req)
+	} else if loginVerifier != "" {
+		f, err := h.verifyLogin(ctx, w, r, loginVerifier)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, h.requestConsent(ctx, w, r, req, f)
+	}
+
+	return h.verifyConsent(ctx, r, consentVerifier)
 }
 
 func (h *OAuthHandler) writeAuthorizeError(c *gin.Context, req *core.AuthorizeRequest, err error) {

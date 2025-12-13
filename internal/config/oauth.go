@@ -4,12 +4,18 @@ import "github.com/tuanta7/hydros/core/strategy"
 
 const (
 	MinParameterEntropy = 8
+
+	MatchExact  = "exact"
+	MatchPrefix = "prefix"
+
+	AccessTokenFormatOpaque = "opaque"
+	AccessTokenFormatJWT    = "jwt"
 )
 
 type OAuthConfig struct {
 	ScopeStrategy                  string `koanf:"scope_strategy"`
 	AudienceStrategy               string `koanf:"audience_strategy"`
-	AccessTokenFormat              string `koanf:"access_token_format"` // must be "jwt" or "opaque"
+	AccessTokenFormat              string `koanf:"access_token_format"`
 	MinParameterEntropy            int    `koanf:"min_parameter_entropy"`
 	DisableRefreshTokenValidation  bool   `koanf:"disable_refresh_token_validation"`
 	EnablePKCEPlainChallengeMethod bool   `koanf:"enable_pkce_plain_challenge_method"`
@@ -17,9 +23,9 @@ type OAuthConfig struct {
 
 func (c *Config) GetScopeStrategy() strategy.ScopeStrategy {
 	switch c.OAuth.ScopeStrategy {
-	case "exact":
+	case MatchExact:
 		return strategy.ExactScopeStrategy
-	case "prefix":
+	case MatchPrefix:
 		return strategy.PrefixScopeStrategy
 	default:
 		return strategy.ExactScopeStrategy
@@ -28,7 +34,7 @@ func (c *Config) GetScopeStrategy() strategy.ScopeStrategy {
 
 func (c *Config) GetAudienceStrategy() strategy.AudienceStrategy {
 	switch c.OAuth.AudienceStrategy {
-	case "exact":
+	case MatchExact:
 		return strategy.ExactAudienceStrategy
 	default:
 		return strategy.ExactAudienceStrategy
@@ -44,11 +50,11 @@ func (c *Config) GetMinParameterEntropy() int {
 }
 
 func (c *Config) GetAccessTokenFormat() string {
-	if c.OAuth.AccessTokenFormat == "jwt" {
-		return "jwt"
+	if c.OAuth.AccessTokenFormat == AccessTokenFormatJWT {
+		return AccessTokenFormatJWT
 	}
 
-	return "opaque"
+	return AccessTokenFormatOpaque
 }
 
 func (c *Config) IsDisableRefreshTokenValidation() bool {
