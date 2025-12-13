@@ -35,9 +35,9 @@ func (e *RFC6749Error) WithWrap(cause error) *RFC6749Error {
 	return e
 }
 
-func (e *RFC6749Error) WithDebug(debug string) *RFC6749Error {
+func (e *RFC6749Error) WithDebug(debug string, args ...any) *RFC6749Error {
 	err := *e
-	err.DebugField = debug
+	err.DebugField = fmt.Sprintf(debug, args...)
 	return &err
 }
 

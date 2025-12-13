@@ -13,6 +13,7 @@ func TryBeginTX(ctx context.Context, storage any) (context.Context, error) {
 	if !ok {
 		return ctx, nil
 	}
+
 	return txStorage.BeginTX(ctx)
 }
 
@@ -21,6 +22,7 @@ func TryCommit(ctx context.Context, storage any) error {
 	if !ok {
 		return nil
 	}
+
 	return txStorage.Commit(ctx)
 }
 
@@ -29,5 +31,6 @@ func TryRollback(ctx context.Context, storage any) error {
 	if !ok {
 		return nil
 	}
+
 	return txStorage.Rollback(ctx)
 }

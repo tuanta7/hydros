@@ -232,6 +232,19 @@ func (h *AuthorizationCodeGrantHandler) HandleTokenResponse(
 		return err
 	}
 
+	ctx, err = storage.TryBeginTX(ctx, h.tokenStorage)
+	if err != nil {
+		return core.ErrServerError.WithWrap(err).WithDebug(err.Error())
+	}
+	defer func() {
+		if err != nil {
+			rollbackErr := storage.TryRollback(ctx, h.tokenStorage)
+			if rollbackErr != nil {
+				err = core.ErrServerError.WithWrap(rollbackErr).WithDebug("error: %s; rollback error: %s", err, rollbackErr)
+			}
+		}
+	}()
+
 	err = h.tokenStorage.CreateAccessTokenSession(ctx, signature, &req.Request)
 	if err != nil {
 		return err

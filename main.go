@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 
@@ -23,8 +22,6 @@ import (
 	"github.com/tuanta7/hydros/internal/token"
 	restadminv1 "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
 	restpublicv1 "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
-	"github.com/tuanta7/hydros/pkg/adapter/redis"
-
 	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 	"github.com/tuanta7/hydros/pkg/aead"
 	"github.com/tuanta7/hydros/pkg/zapx"
@@ -53,18 +50,8 @@ func main() {
 	clientRepo := client.NewClientRepository(pgClient)
 	clientUC := client.NewUseCase(cfg, clientRepo, logger)
 
-	redisClient, err := redis.NewClient(
-		context.Background(),
-		fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
-		redis.WithCredential(cfg.Redis.Username, cfg.Redis.Password),
-		redis.WithDB(cfg.Redis.DB),
-	)
-	panicErr(err)
-	defer redisClient.Close()
-
-	tokenCache := token.NewRequestSessionCache(cfg, redisClient)
 	tokenRepo := token.NewRequestSessionRepo(pgClient)
-	tokenStorage := token.NewRequestSessionStorage(cfg, aeadAES, tokenRepo, tokenCache)
+	tokenStorage := token.NewRequestSessionStorage(cfg, aeadAES, tokenRepo)
 
 	flowRepo := flow.NewFlowRepository(pgClient)
 	flowUC := flow.NewUseCase(cfg, flowRepo, aeadAES, logger)

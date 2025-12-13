@@ -23,21 +23,30 @@ type RequestSessionStorage struct {
 	cfg  *config.Config
 	aead aead.Cipher
 	pg   *RequestSessionRepo
-	rd   *RequestSessionCache
 }
 
 func NewRequestSessionStorage(
 	cfg *config.Config,
 	aead aead.Cipher,
 	pg *RequestSessionRepo,
-	rd *RequestSessionCache,
 ) *RequestSessionStorage {
 	return &RequestSessionStorage{
 		cfg:  cfg,
 		aead: aead,
 		pg:   pg,
-		rd:   rd,
 	}
+}
+
+func (r *RequestSessionStorage) BeginTX(ctx context.Context) (context.Context, error) {
+	return r.pg.BeginTX(ctx)
+}
+
+func (r *RequestSessionStorage) Commit(ctx context.Context) error {
+	return r.pg.Commit(ctx)
+}
+
+func (r *RequestSessionStorage) Rollback(ctx context.Context) error {
+	return r.pg.Rollback(ctx)
 }
 
 func (r *RequestSessionStorage) CreateAccessTokenSession(ctx context.Context, signature string, req *core.Request) error {

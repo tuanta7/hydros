@@ -9,15 +9,15 @@ import (
 )
 
 const (
-	StateLoginInitialized   = int16(1)
-	StateLoginAuthenticated = int16(2)   // done on the user side
-	StateLoginError         = int16(128) // done on the user side
-	StateLoginHandled       = int16(3)   // done on the server side
+	StateLoginInitialized   = int16(1)   // start the login flow
+	StateLoginAuthenticated = int16(2)   // login done on the user side
+	StateLoginError         = int16(128) // login done on the user side with an error
+	StateLoginHandled       = int16(3)   // login done on the server side
 
-	StateConsentInitialized = int16(4)
-	StateConsentGranted     = int16(5)   // done on the user side
-	StateConsentError       = int16(129) // done on the user side
-	StateConsentHandled     = int16(6)   // done on the server side
+	StateConsentInitialized = int16(4)   // start the consent flow
+	StateConsentGranted     = int16(5)   // consent done on the user side
+	StateConsentError       = int16(129) // consent done on the user side with an error
+	StateConsentHandled     = int16(6)   // consent done on the server side
 )
 
 // Flow represents the flow information associated with an OAuth2/IDToken Connect session.
