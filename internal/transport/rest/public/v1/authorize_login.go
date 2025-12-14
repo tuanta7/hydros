@@ -14,7 +14,7 @@ import (
 	"github.com/tuanta7/hydros/internal/flow"
 	"github.com/tuanta7/hydros/internal/session"
 	"github.com/tuanta7/hydros/pkg/dbtype"
-	"github.com/tuanta7/hydros/pkg/mapx"
+	"github.com/tuanta7/hydros/pkg/helper/mapx"
 )
 
 func (h *OAuthHandler) requestLogin(

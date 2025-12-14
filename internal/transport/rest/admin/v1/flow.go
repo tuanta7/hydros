@@ -9,7 +9,7 @@ import (
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/internal/client"
 	"github.com/tuanta7/hydros/internal/flow"
-	"github.com/tuanta7/hydros/pkg/urlx"
+	"github.com/tuanta7/hydros/pkg/helper/urlx"
 )
 
 type FlowHandler struct {

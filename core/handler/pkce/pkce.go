@@ -63,7 +63,9 @@ func (h *ProofKeyForCodeExchangeHandler) HandleAuthorizeResponse(
 
 	if err := h.validateChallengeMethod(req.CodeChallengeMethod); err != nil {
 		return err
-	} else if req.CodeChallengeMethod == "" {
+	}
+
+	if req.CodeChallengeMethod == "" {
 		req.CodeChallengeMethod = "plain"
 	}
 

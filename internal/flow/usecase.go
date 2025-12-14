@@ -11,7 +11,7 @@ import (
 	"github.com/tuanta7/hydros/internal/config"
 	"github.com/tuanta7/hydros/internal/errors"
 	"github.com/tuanta7/hydros/pkg/aead"
-	"github.com/tuanta7/hydros/pkg/zapx"
+	"github.com/tuanta7/hydros/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -19,10 +19,10 @@ type UseCase struct {
 	cfg      *config.Config
 	flowRepo *Repository
 	aead     aead.Cipher
-	logger   *zapx.Logger
+	logger   *logger.Logger
 }
 
-func NewUseCase(cfg *config.Config, flowRepo *Repository, aead aead.Cipher, logger *zapx.Logger) *UseCase {
+func NewUseCase(cfg *config.Config, flowRepo *Repository, aead aead.Cipher, logger *logger.Logger) *UseCase {
 	return &UseCase{
 		cfg:      cfg,
 		flowRepo: flowRepo,

@@ -11,8 +11,8 @@ import (
 	"github.com/tuanta7/hydros/internal/config"
 	"github.com/tuanta7/hydros/internal/flow"
 	"github.com/tuanta7/hydros/internal/login"
-	"github.com/tuanta7/hydros/pkg/helper"
-	"github.com/tuanta7/hydros/pkg/urlx"
+	"github.com/tuanta7/hydros/pkg/helper/stringx"
+	"github.com/tuanta7/hydros/pkg/helper/urlx"
 )
 
 // FormHandler is used to handle login and consent pages. It mimics the behavior of the
@@ -139,7 +139,7 @@ func (h *FormHandler) writeFormError(c *gin.Context, err *core.RFC6749Error) {
 func (h *FormHandler) acceptLogin(c *gin.Context, handledLoginRequest *flow.HandledLoginRequest) {
 	ctx := c.Request.Context()
 
-	challenge := helper.StringCoalesce(
+	challenge := stringx.StringCoalesce(
 		c.Query("login_challenge"),    // skip login
 		c.PostForm("login_challenge"), // form value
 	)
@@ -278,7 +278,7 @@ func (h *FormHandler) getConsentFlow(c *gin.Context) (*flow.Flow, bool) {
 func (h *FormHandler) acceptConsent(c *gin.Context, handledConsentRequest *flow.HandledConsentRequest) {
 	ctx := c.Request.Context()
 
-	challenge := helper.StringCoalesce(
+	challenge := stringx.StringCoalesce(
 		c.Query("consent_challenge"),    // skip consent
 		c.PostForm("consent_challenge"), // form value
 	)
@@ -317,7 +317,7 @@ func (h *FormHandler) acceptConsent(c *gin.Context, handledConsentRequest *flow.
 func (h *FormHandler) rejectConsent(c *gin.Context, deniedErr *flow.RequestDeniedError) {
 	ctx := c.Request.Context()
 
-	challenge := helper.StringCoalesce(
+	challenge := stringx.StringCoalesce(
 		c.Query("consent_challenge"),    // skip consent
 		c.PostForm("consent_challenge"), // form value
 	)

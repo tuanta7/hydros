@@ -6,7 +6,7 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
-	"github.com/tuanta7/hydros/pkg/adapter/postgres"
+	"github.com/tuanta7/hydros/pkg/postgres"
 )
 
 type Repository struct {

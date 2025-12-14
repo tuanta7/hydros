@@ -15,9 +15,9 @@ import (
 	"github.com/tuanta7/hydros/internal/flow"
 	"github.com/tuanta7/hydros/internal/jwk"
 	"github.com/tuanta7/hydros/internal/session"
+	"github.com/tuanta7/hydros/pkg/helper/mapx"
 
-	"github.com/tuanta7/hydros/pkg/mapx"
-	"github.com/tuanta7/hydros/pkg/zapx"
+	"github.com/tuanta7/hydros/pkg/logger"
 	"go.uber.org/zap"
 )
 
@@ -32,7 +32,7 @@ type OAuthHandler struct {
 	jwkUC     *jwk.UseCase
 	sessionUC session.UseCase
 	flowUC    *flow.UseCase
-	logger    *zapx.Logger
+	logger    *logger.Logger
 }
 
 func NewOAuthHandler(
@@ -42,7 +42,7 @@ func NewOAuthHandler(
 	jwkUC *jwk.UseCase,
 	sessionUC session.UseCase,
 	flowUC *flow.UseCase,
-	logger *zapx.Logger,
+	logger *logger.Logger,
 ) *OAuthHandler {
 	return &OAuthHandler{
 		cfg:       cfg,

@@ -22,9 +22,9 @@ import (
 	"github.com/tuanta7/hydros/internal/token"
 	restadminv1 "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
 	restpublicv1 "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
-	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 	"github.com/tuanta7/hydros/pkg/aead"
-	"github.com/tuanta7/hydros/pkg/zapx"
+	"github.com/tuanta7/hydros/pkg/logger"
+	"github.com/tuanta7/hydros/pkg/postgres"
 
 	"github.com/tuanta7/hydros/internal/transport"
 	"github.com/tuanta7/hydros/internal/transport/rest"
@@ -33,9 +33,9 @@ import (
 
 func main() {
 	cfg := config.LoadConfig(".env")
-	logger, err := zapx.NewLogger(cfg.LogLevel)
+	zl, err := logger.NewLogger(cfg.LogLevel)
 	panicErr(err)
-	defer logger.Sync()
+	defer zl.Sync()
 
 	aeadAES, err := aead.NewAESGCM([]byte(cfg.Obfuscation.AESSecretKey))
 	panicErr(err)
@@ -45,16 +45,16 @@ func main() {
 	defer pgClient.Close()
 
 	jwkRepo := jwk.NewKeyRepository(pgClient)
-	jwkUC := jwk.NewUseCase(cfg, aeadAES, jwkRepo, logger)
+	jwkUC := jwk.NewUseCase(cfg, aeadAES, jwkRepo, zl)
 
 	clientRepo := client.NewClientRepository(pgClient)
-	clientUC := client.NewUseCase(cfg, clientRepo, logger)
+	clientUC := client.NewUseCase(cfg, clientRepo, zl)
 
 	tokenRepo := token.NewRequestSessionRepo(pgClient)
 	tokenStorage := token.NewRequestSessionStorage(cfg, aeadAES, tokenRepo)
 
 	flowRepo := flow.NewFlowRepository(pgClient)
-	flowUC := flow.NewUseCase(cfg, flowRepo, aeadAES, logger)
+	flowUC := flow.NewUseCase(cfg, flowRepo, aeadAES, zl)
 
 	loginSessionRepo := session.NewSessionRepository(pgClient)
 	loginSessionUC := session.NewUseCase(loginSessionRepo)
@@ -97,7 +97,7 @@ func main() {
 
 			defaultLoginStrategy := login.NewDefaultStrategy()
 			formHandler := restpublicv1.NewFormHandler(cfg, flowUC, defaultLoginStrategy)
-			oauthHandler := restpublicv1.NewOAuthHandler(cfg, cookieStore, oauthCore, jwkUC, loginSessionUC, flowUC, logger)
+			oauthHandler := restpublicv1.NewOAuthHandler(cfg, cookieStore, oauthCore, jwkUC, loginSessionUC, flowUC, zl)
 
 			restServer := rest.NewServer(cfg, clientHandler, flowHandler, oauthHandler, formHandler)
 			return transport.RunServers(restServer)

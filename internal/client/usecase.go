@@ -9,19 +9,19 @@ import (
 	"github.com/tuanta7/hydros/core/x"
 	"github.com/tuanta7/hydros/internal/config"
 	"github.com/tuanta7/hydros/pkg/dbtype"
+	"github.com/tuanta7/hydros/pkg/helper/stringx"
 
-	"github.com/tuanta7/hydros/pkg/helper"
-	"github.com/tuanta7/hydros/pkg/zapx"
+	"github.com/tuanta7/hydros/pkg/logger"
 	"go.uber.org/zap"
 )
 
 type UseCase struct {
 	cfg        *config.Config
 	clientRepo Repository
-	logger     *zapx.Logger
+	logger     *logger.Logger
 }
 
-func NewUseCase(cfg *config.Config, clientRepo Repository, logger *zapx.Logger) *UseCase {
+func NewUseCase(cfg *config.Config, clientRepo Repository, logger *logger.Logger) *UseCase {
 	return &UseCase{
 		cfg:        cfg,
 		clientRepo: clientRepo,
@@ -52,7 +52,7 @@ func (u *UseCase) CreateClient(ctx context.Context, client *Client) error {
 	if client.Secret != "" {
 		secret = client.Secret
 	} else {
-		secret = helper.GenerateSecret(26)
+		secret = stringx.GenerateSecret(26)
 	}
 
 	hashedSecret, err := u.cfg.GetSecretsHasher().Hash(ctx, []byte(secret))

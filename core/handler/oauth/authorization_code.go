@@ -76,7 +76,6 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeRequest(ctx context.Conte
 	}
 
 	scopeStrategy := h.config.GetScopeStrategy()
-
 	if err = scopeStrategy(client.GetScopes(), ar.RequestedScope); err != nil {
 		return err
 	}
@@ -119,16 +118,17 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeResponse(
 		return err
 	}
 
-	code, signature, err := h.tokenStrategy.GenerateAuthorizeCode(ctx, &req.Request)
-	if err != nil {
-		return core.ErrServerError.WithWrap(err).WithDebug(err.Error())
-	}
-
 	if req.Session == nil {
 		return core.ErrServerError.WithHint("session cannot be nil")
 	}
 
 	req.Session.SetExpiresAt(core.AuthorizationCode, x.NowUTC().Add(h.config.GetAuthorizationCodeLifetime()))
+
+	code, signature, err := h.tokenStrategy.GenerateAuthorizeCode(ctx, &req.Request)
+	if err != nil {
+		return core.ErrServerError.WithWrap(err).WithDebug(err.Error())
+	}
+
 	err = h.tokenStorage.CreateAuthorizeCodeSession(ctx, signature, &req.Request)
 	if err != nil {
 		return core.ErrServerError.WithWrap(err).WithDebug(err.Error())
@@ -137,7 +137,6 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeResponse(
 	res.Code = code
 	res.State = req.State
 	res.Scope = strings.Join(req.GrantedScope, " ")
-
 	return nil
 }
 

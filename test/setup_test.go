@@ -10,20 +10,20 @@ import (
 	"github.com/tuanta7/hydros/core/signer/hmac"
 	"github.com/tuanta7/hydros/core/signer/jwt"
 	"github.com/tuanta7/hydros/internal/client"
-	config2 "github.com/tuanta7/hydros/internal/config"
+	"github.com/tuanta7/hydros/internal/config"
 	"github.com/tuanta7/hydros/internal/flow"
 	"github.com/tuanta7/hydros/internal/jwk"
 	"github.com/tuanta7/hydros/internal/session"
 	"github.com/tuanta7/hydros/internal/token"
 	restadminv1 "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
 	restpublicv1 "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
-	"github.com/tuanta7/hydros/pkg/adapter/postgres"
 	"github.com/tuanta7/hydros/pkg/aead"
-	"github.com/tuanta7/hydros/pkg/zapx"
+	"github.com/tuanta7/hydros/pkg/logger"
+	"github.com/tuanta7/hydros/pkg/postgres"
 )
 
 type App struct {
-	Config        *config2.Config
+	Config        *config.Config
 	ClientUC      *client.UseCase
 	FlowUC        *flow.UseCase
 	OAuthCore     *core.OAuth2
@@ -38,7 +38,7 @@ type App struct {
 func SetupTestApp(t *testing.T) *App {
 	t.Helper()
 
-	cfg := &config2.Config{
+	cfg := &config.Config{
 		Version:        "1.0.0-test",
 		LogLevel:       "debug",
 		ReleaseMode:    "debug",
@@ -46,17 +46,17 @@ func SetupTestApp(t *testing.T) *App {
 		RestServerPort: "8080",
 		GRPCServerHost: "localhost",
 		GRPCServerPort: "9090",
-		Obfuscation: config2.ObfuscationConfig{
+		Obfuscation: config.ObfuscationConfig{
 			AESSecretKey: "test-secret-key-32-chars-long!!!",
 		},
-		HMAC: config2.HMACConfig{
+		HMAC: config.HMACConfig{
 			GlobalSecret: "test-global-secret-64-chars-long!!!test-global-secret-64-chars-long!!!",
 		},
 	}
 
-	logger, err := zapx.NewLogger(cfg.LogLevel)
+	zl, err := logger.NewLogger(cfg.LogLevel)
 	if err != nil {
-		t.Fatalf("Failed to create logger: %v", err)
+		t.Fatalf("Failed to create zl: %v", err)
 	}
 
 	aeadAES, err := aead.NewAESGCM([]byte(cfg.Obfuscation.AESSecretKey))
@@ -71,16 +71,16 @@ func SetupTestApp(t *testing.T) *App {
 
 	// Initialize repositories and use cases
 	jwkRepo := jwk.NewKeyRepository(pgClient)
-	jwkUC := jwk.NewUseCase(cfg, aeadAES, jwkRepo, logger)
+	jwkUC := jwk.NewUseCase(cfg, aeadAES, jwkRepo, zl)
 
 	clientRepo := client.NewClientRepository(pgClient)
-	clientUC := client.NewUseCase(cfg, clientRepo, logger)
+	clientUC := client.NewUseCase(cfg, clientRepo, zl)
 
 	tokenRepo := token.NewRequestSessionRepo(pgClient)
-	tokenStorage := token.NewRequestSessionStorage(cfg, aeadAES, tokenRepo, nil)
+	tokenStorage := token.NewRequestSessionStorage(cfg, aeadAES, tokenRepo)
 
 	flowRepo := flow.NewFlowRepository(pgClient)
-	flowUC := flow.NewUseCase(cfg, flowRepo, aeadAES, logger)
+	flowUC := flow.NewUseCase(cfg, flowRepo, aeadAES, zl)
 
 	loginSessionRepo := session.NewSessionRepository(pgClient)
 	loginSessionUC := session.NewUseCase(loginSessionRepo)
@@ -118,10 +118,10 @@ func SetupTestApp(t *testing.T) *App {
 	clientHandler := restadminv1.NewClientHandler(clientUC)
 	flowHandler := restadminv1.NewFlowHandler(flowUC)
 	formHandler := restpublicv1.NewFormHandler(cfg, flowUC)
-	oauthHandler := restpublicv1.NewOAuthHandler(cfg, cookieStore, oauthCore, jwkUC, loginSessionUC, flowUC, logger)
+	oauthHandler := restpublicv1.NewOAuthHandler(cfg, cookieStore, oauthCore, jwkUC, loginSessionUC, flowUC, zl)
 
 	cleanup := func() {
-		_ = logger.Sync()
+		_ = zl.Sync()
 	}
 
 	return &App{

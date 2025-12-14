@@ -7,11 +7,11 @@ import (
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/tuanta7/hydros/core"
-	client2 "github.com/tuanta7/hydros/internal/client"
+	"github.com/tuanta7/hydros/internal/client"
 	"github.com/urfave/cli/v3"
 )
 
-func NewCreateClientsCommand(clientUC *client2.UseCase) *cli.Command {
+func NewCreateClientsCommand(clientUC *client.UseCase) *cli.Command {
 	cmd := &cli.Command{
 		Name:  "create-client",
 		Usage: "create a new OAuth client",
@@ -35,7 +35,7 @@ func NewCreateClientsCommand(clientUC *client2.UseCase) *cli.Command {
 				name = gofakeit.Name()
 			}
 
-			c := &client2.Client{
+			c := &client.Client{
 				Name:                    name,
 				Description:             gofakeit.Comment(),
 				Scope:                   "example:read",

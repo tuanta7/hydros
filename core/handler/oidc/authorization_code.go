@@ -152,7 +152,6 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleTokenRequest(ctx conte
 
 	claims := sess.IDTokenClaims()
 	claims.AccessTokenHash = ""
-
 	return nil
 }
 
@@ -168,6 +167,5 @@ func (h *OpenIDConnectAuthorizationCodeFlowHandler) HandleTokenResponse(ctx cont
 	}
 
 	res.IDToken = token
-
 	return nil
 }

@@ -1,4 +1,4 @@
-package zapx
+package logger
 
 import "go.uber.org/zap"
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/gorilla/sessions"
 	"github.com/tuanta7/hydros/core"
-	"github.com/tuanta7/hydros/pkg/mapx"
+	"github.com/tuanta7/hydros/pkg/helper/mapx"
 )
 
 const (

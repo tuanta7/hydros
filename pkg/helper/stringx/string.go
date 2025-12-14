@@ -1,4 +1,4 @@
-package helper
+package stringx
 
 // StringCoalesce returns the first non-empty string value
 func StringCoalesce(str ...string) string {
