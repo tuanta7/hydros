@@ -15,10 +15,7 @@ import (
 	"github.com/tuanta7/hydros/internal/flow"
 	"github.com/tuanta7/hydros/internal/jwk"
 	"github.com/tuanta7/hydros/internal/session"
-	"github.com/tuanta7/hydros/pkg/helper/mapx"
-
-	"github.com/tuanta7/hydros/pkg/logger"
-	"go.uber.org/zap"
+	"github.com/tuanta7/hydros/pkg/zapx"
 )
 
 const (
@@ -32,7 +29,7 @@ type OAuthHandler struct {
 	jwkUC     *jwk.UseCase
 	sessionUC session.UseCase
 	flowUC    *flow.UseCase
-	logger    *logger.Logger
+	logger    *zapx.ZapLogger
 }
 
 func NewOAuthHandler(
@@ -42,7 +39,7 @@ func NewOAuthHandler(
 	jwkUC *jwk.UseCase,
 	sessionUC session.UseCase,
 	flowUC *flow.UseCase,
-	logger *logger.Logger,
+	logger *zapx.ZapLogger,
 ) *OAuthHandler {
 	return &OAuthHandler{
 		cfg:       cfg,
@@ -55,6 +52,7 @@ func NewOAuthHandler(
 	}
 }
 
+// HandleAuthorizeRequest processes an OAuth2 authorization request and generates an appropriate response or error.
 func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 	ctx := c.Request.Context()
 	ar, err := h.oauth2.NewAuthorizeRequest(ctx, c.Request)
@@ -123,34 +121,4 @@ func (h *OAuthHandler) writeAuthorizeError(c *gin.Context, req *core.AuthorizeRe
 		"Debug":       rfcErr.DebugField,
 		"Hint":        rfcErr.HintField,
 	})
-}
-
-func (h *OAuthHandler) checkSession(ctx context.Context, r *http.Request) (*session.LoginSession, error) {
-	cookie, err := h.store.Get(r, h.cfg.SessionCookieKey())
-	if err != nil {
-		h.logger.Error("cookie store returned an error.",
-			zap.Error(err),
-			zap.String("method", "store.Get"),
-		)
-		return nil, errors.ErrNoAuthenticationSessionFound
-	}
-
-	sid := mapx.GetStringDefault(cookie.Values, CookieLoginSessionIDKey, "")
-	if sid == "" {
-		h.logger.Debug("cookie exists but session value is empty.", zap.String("method", "cookie.Values"))
-		return nil, errors.ErrNoAuthenticationSessionFound
-	}
-
-	loginSession, err := h.sessionUC.GetRememberedLoginSession(ctx, nil, sid)
-	if stderr.Is(err, errors.ErrNotFound) {
-		h.logger.Debug("cookie exists and session value exist but are not remembered any more.",
-			zap.Error(err),
-			zap.String("method", "sessionUC.GetRememberedLoginSession"),
-		)
-		return nil, errors.ErrNoAuthenticationSessionFound
-	} else if err != nil {
-		return nil, err
-	}
-
-	return loginSession, nil
 }

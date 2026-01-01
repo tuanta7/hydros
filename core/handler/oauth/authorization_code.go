@@ -136,7 +136,6 @@ func (h *AuthorizationCodeGrantHandler) HandleAuthorizeResponse(
 
 	res.Code = code
 	res.State = req.State
-	res.Scope = strings.Join(req.GrantedScope, " ")
 	return nil
 }
 

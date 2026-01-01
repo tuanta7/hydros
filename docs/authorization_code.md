@@ -16,6 +16,11 @@ The primary control flow is implemented within the `internal/transport/rest/publ
 
 ### Authorize
 
+| Method                 | Default Package                   | Description |
+|------------------------|-----------------------------------|-------------|
+| HandleAuthorizeRequest | internal/transport/rest/public/v1 |             |
+| NewAuthorizeRequest    | core                              |             |
+
 ### Login 
 
 After the authorization request has been validated, the following control flow is applied. 

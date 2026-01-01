@@ -7,7 +7,7 @@ import (
 )
 
 func RandomUUID() string {
-	return strings.Replace(uuid.NewString(), "-", "", -1)
+	return strings.ReplaceAll(uuid.NewString(), "-", "")
 }
 
 func SplitSpace(s string) []string {

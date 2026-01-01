@@ -29,7 +29,7 @@ func BindPostForm(r *http.Request) (url.Values, error) {
 }
 
 func AccessTokenFromRequest(r *http.Request) string {
-	parts := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
+	parts := strings.SplitN(r.Header.Get("Authorization"), " ", 3)
 	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
 		form, err := BindForm(r) // this gets both url and body params
 		if err != nil {

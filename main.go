@@ -23,8 +23,8 @@ import (
 	restadminv1 "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
 	restpublicv1 "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
 	"github.com/tuanta7/hydros/pkg/aead"
-	"github.com/tuanta7/hydros/pkg/logger"
 	"github.com/tuanta7/hydros/pkg/postgres"
+	"github.com/tuanta7/hydros/pkg/zapx"
 
 	"github.com/tuanta7/hydros/internal/transport"
 	"github.com/tuanta7/hydros/internal/transport/rest"
@@ -33,7 +33,7 @@ import (
 
 func main() {
 	cfg := config.LoadConfig(".env")
-	zl, err := logger.NewLogger(cfg.LogLevel)
+	zl, err := zapx.NewLogger(cfg.LogLevel)
 	panicErr(err)
 	defer zl.Sync()
 
@@ -80,6 +80,7 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			cmd.NewCreateClientsCommand(clientUC),
+			cmd.NewCleanCommand(),
 		},
 		Action: func(ctx context.Context, command *cli.Command) error {
 			oauthCore := core.NewOAuth2(cfg, clientUC,

@@ -14,21 +14,21 @@ import (
 	"github.com/tuanta7/hydros/core/x"
 	"github.com/tuanta7/hydros/internal/config"
 	"github.com/tuanta7/hydros/pkg/aead"
-	"github.com/tuanta7/hydros/pkg/logger"
+	"github.com/tuanta7/hydros/pkg/zapx"
 )
 
 type UseCase struct {
 	cfg     *config.Config
 	aead    aead.Cipher
 	jwkRepo *Repository
-	logger  *logger.Logger
+	logger  *zapx.ZapLogger
 }
 
 func NewUseCase(
 	cfg *config.Config,
 	aead aead.Cipher,
 	jwkRepo *Repository,
-	logger *logger.Logger,
+	logger *zapx.ZapLogger,
 ) *UseCase {
 	return &UseCase{
 		cfg:     cfg,

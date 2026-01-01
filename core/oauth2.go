@@ -91,7 +91,9 @@ type Storage interface {
 }
 
 type AuthorizeHandler interface {
+	// HandleAuthorizeRequest verifies the request parameters based on the flow requirement
 	HandleAuthorizeRequest(ctx context.Context, req *AuthorizeRequest) error
+
 	HandleAuthorizeResponse(ctx context.Context, req *AuthorizeRequest, res *AuthorizeResponse) error
 }
 

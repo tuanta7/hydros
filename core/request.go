@@ -8,15 +8,16 @@ import (
 )
 
 type Request struct {
-	ID                string     `json:"id" form:"-"`
-	RequestedAt       time.Time  `json:"requested_at" form:"-"`
-	RequestedScope    Arguments  `json:"scope" form:"scope"`
-	GrantedScope      Arguments  `json:"granted_scope" form:"-"`
-	RequestedAudience Arguments  `json:"audience" form:"audience"`
-	GrantedAudience   Arguments  `json:"granted_audience" form:"-"`
-	Form              url.Values `json:"form" form:"-"`
-	Client            Client     `json:"client" form:"-"`
-	Session           Session    `json:"session" form:"-"`
+	ID          string     `json:"id" form:"-"`
+	RequestedAt time.Time  `json:"requested_at" form:"-"`
+	Form        url.Values `json:"form" form:"-"`
+	Session     Session    `json:"session" form:"-"`
+
+	Client            Client    `json:"client" form:"-"`
+	RequestedScope    Arguments `json:"scope" form:"scope"`
+	GrantedScope      Arguments `json:"granted_scope" form:"-"`
+	RequestedAudience Arguments `json:"audience" form:"audience"`
+	GrantedAudience   Arguments `json:"granted_audience" form:"-"`
 }
 
 func NewRequest() *Request {

@@ -11,17 +11,17 @@ import (
 	"github.com/tuanta7/hydros/pkg/dbtype"
 	"github.com/tuanta7/hydros/pkg/helper/stringx"
 
-	"github.com/tuanta7/hydros/pkg/logger"
+	"github.com/tuanta7/hydros/pkg/zapx"
 	"go.uber.org/zap"
 )
 
 type UseCase struct {
 	cfg        *config.Config
 	clientRepo Repository
-	logger     *logger.Logger
+	logger     *zapx.ZapLogger
 }
 
-func NewUseCase(cfg *config.Config, clientRepo Repository, logger *logger.Logger) *UseCase {
+func NewUseCase(cfg *config.Config, clientRepo Repository, logger *zapx.ZapLogger) *UseCase {
 	return &UseCase{
 		cfg:        cfg,
 		clientRepo: clientRepo,

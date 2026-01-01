@@ -18,8 +18,8 @@ import (
 	restadminv1 "github.com/tuanta7/hydros/internal/transport/rest/admin/v1"
 	restpublicv1 "github.com/tuanta7/hydros/internal/transport/rest/public/v1"
 	"github.com/tuanta7/hydros/pkg/aead"
-	"github.com/tuanta7/hydros/pkg/logger"
 	"github.com/tuanta7/hydros/pkg/postgres"
+	"github.com/tuanta7/hydros/pkg/zapx"
 )
 
 type App struct {

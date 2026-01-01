@@ -5,6 +5,7 @@ import (
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/handler/oidc"
 	"github.com/tuanta7/hydros/core/signer/jwt"
+	"github.com/tuanta7/hydros/core/x"
 	"github.com/tuanta7/hydros/internal/flow"
 	"github.com/tuanta7/hydros/pkg/dbtype"
 )
@@ -47,6 +48,12 @@ type LoginSession struct {
 	Subject                   string            `db:"subject"`
 	IdentityProviderSessionID dbtype.NullString `db:"identity_provider_session_id"`
 	Remember                  bool              `db:"remember"`
+}
+
+func NewLoginSession() *LoginSession {
+	return &LoginSession{
+		ID: x.RandomUUID(),
+	}
 }
 
 func (s *LoginSession) ColumnMap() map[string]any {
