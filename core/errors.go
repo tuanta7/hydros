@@ -20,8 +20,20 @@ type RFC6749Error struct {
 	cause            error
 }
 
-func (e *RFC6749Error) Error() string {
+func (e RFC6749Error) Error() string {
 	return e.ErrorField
+}
+
+func (e RFC6749Error) Is(err error) bool {
+	switch te := err.(type) {
+	case RFC6749Error:
+		return e.ErrorField == te.ErrorField &&
+			e.CodeField == te.CodeField
+	case *RFC6749Error:
+		return e.ErrorField == te.ErrorField &&
+			e.CodeField == te.CodeField
+	}
+	return false
 }
 
 func (e *RFC6749Error) WithHint(hint string, args ...any) *RFC6749Error {
@@ -31,8 +43,9 @@ func (e *RFC6749Error) WithHint(hint string, args ...any) *RFC6749Error {
 }
 
 func (e *RFC6749Error) WithWrap(cause error) *RFC6749Error {
-	e.cause = cause
-	return e
+	err := *e
+	err.cause = cause
+	return &err
 }
 
 func (e *RFC6749Error) WithDebug(debug string, args ...any) *RFC6749Error {

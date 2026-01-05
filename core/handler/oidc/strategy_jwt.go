@@ -46,7 +46,7 @@ func (i *IDTokenStrategy) GenerateIDToken(ctx context.Context, lifetime time.Dur
 	if tr.GrantType.ExactOne("refresh_token") {
 	}
 
-	if claims.ExpiresAt.IsZero() {
+	if claims.ExpiresAt == nil || claims.ExpiresAt.IsZero() {
 		claims.ExpiresAt = gojwt.NewNumericDate(x.NowUTC().Add(lifetime))
 	}
 

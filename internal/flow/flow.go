@@ -23,9 +23,8 @@ const (
 // Flow represents the flow information associated with an OAuth2/IDToken Connect session.
 // It contains information about the login and consent steps that were taken.
 type Flow struct {
-	ID                         string              `db:"id" json:"i"`
-	ACR                        string              `db:"acr" json:"a,omitempty"`  // not supported yet
-	AMR                        dbtype.StringArray  `db:"amr" json:"am,omitempty"` // not supported yet
+	ID string `db:"id" json:"i"`
+
 	LoginSkip                  bool                `db:"login_skip" json:"ls,omitempty"`
 	LoginExtendSessionLifetime bool                `db:"login_extend_session_lifetime" json:"ll,omitempty"`
 	LoginCSRF                  string              `db:"login_csrf" json:"lc,omitempty"`
@@ -33,12 +32,14 @@ type Flow struct {
 	LoginRememberFor           int                 `db:"login_remember_for" json:"lf,omitempty"`
 	LoginAuthenticatedAt       dbtype.NullTime     `db:"login_authenticated_at" json:"la,omitempty"`
 	LoginError                 *RequestDeniedError `db:"login_error" json:"le,omitempty"`
-	LoginWasHandled            bool                `db:"login_was_handled" json:"lw,omitempty"` // prevent double-submits
+	LoginWasHandled            bool                `db:"login_was_handled" json:"lw,omitempty"`
 
-	LoginSessionID            dbtype.NullString `db:"login_session_id" json:"si,omitempty"`
-	Subject                   string            `db:"subject" json:"s,omitempty"`
-	ForcedSubjectIdentifier   string            `db:"forced_subject_identifier" json:"fs,omitempty"`
-	IdentityProviderSessionID dbtype.NullString `db:"identity_provider_session_id" json:"is,omitempty"`
+	ACR                       string             `db:"acr" json:"a,omitempty"`  // not supported yet
+	AMR                       dbtype.StringArray `db:"amr" json:"am,omitempty"` // not supported yet
+	LoginSessionID            dbtype.NullString  `db:"login_session_id" json:"si,omitempty"`
+	Subject                   string             `db:"subject" json:"s,omitempty"`
+	ForcedSubjectIdentifier   string             `db:"forced_subject_identifier" json:"fs,omitempty"`
+	IdentityProviderSessionID dbtype.NullString  `db:"identity_provider_session_id" json:"is,omitempty"`
 
 	ConsentSkip        bool                `db:"consent_skip" json:"cs,omitempty"`
 	ConsentCSRF        dbtype.NullString   `db:"consent_csrf" json:"cr,omitempty"`

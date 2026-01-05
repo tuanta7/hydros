@@ -25,7 +25,7 @@ func (h *OAuthHandler) HandleTokenRequest(c *gin.Context) {
 	}
 
 	if tokenRequest.GrantType.ExactOne(string(core.GrantTypeClientCredentials)) {
-		s.Subject = tokenRequest.Client.GetID()
+		s.Claims.Subject = tokenRequest.Client.GetID()
 
 		// TODO: Do we need to let client to set which type of token it wants?
 		if h.cfg.GetAccessTokenFormat() == "jwt" {

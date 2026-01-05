@@ -76,8 +76,7 @@ func (o *OAuth2) NewTokenRequest(ctx context.Context, req *http.Request, session
 
 	handled := false
 	for _, th := range o.tokenHandlers {
-		he := th.HandleTokenRequest(ctx, tokenRequest)
-		if he == nil {
+		if he := th.HandleTokenRequest(ctx, tokenRequest); he == nil {
 			handled = true
 		} else if errors.Is(he, ErrUnknownRequest) {
 			// this handler does not handle this grant type, try the next one

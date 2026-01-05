@@ -36,11 +36,15 @@ func NewCreateClientsCommand(clientUC *client.UseCase) *cli.Command {
 			}
 
 			c := &client.Client{
-				Name:                    name,
-				Description:             gofakeit.Comment(),
-				Scope:                   "example:read",
-				GrantTypes:              []string{string(core.GrantTypeClientCredentials)},
+				Name:        name,
+				Description: gofakeit.Comment(),
+				Scope:       "example:read example:write",
+				GrantTypes: []string{
+					string(core.GrantTypeClientCredentials),
+					string(core.GrantTypeAuthorizationCode),
+				},
 				Audience:                []string{"example.com"},
+				RedirectURIs:            []string{"https://example.com/callback"},
 				TokenEndpointAuthMethod: core.ClientAuthenticationMethodBasic,
 			}
 

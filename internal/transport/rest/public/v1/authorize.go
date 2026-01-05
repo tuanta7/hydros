@@ -7,9 +7,11 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	gojwt "github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/sessions"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/handler/oidc"
+	"github.com/tuanta7/hydros/core/signer/jwt"
 	"github.com/tuanta7/hydros/internal/config"
 	"github.com/tuanta7/hydros/internal/errors"
 	"github.com/tuanta7/hydros/internal/flow"
@@ -74,7 +76,11 @@ func (h *OAuthHandler) HandleAuthorizeRequest(c *gin.Context) {
 
 	authorizeResponse, err := h.oauth2.NewAuthorizeResponse(ctx, ar, &session.Session{
 		IDTokenSession: &oidc.IDTokenSession{
-			Subject: f.Subject, // id of authenticated user
+			Claims: &jwt.IDTokenClaims{
+				RegisteredClaims: gojwt.RegisteredClaims{
+					Subject: f.Subject, // id of authenticated user
+				},
+			},
 		},
 		Flow: f,
 	})

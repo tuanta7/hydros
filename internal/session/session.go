@@ -1,6 +1,7 @@
 package session
 
 import (
+	gojwt "github.com/golang-jwt/jwt/v5"
 	"github.com/mohae/deepcopy"
 	"github.com/tuanta7/hydros/core"
 	"github.com/tuanta7/hydros/core/handler/oidc"
@@ -27,8 +28,11 @@ type Session struct {
 func NewSession(subject string) *Session {
 	return &Session{
 		IDTokenSession: &oidc.IDTokenSession{
-			Claims:  &jwt.IDTokenClaims{},
-			Subject: subject,
+			Claims: &jwt.IDTokenClaims{
+				RegisteredClaims: gojwt.RegisteredClaims{
+					Subject: subject,
+				},
+			},
 		},
 		Challenge: "",
 	}
@@ -44,10 +48,10 @@ func (s *Session) Clone() core.Session {
 
 type LoginSession struct {
 	ID                        string            `db:"id"`
-	AuthenticatedAt           dbtype.NullTime   `db:"authenticated_at"`
 	Subject                   string            `db:"subject"`
-	IdentityProviderSessionID dbtype.NullString `db:"identity_provider_session_id"`
 	Remember                  bool              `db:"remember"`
+	AuthenticatedAt           dbtype.NullTime   `db:"authenticated_at"`
+	IdentityProviderSessionID dbtype.NullString `db:"identity_provider_session_id"`
 }
 
 func NewLoginSession() *LoginSession {
@@ -59,9 +63,9 @@ func NewLoginSession() *LoginSession {
 func (s *LoginSession) ColumnMap() map[string]any {
 	return map[string]any{
 		"id":                           s.ID,
-		"authenticated_at":             s.AuthenticatedAt,
 		"subject":                      s.Subject,
-		"identity_provider_session_id": s.IdentityProviderSessionID,
 		"remember":                     s.Remember,
+		"authenticated_at":             s.AuthenticatedAt,
+		"identity_provider_session_id": s.IdentityProviderSessionID,
 	}
 }

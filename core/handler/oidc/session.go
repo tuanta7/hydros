@@ -16,7 +16,6 @@ type OpenIDConnectSession interface {
 type IDTokenSession struct {
 	Claims    *jwt.IDTokenClaims           `json:"id_token_claims"`
 	Username  string                       `json:"username"`
-	Subject   string                       `json:"subject"`
 	ExpiresAt map[core.TokenType]time.Time `json:"expires_at"`
 }
 
@@ -57,11 +56,11 @@ func (s *IDTokenSession) GetSubject() string {
 		return ""
 	}
 
-	return s.Subject
+	return s.Claims.Subject
 }
 
 func (s *IDTokenSession) SetSubject(subject string) {
-	s.Subject = subject
+	s.Claims.Subject = subject
 }
 
 func (s *IDTokenSession) Clone() core.Session {

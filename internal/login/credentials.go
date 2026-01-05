@@ -1,8 +1,9 @@
 package login
 
 type Credentials struct {
-	Username string `json:"username" db:"username"`
-	Password string `json:"password" db:"password"`
+	Username string            `json:"username"`
+	Password string            `json:"password"`
+	Extra    map[string]string `json:"extra"`
 }
 
 func (c *Credentials) ColumnMap() map[string]any {

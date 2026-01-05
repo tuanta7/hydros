@@ -202,9 +202,6 @@ func (h *AuthorizationCodeGrantHandler) HandleTokenRequest(ctx context.Context, 
 		return core.ErrInvalidGrant.WithHint("The redirect_uri parameter does not match the one used in the authorization request.")
 	}
 
-	tokenRequest.Session = authorizeRequest.Session
-	tokenRequest.ID = authorizeRequest.ID
-
 	accessTokenLifetime := h.config.GetAccessTokenLifetime()
 	tokenRequest.Session.SetExpiresAt(core.AccessToken, x.NowUTC().Add(accessTokenLifetime))
 
@@ -243,8 +240,7 @@ func (h *AuthorizationCodeGrantHandler) HandleTokenResponse(
 		}
 	}()
 
-	err = h.tokenStorage.CreateAccessTokenSession(ctx, signature, &req.Request)
-	if err != nil {
+	if err = h.tokenStorage.CreateAccessTokenSession(ctx, signature, &req.Request); err != nil {
 		return err
 	}
 

@@ -59,6 +59,7 @@ The complete list of specifications can be found [here](https://openid.net/devel
 | OpenID Connect Core 1.0            | ⏳ Development |
 | OAuth 2.0 Form Post Response Mode  | ✅ Supported   |
 | OpenID Connect RP-Initiated Logout | Todo          |
+| Pairwise Identifier                | Todo          |
 
 ### TODO
 
